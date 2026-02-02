@@ -13,6 +13,7 @@ const OPENAI_BASE_URL = "api.openai.com";
  */
 async function generateEmailContent(params) {
   const {
+    barterOpportunity,
     businessName,
     ownerFirstName,
     category,
@@ -31,6 +32,7 @@ async function generateEmailContent(params) {
   
   // Build prompt (use custom prompt if provided, otherwise use default)
   const prompt = customPrompt || buildEmailPrompt({
+    barterOpportunity,
     businessName,
     ownerFirstName,
     category,
@@ -118,6 +120,7 @@ async function generateEmailContent(params) {
  */
 function buildEmailPrompt(params) {
   const {
+    barterOpportunity,
     businessName,
     ownerFirstName,
     category,
@@ -130,6 +133,13 @@ function buildEmailPrompt(params) {
     offerTier
   } = params;
   
+  // Build barter mention if available
+  let barterNote = "";
+  if (barterOpportunity && barterOpportunity.available && barterOpportunity.eligible) {
+    barterNote = `
+Barter Opportunity: This business offers ${barterOpportunity.offering}. If appropriate, mention this subtly and naturally in the opening (e.g., "Since I'm a regular at places like yours..." or "I love supporting local [category] businesses..."). Keep it subtle and conversational - NOT an explicit barter pitch, just a natural connection point.`;
+  }
+
   return `Write a personalized cold email for a UK local business owner.
 
 Business: ${businessName}
@@ -140,7 +150,7 @@ Reviews: ${reviewCount || "Unknown"} (Rating: ${rating || "N/A"})
 Competitor mentioned: ${competitorName || "None"}
 JTBD Fear: ${jtbdFear || "General business growth"}
 Lead Magnet: ${leadMagnet || "None"}
-Offer Tier: ${offerTier || "Tier 1"}
+Offer Tier: ${offerTier || "Tier 1"}${barterNote}
 
 Requirements:
 - 4-5 sentences max

@@ -25,12 +25,22 @@ async function generateOutreachContent(businessData, config = {}) {
     }
   };
   
+  // Prepare barter info - only include if available
+  const barterInfo = businessData.barterOpportunity && businessData.barterOpportunity.available
+    ? businessData.barterOpportunity
+    : null;
+  
   // Generate email content
   if (generateEmail) {
+    const emailData = {
+      ...businessData,
+      barterOpportunity: barterInfo
+    };
+    
     if (emailSequence) {
-      content.emailSequence = await generateEmailSequence(businessData, config.sequenceConfig);
+      content.emailSequence = await generateEmailSequence(emailData, config.sequenceConfig);
     } else {
-      content.email = await generateEmailContent(businessData);
+      content.email = await generateEmailContent(emailData);
     }
   }
   

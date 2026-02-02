@@ -1,3 +1,5 @@
+const { hasAgreement } = require("./barter-agreements");
+
 const barterCategories = {
   cafe: { value: "high", offering: "coffee/food credits", discount: 50 },
   restaurant: { value: "high", offering: "food credits", discount: 100 },
@@ -9,14 +11,24 @@ const barterCategories = {
 function detectBarterOpportunity(business) {
   const category = (business.category || "").toLowerCase();
   const barterInfo = Object.entries(barterCategories).find(([cat]) => category.includes(cat));
-  if (!barterInfo) return { eligible: false, value: "low" };
+  
+  if (!barterInfo) {
+    return { eligible: false, available: false, value: "low" };
+  }
+  
   const [barterCategory, info] = barterInfo;
+  
+  // Check if category already has a barter agreement
+  const hasExistingAgreement = hasAgreement(barterCategory);
+  
   return {
     eligible: true,
+    available: !hasExistingAgreement,
     category: barterCategory,
     value: info.value,
     offering: info.offering,
-    discount: info.discount
+    discount: info.discount,
+    hasExistingAgreement: hasExistingAgreement
   };
 }
 
