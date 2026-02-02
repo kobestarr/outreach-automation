@@ -10,6 +10,7 @@ const { generateOutreachContent } = require("../../../shared/outreach-core/conte
 const { needsApproval, addToApprovalQueue, loadApprovedTemplates } = require("../../../shared/outreach-core/approval-system/approval-manager");
 const { exportToLemlist } = require("../../../shared/outreach-core/export-managers/lemlist-exporter");
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
+const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/data-storage");
 
 /**
  * Main enrichment function
@@ -80,12 +81,15 @@ async function enrichBusiness(business) {
  * @param {string} location - Location name (e.g., "Bramhall")
  * @param {string} postcode - Postcode prefix (e.g., "SK7") to ensure correct location
  * @param {Array<string>} businessTypes - Business type keywords (e.g., ["restaurants", "cafes"])
+ * @param {boolean} extractEmails - Whether to extract emails via HasData (default: true)
  * @returns {Promise<Array>} Array of enriched businesses
  */
-async function processBusinesses(location, postcode, businessTypes = []) {
+async function processBusinesses(location, postcode, businessTypes = [], extractEmails = true) {
+  const scrapedAt = new Date().toISOString();
+  
   // Step 1: Scrape Google Maps (with postcode for accuracy)
   console.log(`Scraping businesses in ${location}${postcode ? ` (${postcode})` : ""}...`);
-  const businesses = await scrapeGoogleMaps(location, postcode, businessTypes);
+  const businesses = await scrapeGoogleMaps(location, postcode, businessTypes, extractEmails);
   console.log(`Found ${businesses.length} businesses`);
   
   // Step 2: Filter chains
@@ -99,6 +103,15 @@ async function processBusinesses(location, postcode, businessTypes = []) {
     try {
       const enriched = await enrichBusiness(business);
       enrichedBusinesses.push(enriched);
+      
+      // Save enriched business to storage
+      saveBusiness(enriched, {
+        scrapedAt: scrapedAt,
+        enrichedAt: new Date().toISOString(),
+        location: location,
+        postcode: postcode,
+        status: "enriched"
+      });
       
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -133,14 +146,29 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
         continue; // Skip export until approved
       }
       
+      const exportedTo = [];
+      
       // Export to Lemlist
       if (business.ownerEmail && config.lemlistCampaignId) {
         await exportToLemlist(business, config.lemlistCampaignId, content.emailSequence);
+        exportedTo.push("lemlist");
       }
       
       // Export to Prosp
       if (business.linkedInUrl && config.exportLinkedIn) {
         await exportToProsp(business, content.linkedIn);
+        exportedTo.push("prosp");
+      }
+      
+      // Update business record with export status
+      if (exportedTo.length > 0) {
+        const { generateBusinessId } = require("./modules/data-storage");
+        const businessId = generateBusinessId(business);
+        updateBusiness(businessId, {
+          status: "exported",
+          exportedTo: exportedTo,
+          exportedAt: new Date().toISOString()
+        });
       }
       
       exported.push({
@@ -159,17 +187,55 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
 
 // Main execution (if run directly)
 if (require.main === module) {
-  const location = process.argv[2] || "Bramhall";
-  const postcode = process.argv[3] || "SK7"; // Default postcode for Bramhall
-  const businessTypes = process.argv[4] ? process.argv[4].split(",") : [];
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  let location = "Bramhall";
+  let postcode = "SK7";
+  let businessTypes = [];
+  let extractEmails = true;
+  let loadExisting = false;
+  
+  // Parse arguments
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    if (arg === "--no-email-extraction" || arg === "--no-emails") {
+      extractEmails = false;
+    } else if (arg === "--load-existing" || arg === "--load") {
+      loadExisting = true;
+      if (args[i + 1]) location = args[i + 1];
+      if (args[i + 2]) postcode = args[i + 2];
+      break;
+    } else if (i === 0 && !arg.startsWith("--")) {
+      location = arg;
+    } else if (i === 1 && !arg.startsWith("--")) {
+      postcode = arg;
+    } else if (i === 2 && !arg.startsWith("--")) {
+      businessTypes = arg.split(",");
+    }
+  }
   
   console.log(`Starting outreach automation for ${location} (${postcode})`);
   console.log(`Business types: ${businessTypes.length > 0 ? businessTypes.join(", ") : "All"}`);
+  console.log(`Email extraction: ${extractEmails ? "enabled" : "disabled"}`);
   console.log("");
   
-  processBusinesses(location, postcode, businessTypes)
+  let businessesPromise;
+  
+  if (loadExisting) {
+    // Load existing businesses from storage
+    console.log(`Loading existing businesses for ${location} (${postcode})...`);
+    const existingBusinesses = loadBusinesses({ location, postcode });
+    console.log(`Found ${existingBusinesses.length} existing businesses`);
+    businessesPromise = Promise.resolve(existingBusinesses.map(record => record.business));
+  } else {
+    // Scrape and enrich new businesses
+    businessesPromise = processBusinesses(location, postcode, businessTypes, extractEmails);
+  }
+  
+  businessesPromise
     .then(businesses => {
-      console.log(`\n✅ Enriched ${businesses.length} businesses`);
+      console.log(`\n✅ ${loadExisting ? "Loaded" : "Enriched"} ${businesses.length} businesses`);
       return generateAndExport(businesses, {
         lemlistCampaignId: process.env.LEMLIST_CAMPAIGN_ID,
         exportLinkedIn: true

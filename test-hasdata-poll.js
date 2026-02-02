@@ -1,0 +1,50 @@
+const https = require('https');
+const { getCredential } = require('./shared/outreach-core/credentials-loader');
+
+const apiKey = getCredential('hasdata', 'apiKey');
+const jobId = 289535; // From previous test
+
+console.log('Polling HasData job:', jobId);
+console.log('');
+
+const options = {
+  hostname: 'api.hasdata.com',
+  path: `/scrapers/google-maps/jobs/${jobId}`,
+  method: 'GET',
+  headers: {
+    'x-api-key': apiKey,
+    'Accept': 'application/json'
+  }
+};
+
+const req = https.request(options, (res) => {
+  let data = '';
+  
+  console.log('Status:', res.statusCode);
+  console.log('');
+  
+  res.on('data', (chunk) => {
+    data += chunk;
+  });
+  
+  res.on('end', () => {
+    try {
+      const parsed = JSON.parse(data);
+      console.log('Response:');
+      console.log(JSON.stringify(parsed, null, 2));
+      console.log('');
+      console.log('Status:', parsed.status);
+      console.log('Has data field:', !!parsed.data);
+      console.log('Data rows:', parsed.dataRowsCount);
+    } catch (e) {
+      console.log('Failed to parse:', e.message);
+      console.log('Raw response:', data.substring(0, 500));
+    }
+  });
+});
+
+req.on('error', (error) => {
+  console.error('Request error:', error);
+});
+
+req.end();

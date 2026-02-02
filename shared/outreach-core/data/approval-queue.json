@@ -13,5 +13,19 @@
     "createdAt": "2026-02-02T00:26:08.536Z",
     "approvedAt": null,
     "approvedBy": null
+  },
+  "unknown": {
+    "business": {
+      "category": "unknown",
+      "location": {}
+    },
+    "email": {
+      "subject": "Boosting Your Business Potential Together",
+      "body": "\n\nHello there,\n\nI've been keeping an eye on your local business and I must say, I'm impressed by the consistent high reviews (4.6 rating, fantastic!). It's clear you're doing a sterling job at [location].\n\nI understand that growth can seem daunting, but I have some simple yet effective review tactics that could potentially give your business a further lift. Would you fancy a quick chat or perhaps a coffee meeting to discuss this further? No pressure at all, just a friendly chat.\n\nLooking forward to hearing from you soon.\n\nKind regards,\n\n[Your Name]"
+    },
+    "status": "pending",
+    "createdAt": "2026-02-02T00:59:27.066Z",
+    "approvedAt": null,
+    "approvedBy": null
   }
 }
