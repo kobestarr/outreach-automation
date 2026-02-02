@@ -17,9 +17,9 @@ const LEMLIST_BASE_URL = "api.lemlist.com";
 async function addLeadToCampaign(campaignId, leadData) {
   const apiKey = getCredential("lemlist", "apiKey");
   
-  // Lemlist uses Basic auth: base64(username:password)
-  // API key format: username:password (or just the API key as username with empty password)
-  const authString = Buffer.from(apiKey + ":").toString("base64");
+  // Lemlist uses Basic auth: base64(":YourApiKey")
+  // Username is empty, password is API key, colon BEFORE the key
+  const authString = Buffer.from(":" + apiKey).toString("base64");
   
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({
@@ -83,7 +83,7 @@ async function addLeadToCampaign(campaignId, leadData) {
  */
 async function getCampaigns() {
   const apiKey = getCredential("lemlist", "apiKey");
-  const authString = Buffer.from(apiKey + ":").toString("base64");
+  const authString = Buffer.from(":" + apiKey).toString("base64");
   
   return new Promise((resolve, reject) => {
     const options = {
