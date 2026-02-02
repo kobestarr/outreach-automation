@@ -61,7 +61,10 @@ CRITICAL REQUIREMENTS:
 - Use UK phrases: "cheers", "brilliant", "lovely", "proper", "sorted"
 - Avoid Americanisms: "dollars", "$", "US", "America", "reach out", "circle back", "touch base"
 - Write friendly, helpful, low-pressure emails that feel personal and genuine
-- Sound like a local UK business owner, not an American salesperson
+- Sound like a local UK business consultant, not a customer or fan.
+- Don't express personal satisfaction about their rating (don't say "I'm chuffed" or "I'm thrilled" about their rating)
+- Acknowledge their rating as a positive business signal, not personal emotion
+- You're reaching out to help them grow, not as a satisfied customer
 - Keep emails SHORT: 3-5 sentences maximum (under 100 words)
 - NO generic phrases: "hope this email finds you well", "I'm reaching out", "I hope you're well"
 - Be specific and reference their actual business/location
@@ -178,8 +181,14 @@ BUSINESS DETAILS:
 STRICT REQUIREMENTS:
 - 3-5 sentences MAXIMUM (aim for 60-80 words total)
 - Use British English spelling and UK phrases
-- Reference something SPECIFIC about ${businessName} or ${location}
+Reference something SPECIFIC about  or 
+- If mentioning their rating, frame it as a positive business signal (e.g., "Your 4.5 rating shows you're doing well"), NOT personal satisfaction (don't say "I'm chuffed" or "I'm thrilled" about their rating)
+- You're a consultant reaching out to help, not a customer expressing satisfaction
 - Address their JTBD fear: ${jtbdFear || "business growth"}
+
+- When mentioning their rating, frame it as a business observation (e.g., "Your 4.5 rating shows strong customer satisfaction"), NOT personal emotion
+- NEVER say things like "I'm chuffed about your rating" or "I'm thrilled with your 4.5 stars" - you're not a customer expressing satisfaction
+- You're a consultant acknowledging their success as a business signal, not expressing personal pleasure
 - Low-pressure CTA: suggest a "quick chat" or "coffee" - NO hard sell
 - Use ${ownerFirstName}'s name naturally in the opening
 - NO generic phrases: "hope this email finds you well", "I'm reaching out", "I hope you're well"
@@ -188,6 +197,10 @@ STRICT REQUIREMENTS:
 OUTPUT FORMAT (CRITICAL - follow exactly):
 Subject: [one short line, under 60 characters, no quotes]
 Body: [3-5 sentences, UK tone, under 100 words total]
+
+
+Example of GOOD rating mention: "Your 4.5 rating shows you're doing well" or "I noticed your strong 4.5 rating"
+Example of BAD rating mention: "I'm chuffed about your 4.5 rating" or "I'm thrilled with your brilliant rating"
 
 Example format:
 Subject: Quick question about ${businessName}
