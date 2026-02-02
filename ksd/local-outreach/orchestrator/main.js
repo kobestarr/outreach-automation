@@ -10,7 +10,7 @@ const { generateOutreachContent } = require("../../../shared/outreach-core/conte
 const { needsApproval, addToApprovalQueue, loadApprovedTemplates } = require("../../../shared/outreach-core/approval-system/approval-manager");
 const { exportToLemlist } = require("../../../shared/outreach-core/export-managers/lemlist-exporter");
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
-const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/data-storage");
+const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 
 /**
  * Main enrichment function
@@ -105,13 +105,18 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
       enrichedBusinesses.push(enriched);
       
       // Save enriched business to storage
-      saveBusiness(enriched, {
-        scrapedAt: scrapedAt,
-        enrichedAt: new Date().toISOString(),
-        location: location,
-        postcode: postcode,
-        status: "enriched"
-      });
+      try {
+        saveBusiness(enriched, {
+          scrapedAt: scrapedAt,
+          enrichedAt: new Date().toISOString(),
+          location: location,
+          postcode: postcode,
+          status: "enriched"
+        });
+      } catch (saveError) {
+        console.error("Error saving " + (enriched.name || enriched.businessName || "business") + ":", saveError.message);
+        // Continue processing even if save fails
+      }
       
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -162,7 +167,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
       
       // Update business record with export status
       if (exportedTo.length > 0) {
-        const { generateBusinessId } = require("./modules/data-storage");
+        const { generateBusinessId } = require("./modules/database");
         const businessId = generateBusinessId(business);
         updateBusiness(businessId, {
           status: "exported",

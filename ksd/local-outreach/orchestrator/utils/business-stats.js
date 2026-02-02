@@ -4,7 +4,7 @@
  * Show detailed statistics about stored businesses
  */
 
-const { getBusinessStats, loadBusinesses } = require("../modules/data-storage");
+const { getBusinessStats, loadBusinesses } = require("../modules/database");
 
 // Parse command line arguments
 const args = process.argv.slice(2);

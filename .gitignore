@@ -40,3 +40,7 @@ test-data/
 tmp/
 temp/
 *.tmp
+
+# Database files
+*.db
+**/*.db

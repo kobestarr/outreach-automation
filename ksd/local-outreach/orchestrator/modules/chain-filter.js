@@ -48,12 +48,43 @@ function isChain(business) {
 /**
  * Filter chains from business list
  */
-function filterChains(businesses) {
-  return businesses.filter(business => !isChain(business));
+
+/**
+ * Check if business is a pub
+ */
+function isPub(business) {
+  const businessName = (business.name || business.businessName || "").toLowerCase();
+  const website = (business.website || "").toLowerCase();
+  const address = (business.address || "").toLowerCase();
+  
+  // Check for pub keywords in name
+  const pubKeywords = ["pub", "tavern", "inn", "bar", "alehouse", "public house"];
+  const hasPubKeyword = pubKeywords.some(keyword => 
+    businessName.includes(keyword) || address.includes(keyword)
+  );
+  
+  // Check for pub-related domains
+  const pubDomains = [
+    "greeneking.co.uk",
+    "robinsonsbrewery.com",
+    "pubs",
+    "brewery",
+    "alehouse"
+  ];
+  const hasPubDomain = pubDomains.some(domain => website.includes(domain));
+  
+  return hasPubKeyword || hasPubDomain;
 }
+
+function filterChains(businesses) {
+  return businesses.filter(business => !isChain(business) && !isPub(business));
+}
+
+
 
 module.exports = {
   isChain,
   filterChains,
-  loadChainBrands
+  loadChainBrands,
+  isPub
 };

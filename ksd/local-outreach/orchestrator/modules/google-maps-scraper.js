@@ -282,7 +282,7 @@ function parseBusinesses(businesses) {
     const postcode = extractPostcodeFromAddress(address);
     
     return {
-      name: b.name || b.businessName,
+      name: b.name || b.businessName || b.title || (b.address ? b.address.split(',')[0].trim() : "Unknown Business"),
       address: address,
       postcode: postcode,
       phone: b.phone || b.phoneNumber,
