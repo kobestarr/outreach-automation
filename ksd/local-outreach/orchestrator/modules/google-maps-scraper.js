@@ -1,33 +1,21 @@
-/**
- * HasData Google Maps Scraper
- * Scrapes businesses from Google Maps using HasData API
- */
-
 const https = require("https");
 const { getCredential } = require("../../../shared/outreach-core/credentials-loader");
 
 const HASDATA_BASE_URL = "api.hasdata.com";
 
-/**
- * Scrape Google Maps for businesses in a location
- */
 async function scrapeGoogleMaps(location, businessTypes = []) {
   const apiKey = getCredential("hasdata", "apiKey");
   
-  // HasData Google Maps API endpoint
-  // Note: Actual endpoint may vary - check HasData docs
-  // This is a placeholder structure
-  
   return new Promise((resolve, reject) => {
     const searchQuery = encodeURIComponent(location);
-    const path = ;
+    const apiPath = "/google-maps/search?query=" + searchQuery + "&limit=100";
     
     const options = {
       hostname: HASDATA_BASE_URL,
-      path: path,
+      path: apiPath,
       method: "GET",
       headers: {
-        "Authorization": ,
+        "Authorization": "Bearer " + apiKey,
         "Accept": "application/json"
       }
     };
@@ -42,9 +30,6 @@ async function scrapeGoogleMaps(location, businessTypes = []) {
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
-          
-          // Parse HasData response format
-          // TODO: Adjust based on actual HasData API response structure
           const businesses = result.items || result.data || [];
           
           resolve(businesses.map(b => ({
@@ -54,28 +39,26 @@ async function scrapeGoogleMaps(location, businessTypes = []) {
             website: b.website || b.url,
             rating: b.rating || b.averageRating,
             reviewCount: b.reviewCount || b.userRatingsTotal || 0,
-            category: b.category || b.types?.[0] || "unknown",
+            category: b.category || (b.types && b.types[0]) || "unknown",
             location: {
-              lat: b.location?.lat || b.geometry?.location?.lat,
-              lng: b.location?.lng || b.geometry?.location?.lng
+              lat: (b.location && b.location.lat) || (b.geometry && b.geometry.location && b.geometry.location.lat),
+              lng: (b.location && b.location.lng) || (b.geometry && b.geometry.location && b.geometry.location.lng)
             },
             placeId: b.placeId || b.place_id,
-            emailsFromWebsite: b.emails || [] // If HasData extracts emails
+            emailsFromWebsite: b.emails || []
           })));
         } catch (error) {
-          reject(new Error());
+          reject(new Error("Failed to parse HasData response: " + error.message));
         }
       });
     });
     
     req.on("error", (error) => {
-      reject(new Error());
+      reject(new Error("HasData API error: " + error.message));
     });
     
     req.end();
   });
 }
 
-module.exports = {
-  scrapeGoogleMaps
-};
+module.exports = { scrapeGoogleMaps };
