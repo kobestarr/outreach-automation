@@ -3,50 +3,63 @@
  * Verifies email addresses using Reoon API with daily limit tracking
  */
 
-const https = require('https');
-const { getCredential, checkDailyLimit, recordUsage } = require('../credentials-loader');
+const https = require("https");
+const { getCredential, checkDailyLimit, recordUsage } = require("../credentials-loader");
 
-const REOON_BASE_URL = 'https://api.reoon.com';
+const REOON_BASE_URL = "emailverifier.reoon.com";
 
 /**
  * Verify a single email address
  * @param {string} email - Email address to verify
+ * @param {string} mode - Verification mode: "quick" or "power" (default: "power")
  * @returns {Promise<Object>} Verification result with status and score
  */
-async function verifyEmail(email) {
+async function verifyEmail(email, mode = "power") {
   // Check daily limit first
-  const limitCheck = checkDailyLimit('reoon');
+  const limitCheck = checkDailyLimit("reoon");
   if (!limitCheck.canUse) {
     throw new Error(`Reoon daily limit reached (500/day). Used: ${limitCheck.used}, Remaining: ${limitCheck.remaining}`);
   }
   
-  const apiKey = getCredential('reoon', 'apiKey');
+  const apiKey = getCredential("reoon", "apiKey");
   
   return new Promise((resolve, reject) => {
-    const url = `${REOON_BASE_URL}/v2/verify?email=${encodeURIComponent(email)}&key=${apiKey}`;
+    const path = `/api/v1/verify?email=${encodeURIComponent(email)}&key=${apiKey}&mode=${mode}`;
     
-    https.get(url, (res) => {
-      let data = '';
+    const options = {
+      hostname: REOON_BASE_URL,
+      path: path,
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = "";
       
-      res.on('data', (chunk) => {
+      res.on("data", (chunk) => {
         data += chunk;
       });
       
-      res.on('end', () => {
+      res.on("end", () => {
         try {
           const result = JSON.parse(data);
           
           // Record usage (1 verification = 1 credit)
-          recordUsage('reoon', 1);
+          recordUsage("reoon", 1);
           
-          // Parse Reoon response
+          // Parse Reoon response (power mode)
           const verification = {
             email: email,
-            isValid: result.status === 'valid' || result.status === 'accept_all',
-            status: result.status, // valid, invalid, accept_all, unknown, etc.
-            score: result.score || null,
+            isValid: result.status === "safe" || result.status === "valid" || result.is_deliverable === true,
+            status: result.status, // safe, valid, invalid, disabled, disposable, etc.
+            score: result.overall_score || result.score || null,
             reason: result.reason || null,
-            verifiedAt: new Date().toISOString()
+            isDeliverable: result.is_deliverable || false,
+            isSafeToSend: result.is_safe_to_send || false,
+            verifiedAt: new Date().toISOString(),
+            mode: mode
           };
           
           resolve(verification);
@@ -54,19 +67,24 @@ async function verifyEmail(email) {
           reject(new Error(`Failed to parse Reoon response: ${error.message}`));
         }
       });
-    }).on('error', (error) => {
+    });
+    
+    req.on("error", (error) => {
       reject(new Error(`Reoon API error: ${error.message}`));
     });
+    
+    req.end();
   });
 }
 
 /**
  * Verify multiple email addresses (batch)
  * @param {Array<string>} emails - Array of email addresses
+ * @param {string} mode - Verification mode: "quick" or "power" (default: "power")
  * @returns {Promise<Array<Object>>} Array of verification results
  */
-async function verifyEmails(emails) {
-  const limitCheck = checkDailyLimit('reoon');
+async function verifyEmails(emails, mode = "power") {
+  const limitCheck = checkDailyLimit("reoon");
   const remaining = limitCheck.remaining;
   
   if (emails.length > remaining) {
@@ -79,7 +97,7 @@ async function verifyEmails(emails) {
   // Process sequentially to respect rate limits
   for (const email of emails) {
     try {
-      const result = await verifyEmail(email);
+      const result = await verifyEmail(email, mode);
       results.push(result);
       
       // Small delay to avoid rate limiting
@@ -88,7 +106,7 @@ async function verifyEmails(emails) {
       results.push({
         email: email,
         isValid: false,
-        status: 'error',
+        status: "error",
         error: error.message,
         verifiedAt: new Date().toISOString()
       });
@@ -103,7 +121,7 @@ async function verifyEmails(emails) {
  * @returns {Object} Availability status
  */
 function checkAvailability() {
-  return checkDailyLimit('reoon');
+  return checkDailyLimit("reoon");
 }
 
 module.exports = {
