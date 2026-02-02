@@ -43,7 +43,7 @@ Based on these signals, estimate:
 3. Confidence level (1-10)
 4. Key reasoning
 
-Output as JSON:
+CRITICAL: Respond ONLY with valid JSON. No explanations, no markdown. Output as JSON:
 {
   "estimatedRevenue": number,
   "revenueBand": "string",
@@ -96,7 +96,15 @@ Output as JSON:
             return;
           }
           
-          const estimate = JSON.parse(result.choices[0].message.content);
+          let content = result.choices[0].message.content.trim();
+          // Extract JSON from text if GPT added explanations
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            content = jsonMatch[0];
+          }
+          // Remove markdown code blocks if present  
+          content = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+          const estimate = JSON.parse(content);
           
           resolve({
             estimatedRevenue: estimate.estimatedRevenue || 0,
