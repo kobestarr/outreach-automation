@@ -1,0 +1,46 @@
+{
+  "tiers": {
+    "tier1": {
+      "name": "Essential",
+      "setupFee": 47,
+      "monthlyPrice": 197,
+      "revenueRange": [0, 150000],
+      "ghlOffer": "review_automation",
+      "leadMagnet": "review-tactics"
+    },
+    "tier2": {
+      "name": "Growth",
+      "setupFee": 997,
+      "monthlyPrice": 297,
+      "revenueRange": [150000, 400000],
+      "ghlOffer": "review_domination",
+      "leadMagnet": "review-tactics"
+    },
+    "tier3": {
+      "name": "Expansion",
+      "setupFee": 2997,
+      "monthlyPrice": 497,
+      "revenueRange": [400000, 800000],
+      "ghlOffer": "appointment_automation",
+      "leadMagnet": "expansion-playbook"
+    },
+    "tier4": {
+      "name": "Authority",
+      "setupFee": 5997,
+      "monthlyPrice": 497,
+      "revenueRange": [800000, 2000000],
+      "ghlOffer": "local_marketing_system",
+      "leadMagnet": "authority-guide",
+      "personalBrand": true
+    },
+    "tier5": {
+      "name": "Empire",
+      "setupFee": 7997,
+      "monthlyPrice": 797,
+      "revenueRange": [2000000, 999999999],
+      "ghlOffer": "full_stack_marketing",
+      "leadMagnet": "empire-blueprint",
+      "businessGrowth": true
+    }
+  }
+}
