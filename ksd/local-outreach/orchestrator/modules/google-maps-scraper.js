@@ -1,5 +1,5 @@
 const https = require("https");
-const { getCredential } = require("../../../shared/outreach-core/credentials-loader");
+const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 
 const HASDATA_BASE_URL = "api.hasdata.com";
 

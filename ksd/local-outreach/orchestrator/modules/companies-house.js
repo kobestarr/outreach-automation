@@ -4,7 +4,7 @@
  */
 
 const https = require("https");
-const { getCredential } = require("../../../shared/outreach-core/credentials-loader");
+const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 
 const COMPANIES_HOUSE_BASE_URL = "api.company-information.service.gov.uk";
 

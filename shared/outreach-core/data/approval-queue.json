@@ -1,0 +1,17 @@
+{
+  "dentist": {
+    "business": {
+      "name": "Test Dental",
+      "category": "dentist",
+      "ownerFirstName": "John"
+    },
+    "email": {
+      "subject": "Test",
+      "body": "Test body"
+    },
+    "status": "pending",
+    "createdAt": "2026-02-02T00:26:08.536Z",
+    "approvedAt": null,
+    "approvedBy": null
+  }
+}

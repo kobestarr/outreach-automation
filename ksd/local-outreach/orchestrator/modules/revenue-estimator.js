@@ -3,8 +3,8 @@
  * Estimates business revenue using GPT-4 analysis of multiple signals
  */
 
-const { generateEmailContent } = require("../../../shared/outreach-core/content-generation/gpt-email-generator");
-const { getCredential } = require("../../../shared/outreach-core/credentials-loader");
+const { generateEmailContent } = require("../../../../shared/outreach-core/content-generation/gpt-email-generator");
+const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 const https = require("https");
 
 const OPENAI_BASE_URL = "api.openai.com";
