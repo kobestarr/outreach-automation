@@ -37,4 +37,19 @@ function detectBarterOpportunity(business) {
   if (isSingleOnly) {
     hasExistingAgreement = hasAgreement(barterCategory);
   }
-  // For multiple-allowed, we dont check - can have multiple
+  // For multiple-allowed, we don't check - can have multiple
+  
+  return {
+    eligible: true,
+    available: !hasExistingAgreement,
+    category: barterCategory,
+    value: info.value,
+    offering: info.offering,
+    discount: info.discount,
+    allowsMultiple: allowsMultiple,
+    isSingleOnly: isSingleOnly,
+    hasExistingAgreement: hasExistingAgreement
+  };
+}
+
+module.exports = { detectBarterOpportunity };
