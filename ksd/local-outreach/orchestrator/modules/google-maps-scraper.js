@@ -63,8 +63,8 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
           const result = JSON.parse(data);
           
           // HasData returns a jobId - we need to poll for results
-          if (result.jobId || result.job_id) {
-            const jobId = result.jobId || result.job_id;
+          if (result.id || result.jobId || result.job_id) {
+            const jobId = result.id || result.jobId || result.job_id;
             
             // Poll for results
             pollHasDataJob(jobId, apiKey, postcode)
@@ -109,7 +109,7 @@ function pollHasDataJob(jobId, apiKey, postcode) {
       
       const options = {
         hostname: HASDATA_BASE_URL,
-        path: `/scrapers/google-maps/jobs/${jobId}`,
+        path: `/scrapers/jobs/${jobId}`,
         method: "GET",
         headers: {
           "x-api-key": apiKey,
