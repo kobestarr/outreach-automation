@@ -15,7 +15,7 @@ const HASDATA_BASE_URL = "api.hasdata.com";
  * @param {Array<string>} businessTypes - Keywords to search for (e.g., ["restaurants", "cafes"])
  * @returns {Promise<Array>} Array of business objects
  */
-async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
+async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractEmails = true) {
   const apiKey = getCredential("hasdata", "apiKey");
   
   // Format location with postcode for accuracy: "Location, Postcode" or "CUSTOM>Location, Postcode"
@@ -37,7 +37,7 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
     const postData = JSON.stringify({
       keywords: keywords,
       locations: [formattedLocation],
-      extractEmails: true
+      extractEmails: extractEmails
     });
     
     const options = {
