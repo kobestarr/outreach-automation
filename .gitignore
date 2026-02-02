@@ -1,0 +1,42 @@
+# Credentials and sensitive data
+/root/.credentials/
+**/.credentials/
+**/api-keys.json
+**/usage-tracker.json
+**/.env
+**/*.key
+**/*.secret
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Apify tokens
+.apify_token
+**/.apify_token
+
+# Logs
+*.log
+**/*.log
+logs/
+**/logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+**/.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test data
+test-data/
+**/test-data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
