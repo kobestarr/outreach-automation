@@ -10,15 +10,25 @@ const HASDATA_BASE_URL = "api.hasdata.com";
 
 /**
  * Scrape Google Maps for businesses in a location
- * @param {string} location - Location to search (e.g., "Bramhall" or "CUSTOM>Bramhall")
+ * @param {string} location - Location name (e.g., "Bramhall")
+ * @param {string} postcode - Postcode to ensure correct location (e.g., "SK7")
  * @param {Array<string>} businessTypes - Keywords to search for (e.g., ["restaurants", "cafes"])
  * @returns {Promise<Array>} Array of business objects
  */
-async function scrapeGoogleMaps(location, businessTypes = []) {
+async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
   const apiKey = getCredential("hasdata", "apiKey");
   
-  // Ensure location has CUSTOM> prefix as required by HasData
-  const formattedLocation = location.startsWith("CUSTOM>") ? location : `CUSTOM>${location}`;
+  // Format location with postcode for accuracy: "Location, Postcode" or "CUSTOM>Location, Postcode"
+  // This ensures we get the right location (e.g., Bramhall SK7, not Bramhall elsewhere)
+  let formattedLocation = location;
+  if (postcode) {
+    formattedLocation = `${location}, ${postcode}`;
+  }
+  
+  // Ensure CUSTOM> prefix as required by HasData
+  if (!formattedLocation.startsWith("CUSTOM>")) {
+    formattedLocation = `CUSTOM>${formattedLocation}`;
+  }
   
   // Default keywords if none provided
   const keywords = businessTypes.length > 0 ? businessTypes : ["businesses", "shops"];
@@ -57,13 +67,13 @@ async function scrapeGoogleMaps(location, businessTypes = []) {
             const jobId = result.jobId || result.job_id;
             
             // Poll for results
-            pollHasDataJob(jobId, apiKey)
+            pollHasDataJob(jobId, apiKey, postcode)
               .then(resolve)
               .catch(reject);
           } else if (result.items || result.data) {
             // Direct results (if API returns them immediately)
             const businesses = result.items || result.data || [];
-            resolve(parseBusinesses(businesses));
+            resolve(filterByPostcode(parseBusinesses(businesses), postcode));
           } else {
             reject(new Error("Unexpected HasData response format"));
           }
@@ -86,9 +96,10 @@ async function scrapeGoogleMaps(location, businessTypes = []) {
  * Poll HasData job for results
  * @param {string} jobId - Job ID from initial request
  * @param {string} apiKey - API key
+ * @param {string} postcode - Postcode to filter results
  * @returns {Promise<Array>} Array of business objects
  */
-function pollHasDataJob(jobId, apiKey) {
+function pollHasDataJob(jobId, apiKey, postcode) {
   return new Promise((resolve, reject) => {
     const maxAttempts = 30;
     let attempts = 0;
@@ -118,7 +129,8 @@ function pollHasDataJob(jobId, apiKey) {
             const result = JSON.parse(data);
             
             if (result.status === "completed" && result.data) {
-              resolve(parseBusinesses(result.data));
+              const businesses = parseBusinesses(result.data);
+              resolve(filterByPostcode(businesses, postcode));
             } else if (result.status === "running" || result.status === "pending") {
               if (attempts < maxAttempts) {
                 setTimeout(poll, 2000); // Wait 2 seconds
@@ -146,24 +158,73 @@ function pollHasDataJob(jobId, apiKey) {
 }
 
 /**
+ * Filter businesses by postcode area
+ * @param {Array} businesses - Array of business objects
+ * @param {string} postcode - Postcode prefix to match (e.g., "SK7")
+ * @returns {Array} Filtered businesses
+ */
+function filterByPostcode(businesses, postcode) {
+  if (!postcode) {
+    return businesses; // No postcode filter, return all
+  }
+  
+  // Extract postcode prefix (first part before space, e.g., "SK7" from "SK7 1AA")
+  const postcodePrefix = postcode.toUpperCase().split(" ")[0].trim();
+  
+  return businesses.filter(business => {
+    const businessPostcode = business.postcode || extractPostcodeFromAddress(business.address);
+    
+    if (!businessPostcode) {
+      // If no postcode found, include it (might be valid but missing data)
+      return true;
+    }
+    
+    // Check if postcode starts with the prefix
+    const businessPrefix = businessPostcode.toUpperCase().split(" ")[0].trim();
+    return businessPrefix === postcodePrefix;
+  });
+}
+
+/**
+ * Extract postcode from address string
+ * @param {string} address - Full address string
+ * @returns {string|null} Postcode if found
+ */
+function extractPostcodeFromAddress(address) {
+  if (!address) return null;
+  
+  // UK postcode pattern: e.g., "SK7 1AA", "M1 1AA", "SW1A 1AA"
+  const postcodePattern = /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\b/i;
+  const match = address.match(postcodePattern);
+  
+  return match ? match[1].toUpperCase() : null;
+}
+
+/**
  * Parse HasData business data into standard format
  */
 function parseBusinesses(businesses) {
-  return businesses.map(b => ({
-    name: b.name || b.businessName,
-    address: b.address || b.formattedAddress,
-    phone: b.phone || b.phoneNumber,
-    website: b.website || b.url,
-    rating: b.rating || b.averageRating,
-    reviewCount: b.reviewCount || b.userRatingsTotal || 0,
-    category: b.category || (b.types && b.types[0]) || "unknown",
-    location: {
-      lat: (b.location && b.location.lat) || (b.geometry && b.geometry.location && b.geometry.location.lat),
-      lng: (b.location && b.location.lng) || (b.geometry && b.geometry.location && b.geometry.location.lng)
-    },
-    placeId: b.placeId || b.place_id,
-    emailsFromWebsite: b.emails || b.extractedEmails || []
-  }));
+  return businesses.map(b => {
+    const address = b.address || b.formattedAddress || "";
+    const postcode = extractPostcodeFromAddress(address);
+    
+    return {
+      name: b.name || b.businessName,
+      address: address,
+      postcode: postcode,
+      phone: b.phone || b.phoneNumber,
+      website: b.website || b.url,
+      rating: b.rating || b.averageRating,
+      reviewCount: b.reviewCount || b.userRatingsTotal || 0,
+      category: b.category || (b.types && b.types[0]) || "unknown",
+      location: {
+        lat: (b.location && b.location.lat) || (b.geometry && b.geometry.location && b.geometry.location.lat),
+        lng: (b.location && b.location.lng) || (b.geometry && b.geometry.location && b.geometry.location.lng)
+      },
+      placeId: b.placeId || b.place_id,
+      emailsFromWebsite: b.emails || b.extractedEmails || []
+    };
+  });
 }
 
 module.exports = {

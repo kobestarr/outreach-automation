@@ -11,9 +11,13 @@ const { needsApproval, addToApprovalQueue, loadApprovedTemplates } = require("..
 const { exportToLemlist } = require("../../../shared/outreach-core/export-managers/lemlist-exporter");
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
 
+/**
+ * Main enrichment function
+ */
 async function enrichBusiness(business) {
   const enriched = { ...business };
   
+  // Step 1: Get owner name from Companies House
   if (!enriched.ownerFirstName) {
     const owner = await getOwnerName(business.name, business.postcode);
     if (owner) {
@@ -23,6 +27,7 @@ async function enrichBusiness(business) {
     }
   }
   
+  // Step 2: Discover email
   if (!enriched.ownerEmail && enriched.ownerFirstName) {
     const emailResult = await discoverEmail({
       firstName: enriched.ownerFirstName,
@@ -40,6 +45,7 @@ async function enrichBusiness(business) {
     }
   }
   
+  // Step 3: LinkedIn enrichment (conditional)
   if (enriched.ownerFirstName) {
     const linkedInResult = await enrichLinkedIn(enriched);
     if (linkedInResult.enriched) {
@@ -48,11 +54,13 @@ async function enrichBusiness(business) {
     }
   }
   
+  // Step 4: Revenue estimation
   const revenueEstimate = await estimateRevenue(enriched);
   enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
   enriched.revenueBand = revenueEstimate.revenueBand;
   enriched.revenueConfidence = revenueEstimate.confidence;
   
+  // Step 5: Tier assignment
   const tier = assignTier(enriched.estimatedRevenue);
   enriched.assignedOfferTier = tier.tierId;
   enriched.setupFee = tier.setupFee;
@@ -60,21 +68,39 @@ async function enrichBusiness(business) {
   enriched.ghlOffer = tier.ghlOffer;
   enriched.leadMagnet = tier.leadMagnet;
   
+  // Step 6: Barter detection
   const barter = detectBarterOpportunity(enriched);
   enriched.barterOpportunity = barter;
   
   return enriched;
 }
 
-async function processBusinesses(location, businessTypes = []) {
-  const businesses = await scrapeGoogleMaps(location, businessTypes);
+/**
+ * Process businesses from Google Maps
+ * @param {string} location - Location name (e.g., "Bramhall")
+ * @param {string} postcode - Postcode prefix (e.g., "SK7") to ensure correct location
+ * @param {Array<string>} businessTypes - Business type keywords (e.g., ["restaurants", "cafes"])
+ * @returns {Promise<Array>} Array of enriched businesses
+ */
+async function processBusinesses(location, postcode, businessTypes = []) {
+  // Step 1: Scrape Google Maps (with postcode for accuracy)
+  console.log(`Scraping businesses in ${location}${postcode ? ` (${postcode})` : ""}...`);
+  const businesses = await scrapeGoogleMaps(location, postcode, businessTypes);
+  console.log(`Found ${businesses.length} businesses`);
+  
+  // Step 2: Filter chains
   const filteredBusinesses = filterChains(businesses);
+  console.log(`After filtering chains: ${filteredBusinesses.length} businesses`);
+  
+  // Step 3: Enrich each business
   const enrichedBusinesses = [];
   
   for (const business of filteredBusinesses) {
     try {
       const enriched = await enrichBusiness(business);
       enrichedBusinesses.push(enriched);
+      
+      // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error("Error enriching " + business.name + ":", error.message);
@@ -84,28 +110,35 @@ async function processBusinesses(location, businessTypes = []) {
   return enrichedBusinesses;
 }
 
+/**
+ * Generate content and export
+ */
 async function generateAndExport(enrichedBusinesses, config = {}) {
   const approvedTemplates = loadApprovedTemplates();
   const exported = [];
   
   for (const business of enrichedBusinesses) {
     try {
+      // Generate content
       const content = await generateOutreachContent(business, {
         generateEmail: true,
         generateLinkedIn: !!business.linkedInUrl,
         emailSequence: true
       });
       
+      // Check if approval needed
       if (needsApproval(business, approvedTemplates)) {
         addToApprovalQueue(business, content.email || content.emailSequence[0]);
         console.log("Added " + business.category + " email to approval queue");
-        continue;
+        continue; // Skip export until approved
       }
       
+      // Export to Lemlist
       if (business.ownerEmail && config.lemlistCampaignId) {
         await exportToLemlist(business, config.lemlistCampaignId, content.emailSequence);
       }
       
+      // Export to Prosp
       if (business.linkedInUrl && config.exportLinkedIn) {
         await exportToProsp(business, content.linkedIn);
       }
@@ -124,23 +157,33 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
   return exported;
 }
 
+// Main execution (if run directly)
 if (require.main === module) {
   const location = process.argv[2] || "Bramhall";
-  const businessTypes = process.argv[3] ? process.argv[3].split(",") : [];
+  const postcode = process.argv[3] || "SK7"; // Default postcode for Bramhall
+  const businessTypes = process.argv[4] ? process.argv[4].split(",") : [];
   
-  processBusinesses(location, businessTypes)
+  console.log(`Starting outreach automation for ${location} (${postcode})`);
+  console.log(`Business types: ${businessTypes.length > 0 ? businessTypes.join(", ") : "All"}`);
+  console.log("");
+  
+  processBusinesses(location, postcode, businessTypes)
     .then(businesses => {
-      console.log("Enriched " + businesses.length + " businesses");
+      console.log(`\n✅ Enriched ${businesses.length} businesses`);
       return generateAndExport(businesses, {
         lemlistCampaignId: process.env.LEMLIST_CAMPAIGN_ID,
         exportLinkedIn: true
       });
     })
     .then(exported => {
-      console.log("Exported " + exported.length + " businesses");
+      console.log(`\n✅ Exported ${exported.length} businesses`);
+      console.log("\nExported businesses:");
+      exported.forEach(e => {
+        console.log(`  - ${e.business} (${e.tier})`);
+      });
     })
     .catch(error => {
-      console.error("Error:", error);
+      console.error("\n❌ Error:", error);
       process.exit(1);
     });
 }
