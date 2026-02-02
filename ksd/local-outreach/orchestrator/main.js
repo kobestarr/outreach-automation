@@ -13,14 +13,83 @@ const { exportToProsp } = require("../../../shared/outreach-core/export-managers
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 
 /**
+ * Validate input parameters
+ * @param {string} location - Location name
+ * @param {string} postcode - Postcode prefix
+ * @param {Array} businessTypes - Business type keywords
+ * @throws {Error} If validation fails
+ */
+function validateInputs(location, postcode, businessTypes) {
+  if (!location || typeof location !== 'string' || location.trim().length === 0) {
+    throw new Error('Location must be a non-empty string');
+  }
+  
+  if (postcode && typeof postcode === 'string') {
+    const prefix = postcode.split(' ')[0];
+    if (!/^[A-Z]{1,2}\d{1,2}[A-Z]?$/i.test(prefix)) {
+      throw new Error(`Invalid postcode format: ${postcode}. Expected format: SK7, M1, SW1A, etc.`);
+    }
+  }
+  
+  if (businessTypes && !Array.isArray(businessTypes)) {
+    throw new Error('businessTypes must be an array');
+  }
+  
+  return true;
+}
+
+/**
+ * Retry wrapper for async operations
+ * @param {Function} operation - Async function to retry
+ * @param {number} [maxRetries=3] - Maximum retry attempts
+ * @param {number} [delayMs=1000] - Initial delay in milliseconds
+ * @returns {Promise} Result of operation
+ */
+async function retryOperation(operation, maxRetries = 3, delayMs = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const backoffDelay = delayMs * Math.pow(2, attempt - 1);
+      console.warn(`Attempt ${attempt} failed, retrying in ${backoffDelay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+    }
+  }
+}
+
+/**
+ * Timeout wrapper for async operations
+ * @param {Promise} promise - Promise to wrap
+ * @param {number} [timeoutMs=30000] - Timeout in milliseconds
+ * @returns {Promise} Promise that rejects on timeout
+ */
+function withTimeout(promise, timeoutMs = 30000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
+
+
+
+/**
  * Main enrichment function
+ */
+/**
+ * Enrich business with owner info, email, LinkedIn, revenue, tier, barter
+ * @param {Object} business - Business object to enrich
+ * @returns {Promise<Object>} Enriched business object
+ * @throws {Error} If enrichment fails
  */
 async function enrichBusiness(business) {
   const enriched = { ...business };
   
   // Step 1: Get owner name from Companies House
   if (!enriched.ownerFirstName) {
-    const owner = await getOwnerName(business.name, business.postcode);
+    const owner = await retryOperation(() => withTimeout(getOwnerName(business.name, business.postcode)));
     if (owner) {
       enriched.ownerFirstName = owner.firstName;
       enriched.ownerLastName = owner.lastName;
@@ -30,14 +99,21 @@ async function enrichBusiness(business) {
   
   // Step 2: Discover email
   if (!enriched.ownerEmail && enriched.ownerFirstName) {
-    const emailResult = await discoverEmail({
+    const emailResult = await retryOperation(() => withTimeout(discoverEmail({
       firstName: enriched.ownerFirstName,
       lastName: enriched.ownerLastName,
-      domain: business.website ? new URL(business.website).hostname.replace("www.", "") : null,
+      domain: (() => {
+        try {
+          return business.website ? new URL(business.website).hostname.replace("www.", "") : null;
+        } catch (e) {
+          console.warn(`Invalid website URL: ${business.website}`);
+          return null;
+        }
+      })(),
       website: business.website,
       emailsFromWebsite: business.emailsFromWebsite || [],
       useIcypeas: true
-    });
+    })));
     
     if (emailResult.email) {
       enriched.ownerEmail = emailResult.email;
@@ -84,7 +160,17 @@ async function enrichBusiness(business) {
  * @param {boolean} extractEmails - Whether to extract emails via HasData (default: true)
  * @returns {Promise<Array>} Array of enriched businesses
  */
+/**
+ * Process businesses from Google Maps scraping and enrichment
+ * @param {string} location - Location name (e.g., Bramhall)
+ * @param {string} postcode - Postcode prefix (e.g., SK7) for validation
+ * @param {Array<string>} [businessTypes=[]] - Business type keywords
+ * @param {boolean} [extractEmails=true] - Whether to extract emails via HasData
+ * @returns {Promise<Array>} Array of enriched businesses
+ * @throws {Error} If validation fails or processing fails
+ */
 async function processBusinesses(location, postcode, businessTypes = [], extractEmails = true) {
+  validateInputs(location, postcode, businessTypes);
   const scrapedAt = new Date().toISOString();
   
   // Step 1: Scrape Google Maps (with postcode for accuracy)
@@ -114,14 +200,15 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
           status: "enriched"
         });
       } catch (saveError) {
-        console.error("Error saving " + (enriched.name || enriched.businessName || "business") + ":", saveError.message);
+        console.error(`Error saving ${enriched.name || enriched.businessName || "business"}: ${saveError.constructor.name} - ${saveError.message}`);
         // Continue processing even if save fails
       }
       
       // Small delay to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const DELAY_MS = parseInt(process.env.ENRICHMENT_DELAY_MS || 500, 10);
+      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
     } catch (error) {
-      console.error("Error enriching " + business.name + ":", error.message);
+      console.error(`Error enriching ${business.name}: ${error.constructor.name} - ${error.message}${error.stack ? "\n" + error.stack : ""}`);
     }
   }
   
@@ -167,8 +254,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
       
       // Update business record with export status
       if (exportedTo.length > 0) {
-        const { generateBusinessId } = require("./modules/database");
-        const businessId = generateBusinessId(business);
+                const businessId = generateBusinessId(business);
         updateBusiness(businessId, {
           status: "exported",
           exportedTo: exportedTo,
@@ -183,7 +269,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
         tier: business.assignedOfferTier
       });
     } catch (error) {
-      console.error("Error exporting " + business.name + ":", error.message);
+      console.error(`Error exporting ${business.name}: ${error.constructor.name} - ${error.message}`);
     }
   }
   

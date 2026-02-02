@@ -8,14 +8,29 @@ const path = require("path");
 
 const CHAINS_CONFIG_PATH = path.join(__dirname, "../config/uk-chains.json");
 
+let cachedChains = null;
+let cachedConfig = null;
+let configLastModified = null;
+
+
 /**
  * Load chain brands list
  */
 function loadChainBrands() {
+  if (cachedChains) return cachedChains;
+  
   try {
+    const stats = fs.statSync(CHAINS_CONFIG_PATH);
+    if (configLastModified && stats.mtimeMs === configLastModified) {
+      return cachedChains || [];
+    }
+    
     const data = fs.readFileSync(CHAINS_CONFIG_PATH, "utf8");
     const config = JSON.parse(data);
-    return config.chains || [];
+    cachedChains = config.chains || [];
+    cachedConfig = config;
+    configLastModified = stats.mtimeMs;
+    return cachedChains;
   } catch (error) {
     console.warn("Failed to load chain brands config:", error.message);
     return [];
@@ -35,7 +50,8 @@ function isChain(business) {
   // Check Google Maps signals
   const reviewCount = business.reviewCount || 0;
   const locationCount = business.locationCount || 1;
-  const config = JSON.parse(fs.readFileSync(CHAINS_CONFIG_PATH, "utf8"));
+  if (!cachedConfig) loadChainBrands();
+    const config = cachedConfig || {};
   const signals = config.signals || {};
   
   const hasChainSignals = 
@@ -64,13 +80,15 @@ function isPub(business) {
   );
   
   // Check for pub-related domains
-  const pubDomains = [
-    "greeneking.co.uk",
-    "robinsonsbrewery.com",
-    "pubs",
-    "brewery",
-    "alehouse"
-  ];
+  if (!cachedConfig) loadChainBrands();
+    const config = cachedConfig || {};
+    const pubDomains = config.pubDomains || [
+      "greeneking.co.uk",
+      "robinsonsbrewery.com",
+      "pubs",
+      "brewery",
+      "alehouse"
+    ];
   const hasPubDomain = pubDomains.some(domain => website.includes(domain));
   
   return hasPubKeyword || hasPubDomain;

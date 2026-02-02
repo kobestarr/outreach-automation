@@ -21,12 +21,43 @@ function initDatabase() {
   if (db) return db;
   db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
-  db.exec(`CREATE TABLE IF NOT EXISTS businesses (id TEXT PRIMARY KEY, name TEXT NOT NULL, location TEXT, postcode TEXT, address TEXT, website TEXT, phone TEXT, category TEXT, rating REAL, review_count INTEGER, owner_first_name TEXT, owner_last_name TEXT, owner_email TEXT, email_source TEXT, email_verified INTEGER DEFAULT 0, linkedin_url TEXT, estimated_revenue REAL, revenue_band TEXT, revenue_confidence INTEGER, assigned_tier INTEGER, setup_fee REAL, monthly_price REAL, ghl_offer TEXT, lead_magnet TEXT, barter_opportunity TEXT, status TEXT DEFAULT "scraped", scraped_at TEXT, enriched_at TEXT, exported_to TEXT, exported_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, business_data TEXT); CREATE INDEX IF NOT EXISTS idx_location_postcode ON businesses(location, postcode); CREATE INDEX IF NOT EXISTS idx_status ON businesses(status); CREATE INDEX IF NOT EXISTS idx_tier ON businesses(assigned_tier); CREATE INDEX IF NOT EXISTS idx_email ON businesses(owner_email); CREATE INDEX IF NOT EXISTS idx_exported_at ON businesses(exported_at); CREATE INDEX IF NOT EXISTS idx_created_at ON businesses(created_at); CREATE INDEX IF NOT EXISTS idx_name_postcode ON businesses(name, postcode); CREATE INDEX IF NOT EXISTS idx_website ON businesses(website);`);
+  db.exec(`CREATE TABLE IF NOT EXISTS businesses (id TEXT PRIMARY KEY, name TEXT NOT NULL, location TEXT, postcode TEXT, address TEXT, website TEXT, phone TEXT, category TEXT, rating REAL, review_count INTEGER, owner_first_name TEXT, owner_last_name TEXT, owner_email TEXT, email_source TEXT, email_verified INTEGER DEFAULT 0, linkedin_url TEXT, estimated_revenue REAL, revenue_band TEXT, revenue_confidence INTEGER, assigned_tier INTEGER, setup_fee REAL, monthly_price REAL, ghl_offer TEXT, lead_magnet TEXT, barter_opportunity TEXT, status TEXT DEFAULT "scraped", scraped_at TEXT, enriched_at TEXT, exported_to TEXT, exported_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, business_data TEXT); CREATE INDEX IF NOT EXISTS idx_location_postcode ON businesses(location, postcode); CREATE INDEX IF NOT EXISTS idx_status ON businesses(status); CREATE INDEX IF NOT EXISTS idx_tier ON businesses(assigned_tier); CREATE INDEX IF NOT EXISTS idx_email ON businesses(owner_email); CREATE INDEX IF NOT EXISTS idx_exported_at ON businesses(exported_at); CREATE INDEX IF NOT EXISTS idx_created_at ON businesses(created_at); CREATE INDEX IF NOT EXISTS idx_enriched_at ON businesses(enriched_at); CREATE INDEX IF NOT EXISTS idx_name_postcode ON businesses(name, postcode); CREATE INDEX IF NOT EXISTS idx_website ON businesses(website);`);
   return db;
 }
 
+
+/**
+ * Validate business data before saving
+ * @param {Object} business - Business object to validate
+ * @throws {Error} If validation fails
+ */
+function validateBusiness(business) {
+  if (!business || typeof business !== 'object') {
+    throw new Error('Business must be an object');
+  }
+  
+  const name = business.name || business.businessName;
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    throw new Error('Business name is required');
+  }
+  
+  if (business.website) {
+    try {
+      new URL(business.website);
+    } catch (e) {
+      throw new Error(`Invalid website URL: ${business.website}`);
+    }
+  }
+  
+  if (business.ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(business.ownerEmail)) {
+    throw new Error(`Invalid email format: ${business.ownerEmail}`);
+  }
+  
+  return true;
+}
+
 function generateBusinessId(business) {
-  const name = (business.name || business.businessName || "Unknown Business" || "Unknown Business" || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 50);
+  const name = (business.name || business.businessName || "Unknown Business").toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 50);
   const postcode = (business.postcode || "").toLowerCase().replace(/\s+/g, "");
   const hash = crypto.createHash("md5").update(JSON.stringify({ name: business.name, address: business.address })).digest("hex").substring(0, 8);
   return `${name}-${postcode}-${hash}`;
@@ -34,7 +65,7 @@ function generateBusinessId(business) {
 
 function checkDuplicate(business) {
   const database = initDatabase();
-  const byName = database.prepare(`SELECT id FROM businesses WHERE name = ? AND postcode = ? ORDER BY created_at DESC LIMIT 1`).get(business.name || business.businessName || "Unknown Business" || "Unknown Business", business.postcode || "");
+  const byName = database.prepare(`SELECT id FROM businesses WHERE name = ? AND postcode = ? ORDER BY created_at DESC LIMIT 1`).get(business.name || business.businessName || "Unknown Business", business.postcode || "");
   if (byName) return byName.id;
   if (business.website) {
     try {
@@ -51,12 +82,33 @@ function checkDuplicate(business) {
 }
 
 function saveBusiness(business, metadata = {}) {
+  validateBusiness(business);
   const database = initDatabase();
   const businessId = generateBusinessId(business);
   const existingId = checkDuplicate(business);
   const finalId = existingId || businessId;
   const stmt = database.prepare(`INSERT INTO businesses (id, name, location, postcode, address, website, phone, category, rating, review_count, owner_first_name, owner_last_name, owner_email, email_source, email_verified, linkedin_url, estimated_revenue, revenue_band, revenue_confidence, assigned_tier, setup_fee, monthly_price, ghl_offer, lead_magnet, barter_opportunity, status, scraped_at, enriched_at, exported_to, exported_at, business_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, location = excluded.location, postcode = excluded.postcode, address = excluded.address, website = excluded.website, phone = excluded.phone, category = excluded.category, rating = excluded.rating, review_count = excluded.review_count, owner_first_name = excluded.owner_first_name, owner_last_name = excluded.owner_last_name, owner_email = excluded.owner_email, email_source = excluded.email_source, email_verified = excluded.email_verified, linkedin_url = excluded.linkedin_url, estimated_revenue = excluded.estimated_revenue, revenue_band = excluded.revenue_band, revenue_confidence = excluded.revenue_confidence, assigned_tier = excluded.assigned_tier, setup_fee = excluded.setup_fee, monthly_price = excluded.monthly_price, ghl_offer = excluded.ghl_offer, lead_magnet = excluded.lead_magnet, barter_opportunity = excluded.barter_opportunity, status = excluded.status, enriched_at = excluded.enriched_at, exported_to = excluded.exported_to, exported_at = excluded.exported_at, business_data = excluded.business_data, updated_at = CURRENT_TIMESTAMP`);
-  stmt.run(finalId, business.name || business.businessName || "Unknown Business" || "Unknown Business", metadata.location || business.location, business.postcode || metadata.postcode, business.address, business.website, business.phone, business.category, business.rating, business.reviewCount || 0, business.ownerFirstName, business.ownerLastName, business.ownerEmail, business.emailSource, business.emailVerified ? 1 : 0, business.linkedInUrl, business.estimatedRevenue, business.revenueBand, business.revenueConfidence, business.assignedOfferTier, business.setupFee, business.monthlyPrice, business.ghlOffer, business.leadMagnet, business.barterOpportunity ? JSON.stringify(business.barterOpportunity) : null, metadata.status || "enriched", metadata.scrapedAt || new Date().toISOString(), metadata.enrichedAt || new Date().toISOString(), metadata.exportedTo ? JSON.stringify(metadata.exportedTo) : null, metadata.exportedAt || null, JSON.stringify(business));
+  try {
+    stmt.run(finalId, business.name || business.businessName || "Unknown Business", metadata.location || business.location, business.postcode || metadata.postcode, business.address, business.website, business.phone, business.category, business.rating, business.reviewCount || 0, business.ownerFirstName, business.ownerLastName, business.ownerEmail, business.emailSource, business.emailVerified ? 1 : 0, business.linkedInUrl, business.estimatedRevenue, business.revenueBand, business.revenueConfidence, business.assignedOfferTier, business.setupFee, business.monthlyPrice, business.ghlOffer, business.leadMagnet, business.barterOpportunity ? JSON.stringify(business.barterOpportunity) : null, metadata.status || "enriched", metadata.scrapedAt || new Date().toISOString(), metadata.enrichedAt || new Date().toISOString(), metadata.exportedTo ? JSON.stringify(metadata.exportedTo) : null, metadata.exportedAt || null, JSON.stringify(business));
+  } catch (error) {
+    if (error.code === 'SQLITE_BUSY') {
+      // Retry once after short delay
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            stmt.run(finalId, business.name || business.businessName || "Unknown Business", metadata.location || business.location, business.postcode || metadata.postcode, business.address, business.website, business.phone, business.category, business.rating, business.reviewCount || 0, business.ownerFirstName, business.ownerLastName, business.ownerEmail, business.emailSource, business.emailVerified ? 1 : 0, business.linkedInUrl, business.estimatedRevenue, business.revenueBand, business.revenueConfidence, business.assignedOfferTier, business.setupFee, business.monthlyPrice, business.ghlOffer, business.leadMagnet, business.barterOpportunity ? JSON.stringify(business.barterOpportunity) : null, metadata.status || "enriched", metadata.scrapedAt || new Date().toISOString(), metadata.enrichedAt || new Date().toISOString(), metadata.exportedTo ? JSON.stringify(metadata.exportedTo) : null, metadata.exportedAt || null, JSON.stringify(business));
+            resolve(finalId);
+          } catch (retryError) {
+            reject(new Error());
+          }
+        }, 100);
+      });
+    } else if (error.code === 'SQLITE_CORRUPT') {
+      throw new Error();
+    } else {
+      throw new Error();
+    }
+  }
   return finalId;
 }
 
@@ -67,6 +119,11 @@ function batchSaveBusinesses(businesses, metadata = {}) {
   return businesses.length;
 }
 
+/**
+ * Load businesses from database with optional filters
+ * @param {Object} [filters={}] - Filter options (location, postcode, status, tier, etc.)
+ * @returns {Array<Object>} Array of business records with id, business, metadata
+ */
 function loadBusinesses(filters = {}) {
   const database = initDatabase();
   let query = "SELECT * FROM businesses WHERE 1=1";
@@ -88,6 +145,13 @@ function loadBusinesses(filters = {}) {
   });
 }
 
+/**
+ * Update business record
+ * @param {string} businessId - Business ID to update
+ * @param {Object} updates - Update fields (status, exportedTo, exportedAt, business)
+ * @returns {Object|null} Updated business record or null if no updates
+ * @throws {Error} If businessId not found or update fails
+ */
 function updateBusiness(businessId, updates) {
   const database = initDatabase();
   const setClauses = [];
