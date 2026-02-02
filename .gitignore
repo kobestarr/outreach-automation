@@ -44,3 +44,16 @@ temp/
 # Database files
 *.db
 **/*.db
+*.db-wal
+*.db-shm
+**/*.db-wal
+**/*.db-shm
+
+# Data directories (may contain scraped/enriched data)
+**/orchestrator/data/
+**/data/businesses.db
+**/data/approval-queue.json
+
+# Session/cache files
+*.jsonl
+**/*.jsonl

@@ -1,12 +1,15 @@
 /**
  * GPT-4 Email Generation Module
  * Generates personalized email content using OpenAI GPT-4
+ *
+ * @module gpt-email-generator
  */
 
 const https = require("https");
 const { getCredential } = require("../credentials-loader");
 
 const OPENAI_BASE_URL = "api.openai.com";
+const REQUEST_TIMEOUT_MS = 60000; // OpenAI can be slow, 60 seconds
 
 /**
  * Generate email content using GPT-4
@@ -76,40 +79,58 @@ async function generateEmailContent(params) {
     
     const req = https.request(options, (res) => {
       let data = "";
-      
+
       res.on("data", (chunk) => {
         data += chunk;
       });
-      
+
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
-          
+
           if (result.error) {
+            console.error("[OpenAI] API error response:", JSON.stringify(result.error, null, 2));
             reject(new Error(`OpenAI API error: ${result.error.message}`));
             return;
           }
-          
+
+          if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+            console.error("[OpenAI] Unexpected response structure:", JSON.stringify(result, null, 2));
+            reject(new Error("OpenAI API returned unexpected response structure"));
+            return;
+          }
+
           const content = result.choices[0].message.content;
-          
+
           // Parse subject and body from response
           const parsed = parseEmailContent(content);
-          
+
           resolve({
             subject: parsed.subject,
             body: parsed.body,
             fullContent: content
           });
         } catch (error) {
+          console.error("[OpenAI] Failed to parse response. Raw data:", data.substring(0, 500));
           reject(new Error(`Failed to parse OpenAI response: ${error.message}`));
         }
       });
     });
-    
-    req.on("error", (error) => {
-      reject(new Error(`OpenAI API request error: ${error.message}`));
+
+    // Set request timeout (OpenAI can be slow)
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error(`OpenAI API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
     });
-    
+
+    req.on("error", (error) => {
+      if (error.code === "ECONNRESET") {
+        reject(new Error("OpenAI API connection reset - request may have timed out"));
+      } else {
+        reject(new Error(`OpenAI API request error: ${error.message}`));
+      }
+    });
+
     req.write(postData);
     req.end();
   });

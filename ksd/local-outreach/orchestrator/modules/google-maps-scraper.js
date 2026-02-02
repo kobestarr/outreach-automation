@@ -1,12 +1,28 @@
 /**
  * HasData Google Maps Scraper
  * Scrapes businesses from Google Maps using HasData API
+ *
+ * @module google-maps-scraper
  */
 
 const https = require("https");
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 
 const HASDATA_BASE_URL = "api.hasdata.com";
+const REQUEST_TIMEOUT_MS = 30000;
+const INITIAL_POLL_DELAY_MS = 2000;
+const MAX_POLL_DELAY_MS = 16000;
+const MAX_POLL_ATTEMPTS = 30;
+
+/**
+ * Calculate delay with exponential backoff
+ * @param {number} attempt - Current attempt number (1-indexed)
+ * @returns {number} Delay in milliseconds
+ */
+function getBackoffDelay(attempt) {
+  const delay = INITIAL_POLL_DELAY_MS * Math.pow(2, Math.min(attempt - 1, 3));
+  return Math.min(delay, MAX_POLL_DELAY_MS);
+}
 
 /**
  * Scrape Google Maps for businesses in a location
@@ -53,11 +69,12 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
     
     const req = https.request(options, (res) => {
       let data = "";
-      
+
       // Check for HTTP errors
       if (res.statusCode >= 400) {
-        res.on("data", () => {}); // Drain response
+        res.on("data", (chunk) => { data += chunk; });
         res.on("end", () => {
+          console.error("[HasData] HTTP error response:", data.substring(0, 500));
           try {
             const errorData = JSON.parse(data);
             reject(new Error(`HasData API error (${res.statusCode}): ${errorData.message || errorData.status || "Unknown error"}`));
@@ -67,25 +84,26 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
         });
         return;
       }
-      
+
       res.on("data", (chunk) => {
         data += chunk;
       });
-      
+
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
-          
+
           // Check for error status in response
           if (result.status === "error" || result.error) {
+            console.error("[HasData] API error response:", JSON.stringify(result, null, 2));
             reject(new Error(`HasData API error: ${result.message || result.error || "Unknown error"}`));
             return;
           }
-          
+
           // HasData returns a jobId - we need to poll for results
           if (result.id || result.jobId || result.job_id) {
             const jobId = result.id || result.jobId || result.job_id;
-            
+
             // Poll for results
             pollHasDataJob(jobId, apiKey, postcode)
               .then(resolve)
@@ -95,18 +113,30 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
             const businesses = result.items || result.data || [];
             resolve(filterByPostcode(parseBusinesses(businesses), postcode));
           } else {
+            console.error("[HasData] Unexpected response format:", JSON.stringify(result, null, 2));
             reject(new Error("Unexpected HasData response format"));
           }
         } catch (error) {
+          console.error("[HasData] Failed to parse response. Raw data:", data.substring(0, 500));
           reject(new Error(`Failed to parse HasData response: ${error.message}`));
         }
       });
     });
-    
-    req.on("error", (error) => {
-      reject(new Error(`HasData API error: ${error.message}`));
+
+    // Set request timeout
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error(`HasData API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
     });
-    
+
+    req.on("error", (error) => {
+      if (error.code === "ECONNRESET") {
+        reject(new Error("HasData API connection reset - request may have timed out"));
+      } else {
+        reject(new Error(`HasData API error: ${error.message}`));
+      }
+    });
+
     req.write(postData);
     req.end();
   });
@@ -115,8 +145,11 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
 
 /**
  * Fetch JSON results from HasData download URL
+ * @param {string} jsonUrl - The download URL for JSON results
+ * @param {string} postcode - Postcode to filter results
+ * @returns {Promise<Array>} Array of parsed business objects
  */
-function fetchHasDataJson(jsonUrl, apiKey, postcode) {
+function fetchHasDataJson(jsonUrl, postcode) {
   return new Promise((resolve, reject) => {
     const url = new URL(jsonUrl);
     const options = {
@@ -127,48 +160,55 @@ function fetchHasDataJson(jsonUrl, apiKey, postcode) {
         "Accept": "application/json"
       }
     };
-    
+
     const req = https.request(options, (res) => {
       let data = "";
-      
+
       res.on("data", (chunk) => {
         data += chunk;
       });
-      
+
       res.on("end", () => {
         try {
           const businesses = JSON.parse(data);
           const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses]);
           resolve(filterByPostcode(parsed, postcode));
         } catch (error) {
+          console.error("[HasData] Failed to parse JSON results. Raw data:", data.substring(0, 500));
           reject(new Error(`Failed to parse HasData JSON results: ${error.message}`));
         }
       });
     });
-    
+
+    // Set request timeout
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error(`HasData JSON fetch timeout after ${REQUEST_TIMEOUT_MS}ms`));
+    });
+
     req.on("error", (error) => {
       reject(new Error(`Failed to fetch HasData JSON: ${error.message}`));
     });
-    
+
     req.end();
   });
 }
 
 /**
- * Poll HasData job for results
+ * Poll HasData job for results with exponential backoff
  * @param {string} jobId - Job ID from initial request
- * @param {string} apiKey - API key
+ * @param {string} apiKey - API key for authentication
  * @param {string} postcode - Postcode to filter results
  * @returns {Promise<Array>} Array of business objects
+ * @throws {Error} If job fails or times out
  */
 function pollHasDataJob(jobId, apiKey, postcode) {
   return new Promise((resolve, reject) => {
-    const maxAttempts = 30;
     let attempts = 0;
-    
+
     const poll = () => {
       attempts++;
-      
+
       const options = {
         hostname: HASDATA_BASE_URL,
         path: `/scrapers/jobs/${jobId}`,
@@ -178,23 +218,23 @@ function pollHasDataJob(jobId, apiKey, postcode) {
           "Accept": "application/json"
         }
       };
-      
+
       const req = https.request(options, (res) => {
         let data = "";
-        
+
         res.on("data", (chunk) => {
           data += chunk;
         });
-        
+
         res.on("end", () => {
           try {
             const result = JSON.parse(data);
-            
+
             if ((result.status === "finished" || result.status === "completed") && result.data) {
               // HasData returns download URLs when finished
               if (typeof result.data === "object" && result.data.json) {
                 // Fetch JSON data from download URL
-                fetchHasDataJson(result.data.json, apiKey, postcode)
+                fetchHasDataJson(result.data.json, postcode)
                   .then(resolve)
                   .catch(reject);
               } else if (Array.isArray(result.data)) {
@@ -202,30 +242,43 @@ function pollHasDataJob(jobId, apiKey, postcode) {
                 const businesses = parseBusinesses(result.data);
                 resolve(filterByPostcode(businesses, postcode));
               } else {
+                console.error("[HasData] Unexpected data format:", JSON.stringify(result.data, null, 2));
                 reject(new Error("Unexpected data format from HasData"));
               }
             } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending" || result.status === "exporting_data") {
-              if (attempts < maxAttempts) {
-                setTimeout(poll, 2000); // Wait 2 seconds
+              if (attempts < MAX_POLL_ATTEMPTS) {
+                const delay = getBackoffDelay(attempts);
+                setTimeout(poll, delay);
               } else {
-                reject(new Error("HasData job timeout - took too long"));
+                reject(new Error(`HasData job timeout after ${MAX_POLL_ATTEMPTS} attempts (jobId: ${jobId})`));
               }
+            } else if (result.status === "failed" || result.status === "error") {
+              console.error("[HasData] Job failed:", JSON.stringify(result, null, 2));
+              reject(new Error(`HasData job failed: ${result.message || result.error || result.status}`));
             } else {
-              reject(new Error(`HasData job failed: ${result.status}`));
+              console.error("[HasData] Unknown job status:", result.status);
+              reject(new Error(`HasData job failed with unknown status: ${result.status}`));
             }
           } catch (error) {
+            console.error("[HasData] Failed to parse poll response. Raw data:", data.substring(0, 500));
             reject(new Error(`Failed to parse HasData poll response: ${error.message}`));
           }
         });
       });
-      
+
+      // Set request timeout
+      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        req.destroy();
+        reject(new Error(`HasData poll request timeout after ${REQUEST_TIMEOUT_MS}ms`));
+      });
+
       req.on("error", (error) => {
         reject(new Error(`HasData poll request error: ${error.message}`));
       });
-      
+
       req.end();
     };
-    
+
     poll();
   });
 }

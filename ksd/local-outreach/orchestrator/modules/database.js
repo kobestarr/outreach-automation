@@ -1,6 +1,8 @@
 /**
  * Database Module
  * SQLite database for high-performance business data storage
+ *
+ * @module database
  */
 
 const Database = require("better-sqlite3");
@@ -8,15 +10,22 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 
-const DB_PATH = path.join(__dirname, "../data/businesses.db");
-const DB_DIR = path.dirname(DB_PATH);
+// Configurable database path via environment variable
+const DEFAULT_DB_DIR = path.join(__dirname, "../data");
+const DB_DIR = process.env.OUTREACH_DB_DIR || DEFAULT_DB_DIR;
+const DB_PATH = process.env.OUTREACH_DB_PATH || path.join(DB_DIR, "businesses.db");
 
+// Ensure database directory exists
 if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+  fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
 }
 
 let db = null;
 
+/**
+ * Initialize the SQLite database with WAL mode and required schema
+ * @returns {Database} The initialized better-sqlite3 database instance
+ */
 function initDatabase() {
   if (db) return db;
   db = new Database(DB_PATH);
@@ -25,13 +34,24 @@ function initDatabase() {
   return db;
 }
 
+/**
+ * Generate a unique business ID from name, postcode, and content hash
+ * @param {Object} business - Business object with name, postcode, address
+ * @returns {string} Unique business identifier (slug-postcode-hash format)
+ */
 function generateBusinessId(business) {
-  const name = (business.name || business.businessName || "Unknown Business" || "Unknown Business" || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 50);
+  const name = (business.name || business.businessName || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 50);
   const postcode = (business.postcode || "").toLowerCase().replace(/\s+/g, "");
   const hash = crypto.createHash("md5").update(JSON.stringify({ name: business.name, address: business.address })).digest("hex").substring(0, 8);
   return `${name}-${postcode}-${hash}`;
 }
 
+/**
+ * Check if a business already exists in the database
+ * Checks by name+postcode, website domain, or exact address match
+ * @param {Object} business - Business object to check for duplicates
+ * @returns {string|null} Existing business ID if duplicate found, null otherwise
+ */
 function checkDuplicate(business) {
   const database = initDatabase();
   const byName = database.prepare(`SELECT id FROM businesses WHERE name = ? AND postcode = ? ORDER BY created_at DESC LIMIT 1`).get(business.name || business.businessName || "Unknown Business" || "Unknown Business", business.postcode || "");

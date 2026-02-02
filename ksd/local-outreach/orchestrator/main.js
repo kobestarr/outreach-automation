@@ -190,36 +190,115 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
   return exported;
 }
 
+/**
+ * Validate location string
+ * @param {string} location - Location name to validate
+ * @returns {boolean} True if valid
+ */
+function isValidLocation(location) {
+  if (!location || typeof location !== "string") return false;
+  // Allow alphanumeric, spaces, hyphens, apostrophes (for places like "Bishop's Stortford")
+  const locationPattern = /^[a-zA-Z0-9\s\-']+$/;
+  return locationPattern.test(location) && location.length >= 2 && location.length <= 100;
+}
+
+/**
+ * Validate UK postcode prefix
+ * @param {string} postcode - Postcode to validate
+ * @returns {boolean} True if valid UK postcode format
+ */
+function isValidPostcode(postcode) {
+  if (!postcode || typeof postcode !== "string") return false;
+  // UK postcode prefix pattern (e.g., SK7, M1, SW1A, EC1A)
+  const postcodePattern = /^[A-Z]{1,2}[0-9][0-9A-Z]?$/i;
+  return postcodePattern.test(postcode.trim());
+}
+
+/**
+ * Sanitize business types input
+ * @param {string} input - Comma-separated business types
+ * @returns {Array<string>} Sanitized array of business types
+ */
+function sanitizeBusinessTypes(input) {
+  if (!input || typeof input !== "string") return [];
+  return input
+    .split(",")
+    .map(type => type.trim().toLowerCase())
+    .filter(type => type.length > 0 && type.length <= 50 && /^[a-zA-Z0-9\s\-]+$/.test(type));
+}
+
+/**
+ * Print usage information
+ */
+function printUsage() {
+  console.log(`
+Usage: node main.js [location] [postcode] [businessTypes] [options]
+
+Arguments:
+  location       Location name (e.g., "Bramhall", "Manchester")
+  postcode       UK postcode prefix (e.g., "SK7", "M1")
+  businessTypes  Comma-separated list (e.g., "restaurants,cafes")
+
+Options:
+  --no-emails    Skip email extraction from websites
+  --load         Load existing businesses instead of scraping
+  --help         Show this help message
+
+Examples:
+  node main.js Bramhall SK7
+  node main.js "Manchester" M1 "restaurants,bars" --no-emails
+  node main.js --load Bramhall SK7
+`);
+}
+
 // Main execution (if run directly)
 if (require.main === module) {
   // Parse command line arguments
   const args = process.argv.slice(2);
+
+  // Check for help flag
+  if (args.includes("--help") || args.includes("-h")) {
+    printUsage();
+    process.exit(0);
+  }
+
   let location = "Bramhall";
   let postcode = "SK7";
   let businessTypes = [];
   let extractEmails = true;
   let loadExisting = false;
-  
+
   // Parse arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     if (arg === "--no-email-extraction" || arg === "--no-emails") {
       extractEmails = false;
     } else if (arg === "--load-existing" || arg === "--load") {
       loadExisting = true;
-      if (args[i + 1]) location = args[i + 1];
-      if (args[i + 2]) postcode = args[i + 2];
+      if (args[i + 1] && !args[i + 1].startsWith("--")) location = args[i + 1];
+      if (args[i + 2] && !args[i + 2].startsWith("--")) postcode = args[i + 2];
       break;
     } else if (i === 0 && !arg.startsWith("--")) {
       location = arg;
     } else if (i === 1 && !arg.startsWith("--")) {
       postcode = arg;
     } else if (i === 2 && !arg.startsWith("--")) {
-      businessTypes = arg.split(",");
+      businessTypes = sanitizeBusinessTypes(arg);
     }
   }
-  
+
+  // Validate inputs
+  if (!isValidLocation(location)) {
+    console.error(`Error: Invalid location "${location}". Must be 2-100 alphanumeric characters.`);
+    process.exit(1);
+  }
+
+  if (!isValidPostcode(postcode)) {
+    console.error(`Error: Invalid postcode "${postcode}". Must be a valid UK postcode prefix (e.g., SK7, M1, SW1A).`);
+    process.exit(1);
+  }
+
   console.log(`Starting outreach automation for ${location} (${postcode})`);
   console.log(`Business types: ${businessTypes.length > 0 ? businessTypes.join(", ") : "All"}`);
   console.log(`Email extraction: ${extractEmails ? "enabled" : "disabled"}`);
