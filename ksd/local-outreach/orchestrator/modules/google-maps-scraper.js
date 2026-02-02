@@ -92,6 +92,48 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
   });
 }
 
+
+/**
+ * Fetch JSON results from HasData download URL
+ */
+function fetchHasDataJson(jsonUrl, apiKey, postcode) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(jsonUrl);
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname + (url.search || ""),
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = "";
+      
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+      
+      res.on("end", () => {
+        try {
+          const businesses = JSON.parse(data);
+          const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses]);
+          resolve(filterByPostcode(parsed, postcode));
+        } catch (error) {
+          reject(new Error(`Failed to parse HasData JSON results: ${error.message}`));
+        }
+      });
+    });
+    
+    req.on("error", (error) => {
+      reject(new Error(`Failed to fetch HasData JSON: ${error.message}`));
+    });
+    
+    req.end();
+  });
+}
+
 /**
  * Poll HasData job for results
  * @param {string} jobId - Job ID from initial request
@@ -128,9 +170,20 @@ function pollHasDataJob(jobId, apiKey, postcode) {
           try {
             const result = JSON.parse(data);
             
-            if (result.status === "completed" && result.data) {
-              const businesses = parseBusinesses(result.data);
-              resolve(filterByPostcode(businesses, postcode));
+            if ((result.status === "finished" || result.status === "completed") && result.data) {
+              // HasData returns download URLs when finished
+              if (typeof result.data === "object" && result.data.json) {
+                // Fetch JSON data from download URL
+                fetchHasDataJson(result.data.json, apiKey, postcode)
+                  .then(resolve)
+                  .catch(reject);
+              } else if (Array.isArray(result.data)) {
+                // Direct data array (fallback)
+                const businesses = parseBusinesses(result.data);
+                resolve(filterByPostcode(businesses, postcode));
+              } else {
+                reject(new Error("Unexpected data format from HasData"));
+              }
             } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending") {
               if (attempts < maxAttempts) {
                 setTimeout(poll, 2000); // Wait 2 seconds
