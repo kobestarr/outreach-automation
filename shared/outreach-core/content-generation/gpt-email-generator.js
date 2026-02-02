@@ -170,9 +170,18 @@ Social Proof: ${competitorName} (a similar business) is already using our servic
 
 BUSINESS DETAILS:
 - Business Name: ${businessName}
-- Owner First Name: ${businessName} (use this naturally in opening)
+- Owner First Name: ${ownerFirstName} (MUST use this name in opening greeting - e.g., "Hi ${ownerFirstName},")
 - Category: ${category}
 - Location: ${location} (reference this specifically)
+- Category-Specific Language: Since this is a ${category}, use relevant terms naturally:
+  * Restaurant: food, meals, dining, menu, dishes, cuisine, customers, footfall
+  * Salon: hair, styling, cuts, treatments, appointments, clients
+  * Gym: fitness, workouts, membership, training, exercise, members
+  * Dentist: dental, teeth, oral health, checkups, patients
+  * Plumber: plumbing, pipes, repairs, installations, emergencies
+  * Cafe: coffee, drinks, brews, cuppa, morning rush, regulars
+  * Accountant: accounting, tax, financial, books, compliance, clients
+  Reference the category naturally in your email (e.g., "restaurant" or "food" for restaurants)
 - Reviews: ${reviewCount || "Unknown"} (Rating: ${rating || "N/A"})
 - JTBD Fear: ${jtbdFear || "General business growth"}
 - Lead Magnet: ${leadMagnet || "None"}
@@ -190,7 +199,11 @@ Reference something SPECIFIC about  or
 - NEVER say things like "I'm chuffed about your rating" or "I'm thrilled with your 4.5 stars" - you're not a customer expressing satisfaction
 - You're a consultant acknowledging their success as a business signal, not expressing personal pleasure
 - Low-pressure CTA: suggest a "quick chat" or "coffee" - NO hard sell
-- Use ${ownerFirstName}'s name naturally in the opening
+- PERSONALIZATION REQUIREMENTS (CRITICAL):
+  * MUST start with "Hi ${ownerFirstName}," or "Hello ${ownerFirstName}," - use their actual name, NOT "Hi there" or "Hello"
+  * MUST mention ${businessName} by name in the email body
+  * MUST reference ${location} specifically
+  * MUST use category-specific language (see above)
 - NO generic phrases: "hope this email finds you well", "I'm reaching out", "I hope you're well"
 - NO Americanisms: "dollars", "$", "reach out", "circle back"
 
