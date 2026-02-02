@@ -131,7 +131,7 @@ function pollHasDataJob(jobId, apiKey, postcode) {
             if (result.status === "completed" && result.data) {
               const businesses = parseBusinesses(result.data);
               resolve(filterByPostcode(businesses, postcode));
-            } else if (result.status === "running" || result.status === "pending") {
+            } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending") {
               if (attempts < maxAttempts) {
                 setTimeout(poll, 2000); // Wait 2 seconds
               } else {
