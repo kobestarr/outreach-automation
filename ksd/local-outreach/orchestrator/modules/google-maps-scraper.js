@@ -204,7 +204,7 @@ function pollHasDataJob(jobId, apiKey, postcode) {
               } else {
                 reject(new Error("Unexpected data format from HasData"));
               }
-            } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending") {
+            } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending" || result.status === "exporting_data") {
               if (attempts < maxAttempts) {
                 setTimeout(poll, 2000); // Wait 2 seconds
               } else {
