@@ -54,6 +54,20 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
     const req = https.request(options, (res) => {
       let data = "";
       
+      // Check for HTTP errors
+      if (res.statusCode >= 400) {
+        res.on("data", () => {}); // Drain response
+        res.on("end", () => {
+          try {
+            const errorData = JSON.parse(data);
+            reject(new Error(`HasData API error (${res.statusCode}): ${errorData.message || errorData.status || "Unknown error"}`));
+          } catch {
+            reject(new Error(`HasData API error: HTTP ${res.statusCode}`));
+          }
+        });
+        return;
+      }
+      
       res.on("data", (chunk) => {
         data += chunk;
       });
@@ -61,6 +75,12 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = []) {
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
+          
+          // Check for error status in response
+          if (result.status === "error" || result.error) {
+            reject(new Error(`HasData API error: ${result.message || result.error || "Unknown error"}`));
+            return;
+          }
           
           // HasData returns a jobId - we need to poll for results
           if (result.id || result.jobId || result.job_id) {
