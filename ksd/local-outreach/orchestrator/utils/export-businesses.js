@@ -126,6 +126,7 @@ if (format === "csv") {
         const str = String(value);
         // Escape quotes and wrap in quotes if contains comma, quote, or newline
         if (str.includes(",") || str.includes(""") || str.includes("
+")) {
           return ;
 ")) {
           return ;
