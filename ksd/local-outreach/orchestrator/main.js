@@ -11,6 +11,7 @@ const { needsApproval, addToApprovalQueue, loadApprovedTemplates } = require("..
 const { exportToLemlist } = require("../../../shared/outreach-core/export-managers/lemlist-exporter");
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
+const logger = require("../../../shared/outreach-core/logger");
 
 /**
  * Main enrichment function
@@ -30,10 +31,19 @@ async function enrichBusiness(business) {
   
   // Step 2: Discover email
   if (!enriched.ownerEmail && enriched.ownerFirstName) {
+    const extractDomainSafely = (website) => {
+      if (!website || typeof website !== 'string') return null;
+      try {
+        return new URL(website).hostname.replace(/^www\./, '');
+      } catch {
+        return null;
+      }
+    };
+    
     const emailResult = await discoverEmail({
       firstName: enriched.ownerFirstName,
       lastName: enriched.ownerLastName,
-      domain: business.website ? new URL(business.website).hostname.replace("www.", "") : null,
+      domain: extractDomainSafely(business.website),
       website: business.website,
       emailsFromWebsite: business.emailsFromWebsite || [],
       useIcypeas: true
@@ -88,13 +98,13 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
   const scrapedAt = new Date().toISOString();
   
   // Step 1: Scrape Google Maps (with postcode for accuracy)
-  console.log(`Scraping businesses in ${location}${postcode ? ` (${postcode})` : ""}...`);
+  logger.info('main', `Scraping businesses in ${location}${postcode ? ` (${postcode})` : ""}...`);
   const businesses = await scrapeGoogleMaps(location, postcode, businessTypes, extractEmails);
-  console.log(`Found ${businesses.length} businesses`);
+  logger.info('main', `Found ${businesses.length} businesses`);
   
   // Step 2: Filter chains
   const filteredBusinesses = filterChains(businesses);
-  console.log(`After filtering chains: ${filteredBusinesses.length} businesses`);
+  logger.info('main', `After filtering chains: ${filteredBusinesses.length} businesses`);
   
   // Step 3: Enrich each business
   const enrichedBusinesses = [];
@@ -114,14 +124,17 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
           status: "enriched"
         });
       } catch (saveError) {
-        console.error("Error saving " + (enriched.name || enriched.businessName || "business") + ":", saveError.message);
+        logger.error('main', 'Error saving business', { 
+          businessName: enriched.name || enriched.businessName,
+          error: saveError.message 
+        });
         // Continue processing even if save fails
       }
       
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      console.error("Error enriching " + business.name + ":", error.message);
+      logger.error('main', 'Error enriching business', { businessName: business.name, error: error.message });
     }
   }
   
@@ -147,7 +160,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
       // Check if approval needed
       if (needsApproval(business, approvedTemplates)) {
         addToApprovalQueue(business, content.email || content.emailSequence[0]);
-        console.log("Added " + business.category + " email to approval queue");
+        logger.info('main', `Added ${business.category} email to approval queue`);
         continue; // Skip export until approved
       }
       
@@ -183,7 +196,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
         tier: business.assignedOfferTier
       });
     } catch (error) {
-      console.error("Error exporting " + business.name + ":", error.message);
+      logger.error('main', 'Error exporting business', { businessName: business.name, error: error.message });
     }
   }
   
@@ -299,18 +312,17 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  console.log(`Starting outreach automation for ${location} (${postcode})`);
-  console.log(`Business types: ${businessTypes.length > 0 ? businessTypes.join(", ") : "All"}`);
-  console.log(`Email extraction: ${extractEmails ? "enabled" : "disabled"}`);
-  console.log("");
+  logger.info('main', `Starting outreach automation for ${location} (${postcode})`);
+  logger.info('main', `Business types: ${businessTypes.length > 0 ? businessTypes.join(", ") : "All"}`);
+  logger.info('main', `Email extraction: ${extractEmails ? "enabled" : "disabled"}`);
   
   let businessesPromise;
   
   if (loadExisting) {
     // Load existing businesses from storage
-    console.log(`Loading existing businesses for ${location} (${postcode})...`);
+    logger.info('main', `Loading existing businesses for ${location} (${postcode})...`);
     const existingBusinesses = loadBusinesses({ location, postcode });
-    console.log(`Found ${existingBusinesses.length} existing businesses`);
+    logger.info('main', `Found ${existingBusinesses.length} existing businesses`);
     businessesPromise = Promise.resolve(existingBusinesses.map(record => record.business));
   } else {
     // Scrape and enrich new businesses
@@ -319,21 +331,20 @@ if (require.main === module) {
   
   businessesPromise
     .then(businesses => {
-      console.log(`\n✅ ${loadExisting ? "Loaded" : "Enriched"} ${businesses.length} businesses`);
+      logger.info('main', `${loadExisting ? "Loaded" : "Enriched"} ${businesses.length} businesses`);
       return generateAndExport(businesses, {
         lemlistCampaignId: process.env.LEMLIST_CAMPAIGN_ID,
         exportLinkedIn: true
       });
     })
     .then(exported => {
-      console.log(`\n✅ Exported ${exported.length} businesses`);
-      console.log("\nExported businesses:");
+      logger.info('main', `Exported ${exported.length} businesses`);
       exported.forEach(e => {
-        console.log(`  - ${e.business} (${e.tier})`);
+        logger.info('main', `  - ${e.business} (${e.tier})`);
       });
     })
     .catch(error => {
-      console.error("\n❌ Error:", error);
+      logger.error('main', 'Fatal error', { error: error.message, stack: error.stack });
       process.exit(1);
     });
 }

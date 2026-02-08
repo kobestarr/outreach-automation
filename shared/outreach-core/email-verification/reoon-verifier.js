@@ -5,6 +5,7 @@
 
 const https = require("https");
 const { getCredential, checkDailyLimit, recordUsage } = require("../credentials-loader");
+const logger = require("../logger");
 
 const REOON_BASE_URL = "emailverifier.reoon.com";
 
@@ -88,7 +89,11 @@ async function verifyEmails(emails, mode = "power") {
   const remaining = limitCheck.remaining;
   
   if (emails.length > remaining) {
-    console.warn(`Only ${remaining} verifications remaining. Processing first ${remaining} emails.`);
+    logger.warn('reoon-verifier', `Only ${remaining} verifications remaining. Processing first ${remaining} emails.`, {
+      requested: emails.length,
+      remaining,
+      processing: Math.min(emails.length, remaining)
+    });
     emails = emails.slice(0, remaining);
   }
   

@@ -6,6 +6,7 @@
 const { findEmail } = require('./icypeas-finder');
 const { generateEmailPatterns, extractDomain } = require('./pattern-generator');
 const { verifyEmail } = require('../email-verification/reoon-verifier');
+const logger = require('../logger');
 
 /**
  * Discover email address using multiple methods
@@ -86,10 +87,20 @@ async function discoverEmail(params) {
             result.source = 'icypeas_unverified';
             result.certainty = bestEmail.certainty || 'medium';
             result.verified = false;
+            logger.debug('email-discovery', 'Icypeas email verification failed', { 
+              email: bestEmail.email, 
+              error: error.message 
+            });
           }
         }
       } catch (error) {
         // Icypeas failed, continue to pattern generation
+        logger.debug('email-discovery', 'Icypeas lookup failed', { 
+          firstName, 
+          lastName, 
+          domain: domainToUse, 
+          error: error.message 
+        });
       }
     }
   }

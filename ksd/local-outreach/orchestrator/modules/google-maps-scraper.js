@@ -7,6 +7,7 @@
 
 const https = require("https");
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
+const logger = require("../../../../shared/outreach-core/logger");
 
 const HASDATA_BASE_URL = "api.hasdata.com";
 const REQUEST_TIMEOUT_MS = 30000;
@@ -74,7 +75,7 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
       if (res.statusCode >= 400) {
         res.on("data", (chunk) => { data += chunk; });
         res.on("end", () => {
-          console.error("[HasData] HTTP error response:", data.substring(0, 500));
+          logger.error('google-maps-scraper', 'HasData HTTP error', { statusCode: res.statusCode, preview: data.substring(0, 200) });
           try {
             const errorData = JSON.parse(data);
             reject(new Error(`HasData API error (${res.statusCode}): ${errorData.message || errorData.status || "Unknown error"}`));
@@ -95,7 +96,7 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
 
           // Check for error status in response
           if (result.status === "error" || result.error) {
-            console.error("[HasData] API error response:", JSON.stringify(result, null, 2));
+            logger.error('google-maps-scraper', 'HasData API error', { status: result.status, error: result.error });
             reject(new Error(`HasData API error: ${result.message || result.error || "Unknown error"}`));
             return;
           }
@@ -113,11 +114,11 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
             const businesses = result.items || result.data || [];
             resolve(filterByPostcode(parseBusinesses(businesses), postcode));
           } else {
-            console.error("[HasData] Unexpected response format:", JSON.stringify(result, null, 2));
+            logger.error('google-maps-scraper', 'Unexpected response format', { resultKeys: Object.keys(result) });
             reject(new Error("Unexpected HasData response format"));
           }
         } catch (error) {
-          console.error("[HasData] Failed to parse response. Raw data:", data.substring(0, 500));
+          logger.error('google-maps-scraper', 'Failed to parse response', { error: error.message, preview: data.substring(0, 200) });
           reject(new Error(`Failed to parse HasData response: ${error.message}`));
         }
       });
@@ -174,7 +175,7 @@ function fetchHasDataJson(jsonUrl, postcode) {
           const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses]);
           resolve(filterByPostcode(parsed, postcode));
         } catch (error) {
-          console.error("[HasData] Failed to parse JSON results. Raw data:", data.substring(0, 500));
+          logger.error('google-maps-scraper', 'Failed to parse JSON results', { error: error.message, preview: data.substring(0, 200) });
           reject(new Error(`Failed to parse HasData JSON results: ${error.message}`));
         }
       });
@@ -242,7 +243,7 @@ function pollHasDataJob(jobId, apiKey, postcode) {
                 const businesses = parseBusinesses(result.data);
                 resolve(filterByPostcode(businesses, postcode));
               } else {
-                console.error("[HasData] Unexpected data format:", JSON.stringify(result.data, null, 2));
+                logger.error('google-maps-scraper', 'Unexpected data format', { dataType: typeof result.data });
                 reject(new Error("Unexpected data format from HasData"));
               }
             } else if (result.status === "in_progress" || result.status === "running" || result.status === "pending" || result.status === "exporting_data") {
@@ -253,14 +254,14 @@ function pollHasDataJob(jobId, apiKey, postcode) {
                 reject(new Error(`HasData job timeout after ${MAX_POLL_ATTEMPTS} attempts (jobId: ${jobId})`));
               }
             } else if (result.status === "failed" || result.status === "error") {
-              console.error("[HasData] Job failed:", JSON.stringify(result, null, 2));
+              logger.error('google-maps-scraper', 'Job failed', { status: result.status, message: result.message, error: result.error });
               reject(new Error(`HasData job failed: ${result.message || result.error || result.status}`));
             } else {
-              console.error("[HasData] Unknown job status:", result.status);
+              logger.error('google-maps-scraper', 'Unknown job status', { status: result.status });
               reject(new Error(`HasData job failed with unknown status: ${result.status}`));
             }
           } catch (error) {
-            console.error("[HasData] Failed to parse poll response. Raw data:", data.substring(0, 500));
+            logger.error('google-maps-scraper', 'Failed to parse poll response', { error: error.message, preview: data.substring(0, 200) });
             reject(new Error(`Failed to parse HasData poll response: ${error.message}`));
           }
         });

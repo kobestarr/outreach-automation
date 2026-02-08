@@ -7,6 +7,7 @@
 
 const https = require('https');
 const { getCredential, checkDailyLimit, recordUsage } = require('../credentials-loader');
+const logger = require('../logger');
 
 const ICYPEAS_BASE_URL = 'app.icypeas.com';
 const REQUEST_TIMEOUT_MS = 30000;
@@ -67,13 +68,19 @@ async function findEmail({ firstName, lastName, domainOrCompany }) {
           const result = JSON.parse(data);
 
           if (!result.success) {
-            console.error('[Icypeas] API error response:', JSON.stringify(result, null, 2));
+            logger.error('icypeas-finder', 'API error response', { 
+              error: result.error,
+              success: result.success 
+            });
             reject(new Error(`Icypeas API error: ${result.error || 'Unknown error'}`));
             return;
           }
 
           if (!result.item || !result.item._id) {
-            console.error('[Icypeas] Unexpected response structure:', JSON.stringify(result, null, 2));
+            logger.error('icypeas-finder', 'Unexpected response structure', { 
+              hasItem: !!result.item,
+              hasId: !!(result.item && result.item._id)
+            });
             reject(new Error('Icypeas API returned unexpected response structure'));
             return;
           }
@@ -89,7 +96,10 @@ async function findEmail({ firstName, lastName, domainOrCompany }) {
             })
             .catch(reject);
         } catch (error) {
-          console.error('[Icypeas] Failed to parse response. Raw data:', data.substring(0, 500));
+          logger.error('icypeas-finder', 'Failed to parse response', { 
+            error: error.message,
+            rawDataPreview: data.substring(0, 200)
+          });
           reject(new Error(`Failed to parse Icypeas response: ${error.message}`));
         }
       });
@@ -207,7 +217,10 @@ function pollIcypeasResult(searchId, apiKey) {
               });
             }
           } catch (error) {
-            console.error('[Icypeas] Failed to parse poll response. Raw data:', data.substring(0, 500));
+            logger.error('icypeas-finder', 'Failed to parse poll response', { 
+              error: error.message,
+              rawDataPreview: data.substring(0, 200)
+            });
             reject(new Error(`Failed to parse Icypeas poll response: ${error.message}`));
           }
         });

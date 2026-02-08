@@ -1,30 +1,36 @@
 /**
  * HasData Email Extraction Module
- * Extracts emails from business websites using HasData API
+ * 
+ * NOTE: This module is deprecated. Email extraction is now handled directly
+ * by the Google Maps scraper (google-maps-scraper.js) which returns emails
+ * in the 'emailsFromWebsite' field of each business.
+ * 
+ * HasData's Google Maps scraper already extracts emails from websites during
+ * the scraping process, making a separate email extraction API call redundant.
+ * 
+ * This file is kept for backward compatibility but should be removed in a
+ * future cleanup. Use business.emailsFromWebsite from the Google Maps scraper
+ * results instead.
+ * 
+ * @deprecated Use business.emailsFromWebsite from Google Maps scraper results
  */
 
-const https = require('https');
-const { getCredential } = require('../credentials-loader');
-
-const HASDATA_BASE_URL = 'api.hasdata.com';
+const logger = require('../logger');
 
 /**
  * Extract emails from a website URL
+ * @deprecated Use business.emailsFromWebsite from Google Maps scraper instead
  * @param {string} websiteUrl - Website URL to extract emails from
- * @returns {Promise<Array<string>>} Array of found email addresses
+ * @returns {Promise<Array<string>>} Array of found email addresses (always empty)
  */
 async function extractEmailsFromWebsite(websiteUrl) {
-  const apiKey = getCredential('hasdata', 'apiKey');
-  
-  // HasData email scraper endpoint
-  // Note: This is a placeholder - need to verify actual HasData API endpoint for email extraction
-  // HasData may extract emails as part of their Google Maps scraper, not a separate endpoint
-  
-  return new Promise((resolve, reject) => {
-    // TODO: Implement HasData email extraction API call
-    // For now, return empty array - emails will come from Google Maps scraper results
-    resolve([]);
+  logger.warn('hasdata-extractor', 'extractEmailsFromWebsite is deprecated. Emails are now extracted by Google Maps scraper.', {
+    websiteUrl,
+    alternative: 'Use business.emailsFromWebsite from scrapeGoogleMaps results'
   });
+  
+  // Return empty array - emails now come from Google Maps scraper results
+  return [];
 }
 
 module.exports = {

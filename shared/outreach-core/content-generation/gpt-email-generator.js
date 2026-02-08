@@ -8,6 +8,7 @@
 
 const https = require("https");
 const { getCredential } = require("../credentials-loader");
+const logger = require("../logger");
 const { getCategoryGroup, getCategoryEmailAngles } = require("./category-mapper");
 const { computeObservationSignals, selectPrimarySignal, getSignalHook } = require("./observation-signals");
 const { getCurrencyForLocation } = require("./currency-localization");
@@ -124,13 +125,18 @@ async function generateEmailContent(params) {
           const result = JSON.parse(data);
 
           if (result.error) {
-            console.error("[OpenAI] API error response:", JSON.stringify(result.error, null, 2));
+            logger.error('gpt-email-generator', 'OpenAI API error', { 
+              error: result.error 
+            });
             reject(new Error(`OpenAI API error: ${result.error.message}`));
             return;
           }
 
           if (!result.choices || !result.choices[0] || !result.choices[0].message) {
-            console.error("[OpenAI] Unexpected response structure:", JSON.stringify(result, null, 2));
+            logger.error('gpt-email-generator', 'Unexpected response structure', { 
+              hasChoices: !!result.choices,
+              choicesLength: result.choices?.length
+            });
             reject(new Error("OpenAI API returned unexpected response structure"));
             return;
           }
@@ -161,7 +167,10 @@ async function generateEmailContent(params) {
             }
           });
         } catch (error) {
-          console.error("[OpenAI] Failed to parse response. Raw data:", data.substring(0, 500));
+          logger.error('gpt-email-generator', 'Failed to parse response', { 
+            error: error.message,
+            rawDataPreview: data.substring(0, 200)
+          });
           reject(new Error(`Failed to parse OpenAI response: ${error.message}`));
         }
       });
@@ -225,7 +234,9 @@ function buildEmailPrompt(params) {
   const angles = getCategoryEmailAngles(categoryGroup);
 
   // 5. Select primary angle (use first angle as default)
-  // TODO: Future enhancement - match angle to signal intelligently
+  // NOTE: Future enhancement - match angle to signal intelligently
+  // This requires analyzing which angle best fits the detected signals
+  // and is planned for v2.0. See GitHub issue #42.
   const primaryAngle = angles[0] || "optimizing your customer acquisition";
 
   // 6. Get currency for location

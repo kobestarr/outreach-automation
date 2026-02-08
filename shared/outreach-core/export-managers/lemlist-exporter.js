@@ -5,6 +5,22 @@
 
 const https = require("https");
 const { getCredential } = require("../credentials-loader");
+const logger = require("../logger");
+
+/**
+ * Safely extract domain from website URL
+ * @param {string} website - Website URL
+ * @returns {string|null} Domain or null if invalid
+ */
+function extractDomainSafely(website) {
+  if (!website || typeof website !== 'string') return null;
+  try {
+    const url = new URL(website);
+    return url.hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
 
 const LEMLIST_BASE_URL = "api.lemlist.com";
 
@@ -30,7 +46,7 @@ async function addLeadToCampaign(campaignId, leadData) {
       jobTitle: leadData.jobTitle,
       linkedinUrl: leadData.linkedinUrl,
       phone: leadData.phone,
-      companyDomain: leadData.companyDomain || (leadData.website ? new URL(leadData.website).hostname.replace("www.", "") : null),
+      companyDomain: leadData.companyDomain || extractDomainSafely(leadData.website),
       icebreaker: leadData.icebreaker,
       timezone: leadData.timezone || "Europe/London"
     });
@@ -176,7 +192,7 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     linkedinUrl: business.linkedInUrl,
     phone: business.phone,
     website: business.website,
-    companyDomain: business.website ? new URL(business.website).hostname.replace("www.", "") : null,
+    companyDomain: extractDomainSafely(business.website),
     icebreaker: emailSequence && emailSequence[0] ? emailSequence[0].body.substring(0, 200) : null,
     timezone: "Europe/London"
   };
