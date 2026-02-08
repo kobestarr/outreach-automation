@@ -1,0 +1,20 @@
+{
+  "openai": {
+    "apiKey": "sk-proj-...",
+    "comment": "Required for email and LinkedIn content generation (GPT-4)"
+  },
+  "hasdata": {
+    "apiKey": "your-outscraper-api-key",
+    "comment": "Required for Google Maps business scraping (confusingly named 'hasdata' but uses Outscraper API)"
+  },
+  "icypeas": {
+    "apiKey": "your-icypeas-api-key",
+    "dailyLimit": 100,
+    "comment": "Optional - for email discovery. Remove if not using."
+  },
+  "reoon": {
+    "apiKey": "your-reoon-api-key",
+    "dailyLimit": 200,
+    "comment": "Optional - for email verification. Remove if not using."
+  }
+}

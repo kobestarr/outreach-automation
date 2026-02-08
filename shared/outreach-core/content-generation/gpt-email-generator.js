@@ -24,21 +24,21 @@ const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a b
 2. No buzzwords, jargon, or corporate speak
 3. Keep emails under 100 words (4-5 sentences max)
 4. Use lowercase subject lines (feels less sales-y)
-5. Lead with specific observation, not generic pleasantry
-6. Reference local context (location, competitor, category)
-7. One clear CTA per email (micro-offer link or calendar)
-8. UK English spelling and tone (not American)
-9. No "hope this email finds you well" or similar clichés
-10. No exclamation marks (feels desperate)
-11. Use short sentences and paragraphs
-12. Conversational tone (contractions OK: "I've noticed", "you're")
-13. Specific over generic ("22 reviews" not "some reviews")
-14. Lead with value/observation, not self-introduction
-15. Reference pain point without stating it explicitly
-16. Subtle barter mentions (if applicable) - natural connection, not pitch
-17. Social proof via competitor mention (if available)
-18. Pricing in local currency with proper formatting
-19. No attachments or links (except micro-offer/calendar)
+5. ALWAYS start with casual greeting: "Hi [Name]," or "Hey [Name],"
+6. Reference business name ONLY - never add location/postcode (e.g. "The Cutting Room" not "The Cutting Room in Bramhall, SK7")
+7. Use plain language: "help keeping clients" not "help with client retention", "rebooking" not "retention"
+8. ALWAYS say "From just £X" NEVER "For just £X" or "for just £X" or "Could X for just £X"
+9. One clear CTA per email (micro-offer link or calendar)
+10. UK English spelling and tone (not American)
+11. No "hope this email finds you well" or similar clichés
+12. No exclamation marks (feels desperate)
+13. Use short sentences and paragraphs
+14. Conversational tone (contractions OK: "I've noticed", "you're")
+15. Specific over generic ("22 reviews" not "some reviews")
+16. Lead with observation, not self-introduction
+17. Reference pain point without stating it explicitly
+18. Subtle barter mentions (if applicable) - natural connection, not pitch
+19. Social proof via competitor mention (if available)
 20. Sign off casually (just first name, no signature block)`;
 
 /**
@@ -69,21 +69,7 @@ async function generateEmailContent(params) {
   const apiKey = getCredential("openai", "apiKey");
 
   // Build prompt (use custom prompt if provided for backward compatibility, otherwise use micro-offer system)
-  const prompt = customPrompt || buildEmailPrompt({
-    barterOpportunity,
-    businessName,
-    ownerFirstName,
-    category,
-    location,
-    website,
-    reviewCount,
-    rating,
-    competitorName,
-    country,
-    instagramUrl,
-    facebookUrl,
-    socialMedia
-  });
+  const prompt = customPrompt || buildEmailPrompt(params);
   
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({

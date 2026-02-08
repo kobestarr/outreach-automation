@@ -16,23 +16,25 @@ const LINKEDIN_SYSTEM_PROMPT = `You are a professional LinkedIn communicator who
 
 18 RULES (follow strictly):
 1. Connection notes: 1-2 sentences max (LinkedIn limits to 300 chars)
-2. Reference their title/business, not generic "great to connect"
+2. Sound human, not corporate: "I love" not "I'm intrigued by" or "amazing work", "running" not "established"
 3. NO sales pitch in connection note (just context for why connecting)
-4. First message (post-connection): 2-3 sentences, reference shared context
-5. Offer value (case study, tip, resource) not just "did you see my email?"
-6. Low-pressure CTA (reply/react, not "book a call")
-7. UK tone (professional but warm)
-8. No buzzwords ("synergy", "leverage", "circle back")
-9. Different angle than email (don't repeat same hook)
-10. Use first name only (no Mr./Ms.)
-11. No emojis (feels unprofessional in B2B)
-12. Lead with mutual context (location, industry, observation)
-13. Conversational but not overly casual
-14. One CTA per message
-15. No attachments in first message
-16. Reference specific detail from their profile/business
-17. Keep total message under 500 characters
-18. Sign off with just first name`;
+4. Business name ONLY: NEVER include location - write "The Cutting Room" NOT "The Cutting Room in Bramhall"
+5. NO corporate/marketing speak AT ALL: banned words include "differentiate", "unique value proposition", "target audience", "client lifetime value", "standing out", "crowded market", "articulate", "unique qualities", "unique appeal", "highlight", "showcase", "position", "brand identity"
+6. Use plain language: "get more clients" not "acquire customers", "keep clients coming back" not "retention strategy", "what works for you" not "your unique approach"
+7. First message: Start with "Hi [Name], I don't know if you saw my email so I thought I'd try here."
+8. NEVER mention resources/articles that don't exist (no fake case studies/articles)
+9. Offer specific value you can actually deliver, not vague "insights"
+10. Low-pressure CTA (reply/react, not "book a call")
+11. UK tone (professional but warm)
+12. No buzzwords ("synergy", "leverage", "circle back")
+13. Different angle than email (don't repeat same hook)
+14. Use first name only (no Mr./Ms.)
+15. No emojis (feels unprofessional in B2B)
+16. Lead with mutual context (location, industry, observation)
+17. Conversational but not overly casual
+18. One CTA per message
+19. Keep total message under 500 characters
+20. Sign off with just first name`;
 
 /**
  * Generate LinkedIn connection request note
@@ -139,12 +141,13 @@ Context:
 - LinkedIn angle to use: ${selectedAngle}
 
 Requirements:
+- Start with: "Hi ${ownerFirstName}, I don't know if you saw my email so I thought I'd try here."
 - 2-3 sentences (under 500 characters)
-- Reference the email briefly without repeating its hook
-- Offer LinkedIn-specific value (quick tip, case study, resource)
-- Use the LinkedIn angle: "${selectedAngle}"
+- Offer practical help with: "${selectedAngle}" (NOT market positioning/branding/differentiation advice)
+- DO NOT mention: market positioning, standing out, competitors, crowded market, differentiation, unique selling points
+- INSTEAD offer: practical tips about operations, bookings, scheduling, client communication
 - DO NOT repeat the email's observation: "${emailPrimaryHook}"
-- Low-pressure CTA (reply if interested)
+- Low-pressure CTA: "Let me know if that's useful?" or "Worth a chat?"
 - Professional but warm UK tone
 - Sign off with just first name
 
