@@ -1,18 +1,51 @@
 /**
  * GPT-4 Email Generation Module
  * Generates personalized email content using OpenAI GPT-4
+ * with micro-offer system: category-specific angles + observation signals
  *
  * @module gpt-email-generator
  */
 
 const https = require("https");
 const { getCredential } = require("../credentials-loader");
+const { getCategoryGroup, getCategoryEmailAngles } = require("./category-mapper");
+const { computeObservationSignals, selectPrimarySignal, getSignalHook } = require("./observation-signals");
+const { getCurrencyForLocation } = require("./currency-localization");
 
 const OPENAI_BASE_URL = "api.openai.com";
 const REQUEST_TIMEOUT_MS = 60000; // OpenAI can be slow, 60 seconds
 
+// 20-Rule Email System Prompt (Micro-Offer System)
+const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a busy business owner reaching out to a peer, not a marketer pitching a stranger.
+
+20 RULES (follow strictly):
+1. Write like a busy business owner, not a marketer
+2. No buzzwords, jargon, or corporate speak
+3. Keep emails under 100 words (4-5 sentences max)
+4. Use lowercase subject lines (feels less sales-y)
+5. Lead with specific observation, not generic pleasantry
+6. Reference local context (location, competitor, category)
+7. One clear CTA per email (micro-offer link or calendar)
+8. UK English spelling and tone (not American)
+9. No "hope this email finds you well" or similar clichés
+10. No exclamation marks (feels desperate)
+11. Use short sentences and paragraphs
+12. Conversational tone (contractions OK: "I've noticed", "you're")
+13. Specific over generic ("22 reviews" not "some reviews")
+14. Lead with value/observation, not self-introduction
+15. Reference pain point without stating it explicitly
+16. Subtle barter mentions (if applicable) - natural connection, not pitch
+17. Social proof via competitor mention (if available)
+18. Pricing in local currency with proper formatting
+19. No attachments or links (except micro-offer/calendar)
+20. Sign off casually (just first name, no signature block)`;
+
 /**
- * Generate email content using GPT-4
+ * Generate email content using GPT-4 with micro-offer system
+ *
+ * @param {Object} params - Business data and configuration
+ * @param {string} params.customPrompt - (DEPRECATED) Custom prompt override - bypasses micro-offer system. Only use for testing.
+ * @returns {Promise<Object>} Email with subject, body, fullContent, and metadata
  */
 async function generateEmailContent(params) {
   const {
@@ -25,15 +58,16 @@ async function generateEmailContent(params) {
     reviewCount,
     rating,
     competitorName,
-    jtbdFear,
-    leadMagnet,
-    offerTier,
-    customPrompt
+    country,
+    instagramUrl,
+    facebookUrl,
+    socialMedia,
+    customPrompt // DEPRECATED: kept for backward compatibility, bypasses micro-offer system
   } = params;
-  
+
   const apiKey = getCredential("openai", "apiKey");
-  
-  // Build prompt (use custom prompt if provided, otherwise use default)
+
+  // Build prompt (use custom prompt if provided for backward compatibility, otherwise use micro-offer system)
   const prompt = customPrompt || buildEmailPrompt({
     barterOpportunity,
     businessName,
@@ -44,9 +78,10 @@ async function generateEmailContent(params) {
     reviewCount,
     rating,
     competitorName,
-    jtbdFear,
-    leadMagnet,
-    offerTier
+    country,
+    instagramUrl,
+    facebookUrl,
+    socialMedia
   });
   
   return new Promise((resolve, reject) => {
@@ -55,7 +90,7 @@ async function generateEmailContent(params) {
       messages: [
         {
           role: "system",
-          content: "You are an expert cold email copywriter specializing in UK local business outreach. Write friendly, helpful, low-pressure emails that feel personal and genuine."
+          content: EMAIL_SYSTEM_PROMPT
         },
         {
           role: "user",
@@ -63,7 +98,7 @@ async function generateEmailContent(params) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 1500 // Increased for micro-offer system
     });
     
     const options = {
@@ -105,10 +140,25 @@ async function generateEmailContent(params) {
           // Parse subject and body from response
           const parsed = parseEmailContent(content);
 
+          // Get metadata from params if available (set by buildEmailPrompt)
+          const metadata = params._metadata || {};
+
           resolve({
             subject: parsed.subject,
             body: parsed.body,
-            fullContent: content
+            fullContent: content,
+            metadata: {
+              primaryHook: metadata.primarySignal || null,
+              toneRegion: metadata.country || "UK",
+              categoryAngle: metadata.primaryAngle || null,
+              categoryGroup: metadata.categoryGroup || null,
+              observationSignals: metadata.signals || [],
+              microOfferPrice: metadata.microOfferPrice || null,
+              fullOfferPrice: metadata.fullOfferPrice || null,
+              model: "gpt-4",
+              temperature: 0.7,
+              generatedAt: new Date().toISOString()
+            }
           });
         } catch (error) {
           console.error("[OpenAI] Failed to parse response. Raw data:", data.substring(0, 500));
@@ -137,7 +187,8 @@ async function generateEmailContent(params) {
 }
 
 /**
- * Build email prompt from business data
+ * Build email prompt from business data using micro-offer system
+ * Computes category angles, observation signals, and currency localization
  */
 function buildEmailPrompt(params) {
   const {
@@ -149,38 +200,83 @@ function buildEmailPrompt(params) {
     reviewCount,
     rating,
     competitorName,
-    jtbdFear,
-    leadMagnet,
-    offerTier
+    website,
+    country // optional country override
   } = params;
-  
-  // Build barter mention if available
+
+  // 1. Determine category group
+  const categoryGroup = getCategoryGroup(category);
+
+  // 2. Compute observation signals
+  const signals = computeObservationSignals({
+    reviewCount,
+    rating,
+    website,
+    instagramUrl: params.instagramUrl,
+    facebookUrl: params.facebookUrl,
+    socialMedia: params.socialMedia
+  });
+
+  // 3. Select primary signal (most important)
+  const primarySignal = selectPrimarySignal(signals);
+  const signalHook = primarySignal ? getSignalHook(primarySignal) : "growing your business";
+
+  // 4. Get category angles
+  const angles = getCategoryEmailAngles(categoryGroup);
+
+  // 5. Select primary angle (use first angle as default)
+  // TODO: Future enhancement - match angle to signal intelligently
+  const primaryAngle = angles[0] || "optimizing your customer acquisition";
+
+  // 6. Get currency for location
+  const currency = getCurrencyForLocation(location, country);
+
+  // 7. Store metadata for later (attach to params for access in resolve)
+  params._metadata = {
+    categoryGroup,
+    signals,
+    primarySignal,
+    primaryAngle,
+    country: currency.country,
+    microOfferPrice: `${currency.symbol}${currency.microOffer}`,
+    fullOfferPrice: `${currency.symbol}${currency.fullOffer}`
+  };
+
+  // 8. Build barter mention if available
   let barterNote = "";
   if (barterOpportunity && barterOpportunity.available && barterOpportunity.eligible) {
     barterNote = `
-Barter Opportunity: This business offers ${barterOpportunity.offering}. If appropriate, mention this subtly and naturally in the opening (e.g., "Since I'm a regular at places like yours..." or "I love supporting local [category] businesses..."). Keep it subtle and conversational - NOT an explicit barter pitch, just a natural connection point.`;
+
+Barter Context: This business offers ${barterOpportunity.offering}. If appropriate, mention this subtly and naturally as a connection point (e.g., "I'm a regular at places like yours" or "I love supporting local ${category} businesses"). Keep it conversational, NOT an explicit barter pitch.`;
   }
 
-  return `Write a personalized cold email for a UK local business owner.
+  // 9. Build micro-offer prompt
+  return `Write a cold email for a UK local business using the micro-offer approach.
 
-Business: ${businessName}
-Owner: ${ownerFirstName}
-Category: ${category}
+Business: ${businessName || "their business"}
+Owner: ${ownerFirstName || "the owner"}
+Category: ${category} (${categoryGroup})
 Location: ${location}
-Reviews: ${reviewCount || "Unknown"} (Rating: ${rating || "N/A"})
-Competitor mentioned: ${competitorName || "None"}
-JTBD Fear: ${jtbdFear || "General business growth"}
-Lead Magnet: ${leadMagnet || "None"}
-Offer Tier: ${offerTier || "Tier 1"}${barterNote}
+Observation: ${primarySignal ? `${primarySignal} - ${signalHook}` : "general opportunity"}
+Category Angle: ${primaryAngle}
+Reviews: ${reviewCount !== undefined && reviewCount !== null ? reviewCount : "Unknown"} (Rating: ${rating || "N/A"})
+Website: ${website || "None listed"}
+Competitor (social proof): ${competitorName || "None"}
+Micro-Offer Price: ${currency.symbol}${currency.microOffer}
+Full Offer Price: ${currency.symbol}${currency.fullOffer}${barterNote}
 
 Requirements:
-- 4-5 sentences max
-- Friendly, UK-style tone (not American)
-- Reference something specific about their business/location
-- Address their JTBD fear
-- Low-pressure CTA (coffee meeting or quick call)
-- Mention competitor as social proof if provided
-- No buzzwords or "hope this email finds you well"
+- Lead with the observation: "${signalHook}"
+- Use the category angle as context: "${primaryAngle}"
+- Micro-offer CTA: "Just ${currency.symbol}${currency.microOffer} to get started" or similar
+- Under 100 words total
+- Lowercase subject line (no capital letters except names)
+- No buzzwords, jargon, or exclamation marks
+- UK English spelling and tone
+- Conversational, like one business owner to another
+- Reference ${location} or local context
+- If competitor provided, use as social proof naturally
+- Keep barter mention subtle if included
 
 Output format:
 Subject: [subject line]
@@ -256,5 +352,7 @@ async function generateEmailSequence(businessData, sequenceConfig = {}) {
 module.exports = {
   generateEmailContent,
   generateEmailSequence,
-  buildEmailPrompt
+  buildEmailPrompt,
+  // Export for testing/debugging
+  EMAIL_SYSTEM_PROMPT
 };
