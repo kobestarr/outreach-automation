@@ -39,7 +39,7 @@ const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a b
 17. Reference pain point without stating it explicitly
 18. Subtle barter mentions (if applicable) - natural connection, not pitch
 19. Social proof via competitor mention (if available)
-20. Sign off casually (just first name, no signature block)`;
+20. ALWAYS end with "Sent from my iPhone" (no name, no other signature)`;
 
 /**
  * Generate email content using GPT-4 with micro-offer system
