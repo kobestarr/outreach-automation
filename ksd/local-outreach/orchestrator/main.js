@@ -347,12 +347,12 @@ if (require.main === module) {
 
   // Validate inputs
   if (!isValidLocation(location)) {
-    console.error(`Error: Invalid location "${location}". Must be 2-100 alphanumeric characters.`);
+    logger.error('main', 'Invalid location', { location, reason: 'Must be 2-100 alphanumeric characters' });
     process.exit(1);
   }
 
   if (!isValidPostcode(postcode)) {
-    console.error(`Error: Invalid postcode "${postcode}". Must be a valid UK postcode prefix (e.g., SK7, M1, SW1A).`);
+    logger.error('main', 'Invalid postcode', { postcode, reason: 'Must be a valid UK postcode prefix (e.g., SK7, M1, SW1A)' });
     process.exit(1);
   }
 

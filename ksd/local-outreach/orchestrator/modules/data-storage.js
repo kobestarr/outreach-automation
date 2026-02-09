@@ -6,6 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const logger = require("../../../../shared/outreach-core/logger");
 
 const DATA_DIR = path.join(__dirname, "../data/businesses");
 const ARCHIVE_DIR = path.join(__dirname, "../data/archive");
@@ -123,7 +124,7 @@ function loadBusinesses(filters = {}) {
         const record = JSON.parse(fs.readFileSync(filePath, "utf8"));
         businesses.push(record);
       } catch (error) {
-        console.error(`Error loading business ${businessId}:`, error.message);
+        logger.error('data-storage', 'Error loading business', { businessId, error: error.message });
       }
     }
   }

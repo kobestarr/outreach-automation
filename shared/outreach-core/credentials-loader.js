@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const logger = require('./logger');
 
 // Configurable paths via environment variables with sensible defaults
 const DEFAULT_CREDENTIALS_DIR = path.join(os.homedir(), '.credentials');
@@ -75,7 +76,7 @@ function loadUsageTracker() {
     const data = fs.readFileSync(USAGE_TRACKER_PATH, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.warn(`[credentials-loader] Failed to load usage tracker: ${error.message}`);
+    logger.warn('credentials-loader', 'Failed to load usage tracker', { error: error.message });
     return {};
   }
 }

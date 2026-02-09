@@ -61,6 +61,12 @@ async function addLeadToCampaign(campaignId, leadData) {
     req.on("error", (error) => {
       reject(new Error(`Prosp API request error: ${error.message}`));
     });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
     
     req.write(postData);
     req.end();
@@ -115,6 +121,12 @@ async function sendConnectionRequest(leadId, connectionNote) {
     req.on("error", (error) => {
       reject(new Error(`Prosp API request error: ${error.message}`));
     });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
     
     req.write(postData);
     req.end();
@@ -168,6 +180,12 @@ async function sendLinkedInMessage(leadId, message) {
     
     req.on("error", (error) => {
       reject(new Error(`Prosp API request error: ${error.message}`));
+    });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
     });
     
     req.write(postData);

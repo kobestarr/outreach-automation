@@ -5,6 +5,7 @@
 
 const https = require("https");
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
+const logger = require("../../../../shared/outreach-core/logger");
 
 const COMPANIES_HOUSE_BASE_URL = "api.company-information.service.gov.uk";
 
@@ -149,7 +150,7 @@ async function getOwnerName(businessName, postcode) {
       companyName: company.title
     };
   } catch (error) {
-    console.error(`Companies House lookup error: ${error.message}`);
+    logger.error('companies-house', 'Companies House lookup error', { error: error.message });
     return null;
   }
 }

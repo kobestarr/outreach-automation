@@ -5,6 +5,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const logger = require("../../../../shared/outreach-core/logger");
 
 const CHAINS_CONFIG_PATH = path.join(__dirname, "../config/uk-chains.json");
 
@@ -17,7 +18,7 @@ function loadChainBrands() {
     const config = JSON.parse(data);
     return config.chains || [];
   } catch (error) {
-    console.warn("Failed to load chain brands config:", error.message);
+    logger.warn('chain-filter', 'Failed to load chain brands config', { error: error.message });
     return [];
   }
 }

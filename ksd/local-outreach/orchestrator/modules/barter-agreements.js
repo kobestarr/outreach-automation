@@ -5,6 +5,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const logger = require("../../../../shared/outreach-core/logger");
 
 const AGREEMENTS_FILE = path.join(__dirname, "../data/barter-agreements.json");
 
@@ -19,7 +20,7 @@ function loadAgreements() {
     }
     return {};
   } catch (error) {
-    console.warn("Failed to load barter agreements:", error.message);
+    logger.warn('barter-agreements', 'Failed to load barter agreements', { error: error.message });
     return {};
   }
 }

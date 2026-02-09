@@ -113,6 +113,12 @@ async function generateEmailContent(params) {
         data += chunk;
       });
 
+      // Set request timeout
+      req.setTimeout(60000, () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+
       res.on("end", () => {
         try {
           const result = JSON.parse(data);

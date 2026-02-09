@@ -86,6 +86,12 @@ Output as JSON only:
         data += chunk;
       });
 
+      // Set request timeout
+      req.setTimeout(30000, () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
