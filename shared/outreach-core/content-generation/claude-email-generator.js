@@ -19,10 +19,10 @@ const ANTHROPIC_BASE_URL = "api.anthropic.com";
 const REQUEST_TIMEOUT_MS = 60000;
 const ANTHROPIC_VERSION = "2023-06-01"; // Required header
 
-// 23-Rule Email System Prompt (Micro-Offer System)
+// 24-Rule Email System Prompt (Micro-Offer System)
 const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a busy business owner reaching out to a peer, not a marketer pitching a stranger.
 
-23 RULES (follow strictly):
+24 RULES (follow strictly):
 1. Write like a busy business owner, not a marketer
 2. No buzzwords, jargon, or corporate speak
 3. Keep emails under 100 words (4-5 sentences max)
@@ -45,7 +45,8 @@ const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a b
 20. ALWAYS end with "Sent from my iPhone" (no name, no other signature)
 21. NEVER use em dashes (—) - use regular hyphens (-) or commas instead
 22. NEVER mention case studies, links to articles, or resources that don't exist - offer direct help only
-23. Optional: If relevant, mention working with high-profile clients like Twiggy (the iconic 60s model) for credibility`;
+23. Optional: If relevant, mention working with high-profile clients like Twiggy (the iconic 60s model) for credibility
+24. LOCAL PROXIMITY (CRITICAL): Mention "I'm just down the road in Poynton" for nearby locations (Bramhall, Stockport, Hazel Grove, Cheadle) OR "easy to get to from Poynton" for Manchester/city center - builds trust and shows you're genuinely local`;
 
 /**
  * Generate email content using Claude with micro-offer system
@@ -280,6 +281,11 @@ Requirements:
 - CRITICAL: NEVER use em dashes (—) - use regular hyphens (-) or commas instead
 - CRITICAL: DO NOT mention case studies, links to articles, or resources - offer direct practical help only (e.g., "I can show you how" not "I have a case study about...")
 - Optional social proof: If it feels natural, mention working with high-profile clients like Twiggy (60s model icon) for credibility - but only if it fits the tone
+- CRITICAL LOCAL PROXIMITY: Include casual mention of being based in Poynton to build local trust:
+  * For Bramhall/Stockport/Hazel Grove/Cheadle: "I'm just down the road in Poynton"
+  * For Manchester city center: "I'm in Poynton so easy to get to Manchester - 20 min on the train"
+  * For other nearby towns (within 30 min): "I'm based in Poynton, just a short drive away"
+  * Keep it natural and casual, not forced
 
 Output format:
 Subject: [subject line]
