@@ -31,23 +31,21 @@ function getBackoffDelay(attempt) {
 async function scrapeGoogleMapsOutscraper(location, postcode, businessTypes = [], extractEmails = true) {
   const apiKey = getCredential("outscraper", "apiKey");
 
-  // Build search query
-  const queries = businessTypes.map(type => {
-    if (postcode) {
-      return `${type} in ${location}, ${postcode}`;
-    }
-    return `${type} in ${location}`;
-  });
+  // Build location query (separate from business type)
+  const locationQuery = postcode ? `${location}, ${postcode}` : location;
 
   logger.info('google-maps-scraper-outscraper', 'Starting Outscraper scrape', {
     location,
     postcode,
     businessTypes,
-    queries
+    locationQuery
   });
 
   try {
-    const results = await Promise.all(queries.map(query => scrapeQuery(query, apiKey, extractEmails)));
+    // Query each business type with location
+    const results = await Promise.all(
+      businessTypes.map(type => scrapeQuery(locationQuery, type, apiKey, extractEmails))
+    );
 
     // Flatten results and deduplicate by place_id
     const allBusinesses = results.flat();
@@ -72,9 +70,9 @@ async function scrapeGoogleMapsOutscraper(location, postcode, businessTypes = []
 /**
  * Scrape a single query using Outscraper API (async)
  */
-async function scrapeQuery(query, apiKey, extractEmails) {
+async function scrapeQuery(locationQuery, businessType, apiKey, extractEmails) {
   // Step 1: Submit the job
-  const jobId = await submitOutscraperJob(query, apiKey, extractEmails);
+  const jobId = await submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails);
 
   // Step 2: Poll for results
   const results = await pollOutscraperJob(jobId, apiKey);
@@ -83,7 +81,8 @@ async function scrapeQuery(query, apiKey, extractEmails) {
   const transformed = results.map(transformOutscraperBusiness);
 
   logger.info('google-maps-scraper-outscraper', 'Query completed', {
-    query,
+    locationQuery,
+    businessType,
     count: transformed.length
   });
 
@@ -92,12 +91,22 @@ async function scrapeQuery(query, apiKey, extractEmails) {
 
 /**
  * Submit a job to Outscraper API
+ * 
+ * NOTE: Outscraper /maps/search-v3 endpoint expects business type embedded in query string,
+ * not as a separate 'categories' parameter. Tested and confirmed working.
+ * Example: "hairdressers Bramhall, SK7" not {query: "Bramhall, SK7", categories: "hairdressers"}
  */
-function submitOutscraperJob(query, apiKey, extractEmails) {
+function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails) {
   return new Promise((resolve, reject) => {
+    // Build query with business type embedded (NOT as separate categories parameter)
+    // Outscraper API expects: "hairdressers Bramhall, SK7"
+    const fullQuery = businessType 
+      ? `${businessType} ${locationQuery}`
+      : locationQuery;
+    
     const params = new URLSearchParams({
-      query: query,
-      limit: '50',
+      query: fullQuery,
+      limit: '500',
       language: 'en',
       region: 'uk',
       extractEmails: extractEmails ? 'true' : 'false'
