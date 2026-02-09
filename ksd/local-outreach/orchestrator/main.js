@@ -1,4 +1,5 @@
 const { scrapeGoogleMaps } = require("./modules/google-maps-scraper");
+const { scrapeGoogleMapsOutscraper } = require("./modules/google-maps-scraper-outscraper");
 const { filterChains } = require("./modules/chain-filter");
 const { getOwnerName } = require("./modules/companies-house");
 const { discoverEmail } = require("../../../shared/outreach-core/email-discovery");
@@ -98,9 +99,51 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
   const scrapedAt = new Date().toISOString();
   
   // Step 1: Scrape Google Maps (with postcode for accuracy)
+  // Try Outscraper first, fallback to HasData if it fails OR returns 0 results
   logger.info('main', `Scraping businesses in ${location}${postcode ? ` (${postcode})` : ""}...`);
-  const businesses = await scrapeGoogleMaps(location, postcode, businessTypes, extractEmails);
-  logger.info('main', `Found ${businesses.length} businesses`);
+
+  let businesses = [];
+  let scraperUsed = null;
+
+  try {
+    logger.info('main', 'Trying Outscraper API...');
+    businesses = await scrapeGoogleMapsOutscraper(location, postcode, businessTypes, extractEmails);
+    scraperUsed = 'outscraper';
+    logger.info('main', `Found ${businesses.length} businesses via Outscraper`);
+
+    // If Outscraper returned 0 results, try HasData as backup
+    if (businesses.length === 0) {
+      logger.info('main', 'Outscraper returned 0 results, trying HasData as backup...');
+      try {
+        const hasdataResults = await scrapeGoogleMaps(location, postcode, businessTypes, extractEmails);
+        if (hasdataResults.length > 0) {
+          businesses = hasdataResults;
+          scraperUsed = 'hasdata';
+          logger.info('main', `Found ${businesses.length} businesses via HasData`);
+        }
+      } catch (hasdataError) {
+        logger.warn('main', 'HasData also returned 0 or failed', { error: hasdataError.message });
+        // Continue with 0 businesses from Outscraper
+      }
+    }
+  } catch (outscraperError) {
+    logger.warn('main', 'Outscraper failed, falling back to HasData', { error: outscraperError.message });
+
+    try {
+      logger.info('main', 'Trying HasData API...');
+      businesses = await scrapeGoogleMaps(location, postcode, businessTypes, extractEmails);
+      scraperUsed = 'hasdata';
+      logger.info('main', `Found ${businesses.length} businesses via HasData`);
+    } catch (hasdataError) {
+      logger.error('main', 'Both scrapers failed', {
+        outscraperError: outscraperError.message,
+        hasdataError: hasdataError.message
+      });
+      throw new Error(`Both Outscraper and HasData failed. Outscraper: ${outscraperError.message}, HasData: ${hasdataError.message}`);
+    }
+  }
+
+  logger.info('main', `Scraper used: ${scraperUsed}`);
   
   // Step 2: Filter chains
   const filteredBusinesses = filterChains(businesses);
