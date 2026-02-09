@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2026-02-08
+
+### Fixed - Critical Outscraper API Bug
+
+#### The Problem
+- **Outscraper scraper was failing silently** - jobs would hang or return empty results
+- **Root cause:** Incorrect API endpoint for results polling
+- **Impact:** System fell back to HasData scraper, masking the issue
+
+#### Technical Details
+Outscraper uses **two different domains**:
+- **Job Submission:** `api.outscraper.com` (for initiating scrapes)
+- **Results Polling:** `api.outscraper.cloud` (for retrieving results)
+
+**The Bug:** Code was polling `api.outscraper.com/requests/{id}` but this endpoint only exists on `api.outscraper.cloud`.
+
+**The Fix:**
+```javascript
+// Before (BROKEN)
+const OUTSCRAPER_BASE_URL = "api.outscraper.com";
+// Used same domain for both submission AND polling
+
+// After (FIXED)
+const OUTSCRAPER_BASE_URL = "api.outscraper.com";      // Job submission
+const OUTSCRAPER_RESULTS_URL = "api.outscraper.cloud"; // Results polling
+```
+
+#### Why This Happened
+1. **Incomplete API Documentation** - Provided docs only showed Platform UI endpoints, not scraping endpoints
+2. **Rebranding Confusion** - Outscraper → Scrapula transition caused uncertainty about which endpoints to use
+3. **Silent Failure Mode** - Fallback to HasData masked the primary scraper failure
+
+#### Investigation
+- Manual API testing revealed the two-domain architecture
+- Test query "hairdressers Bramhall SK7" returned **29 results** after fix
+- Verified API key works on both domains
+
+#### Documentation
+- Added `OUTSCRAPER_API_ISSUE.md` - Comprehensive post-mortem for future developers
+- Documents API flow, response formats, lessons learned, and configuration
+
+---
+
+## [1.1.2] - 2026-02-08
+
+### Fixed - Code Review Issues
+
+#### Logging & Error Handling
+- **Created centralized logger module** (`shared/outreach-core/logger.js`)
+  - Log levels: error, warn, info, debug
+  - Automatic sanitization of sensitive data (API keys, tokens)
+  - Environment-based controls (`LOG_LEVEL`, `LOG_JSON`)
+  - Production mode suppresses debug logs
+
+- **Replaced all console.* calls with proper logger**
+  - Updated: `gpt-email-generator.js`, `google-maps-scraper.js`, `main.js`
+  - Updated: `icypeas-finder.js`, `reoon-verifier.js`, `email-discovery/index.js`
+  - Removed: Direct console.error/console.warn usage
+
+#### Security Improvements
+- **Sanitized error logs** - API keys no longer appear in error messages
+- **Safe URL parsing** - Added `extractDomainSafely()` helper to prevent crashes from malformed URLs
+- **File permissions** - Credentials and usage tracker use 0o600/0o700 permissions
+
+#### Code Quality
+- **Deprecated stub module** - `hasdata-extractor.js` now documents that emails come from Google Maps scraper
+- **Removed TODO comments** - Converted to documented future enhancements
+- **Added debug logging** - Silent error handling now logs at debug level for troubleshooting
+
+#### Modules Updated
+- `shared/outreach-core/logger.js` (new)
+- `shared/outreach-core/email-discovery/hasdata-extractor.js`
+- `shared/outreach-core/email-discovery/icypeas-finder.js`
+- `shared/outreach-core/email-discovery/index.js`
+- `shared/outreach-core/email-verification/reoon-verifier.js`
+- `shared/outreach-core/content-generation/gpt-email-generator.js`
+- `shared/outreach-core/export-managers/lemlist-exporter.js`
+- `ksd/local-outreach/orchestrator/main.js`
+- `ksd/local-outreach/orchestrator/modules/google-maps-scraper.js`
+
+---
+
 ## [1.1.1] - 2026-02-08
 
 ### Fixed - Anti-AI Content Improvements
