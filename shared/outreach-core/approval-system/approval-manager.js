@@ -158,6 +158,74 @@ function getPendingApprovals() {
     .map(([category, item]) => ({ category, ...item }));
 }
 
+/**
+ * Edit and approve a template with new content
+ * @param {string} category - Business category
+ * @param {string} newSubject - Updated email subject
+ * @param {string} newBody - Updated email body
+ * @param {string} approvedBy - Name/identifier of approver (default: "system")
+ * @returns {boolean} Success status
+ */
+function editAndApproveTemplate(category, newSubject, newBody, approvedBy = "system") {
+  const queue = loadApprovalQueue();
+  const templates = loadApprovedTemplates();
+
+  if (!queue[category] || queue[category].status !== "pending") {
+    return false;
+  }
+
+  // Update email content in queue
+  queue[category].email.subject = newSubject;
+  queue[category].email.body = newBody;
+  queue[category].status = "approved";
+  queue[category].approvedAt = new Date().toISOString();
+  queue[category].approvedBy = approvedBy;
+  queue[category].edited = true;
+
+  // Save to approved templates
+  templates[category] = {
+    subject: newSubject,
+    body: newBody,
+    approvedAt: queue[category].approvedAt,
+    approvedBy: approvedBy,
+    edited: true
+  };
+
+  saveApprovalQueue(queue);
+  saveApprovedTemplates(templates);
+
+  return true;
+}
+
+/**
+ * Batch approve all pending templates
+ * @param {string} approvedBy - Name/identifier of approver
+ * @returns {number} Number of templates approved
+ */
+function approveAllPending(approvedBy = "system") {
+  const queue = loadApprovalQueue();
+  let approvedCount = 0;
+
+  for (const [category, item] of Object.entries(queue)) {
+    if (item.status === "pending") {
+      const success = approveTemplate(category, approvedBy);
+      if (success) approvedCount++;
+    }
+  }
+
+  return approvedCount;
+}
+
+/**
+ * Get approval queue item by category
+ * @param {string} category - Business category
+ * @returns {Object|null} Queue item or null
+ */
+function getQueueItem(category) {
+  const queue = loadApprovalQueue();
+  return queue[category] || null;
+}
+
 module.exports = {
   needsApproval,
   addToApprovalQueue,
@@ -165,5 +233,8 @@ module.exports = {
   rejectTemplate,
   loadApprovalQueue,
   loadApprovedTemplates,
-  getPendingApprovals
+  getPendingApprovals,
+  editAndApproveTemplate,
+  approveAllPending,
+  getQueueItem
 };

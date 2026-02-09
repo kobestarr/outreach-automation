@@ -7,6 +7,124 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-02-09
+
+### Added - Slice 5: Approval Workflow CLI
+
+#### Human-in-the-Loop Approval Interface
+
+**Problem:** The approval system existed in the backend but lacked a user interface for reviewing and approving AI-generated email templates before export to Lemlist.
+
+**Solution:** Built a terminal-based approval workflow with interactive CLI for reviewing, editing, and approving templates, plus a resume utility to export approved categories.
+
+#### What Was Added
+
+**New Tools:**
+1. **`approve-cli.js`** - Interactive CLI for approval workflow
+   - Review pending email templates by category
+   - Approve/reject/skip individual templates
+   - Edit subject/body before approving
+   - Batch approve all pending templates
+   - Clean, readable email preview with word wrapping
+   - Zero external dependencies (native Node.js readline)
+
+2. **`resume-approval.js`** - Manual resume utility
+   - Query businesses with status="enriched" from database
+   - Filter to approved categories only
+   - Export to Lemlist with approved templates
+   - Update database status to "exported"
+   - Display export summary and results
+
+**Enhanced Modules:**
+3. **`approval-manager.js`** - Added 3 new functions:
+   - `editAndApproveTemplate()` - Edit email content before approval
+   - `approveAllPending()` - Batch approve all pending templates
+   - `getQueueItem()` - Get specific queue item by category
+
+#### Key Features
+
+- **CLI-Based Workflow:** Terminal interface matches existing system tooling
+- **Edit Capability:** Modify subject/body before approving (fix tone, adjust messaging)
+- **Batch Approval:** Approve all pending with one command for trusted content
+- **Manual Resume:** Run `resume-approval.js` to export after approval
+- **Database Integration:** Queries enriched businesses, updates export status
+- **Lemlist Integration:** Exports to Lemlist campaigns with approved templates
+- **Safe Operations:** Confirmation prompts for destructive actions
+
+#### Usage Workflow
+
+```bash
+# Step 1: Run campaign (pauses on first email per category)
+node ksd/local-outreach/orchestrator/main.js Bramhall SK7 "dentists,gyms"
+
+# Step 2: Review and approve templates
+node shared/outreach-core/approval-system/approve-cli.js
+
+# Step 3: Resume export for approved categories
+node ksd/local-outreach/orchestrator/utils/resume-approval.js Bramhall SK7
+```
+
+#### CLI Actions
+
+- **[a] Approve** - Save template and allow export
+- **[r] Reject** - Block category from export
+- **[e] Edit** - Modify subject/body before approving
+- **[s] Skip** - Review later
+- **[b] Batch** - Approve all remaining templates
+- **[q] Quit** - Exit approval workflow
+
+#### Files Added
+
+1. `shared/outreach-core/approval-system/approve-cli.js` (~250 lines)
+2. `ksd/local-outreach/orchestrator/utils/resume-approval.js` (~150 lines)
+
+#### Files Modified
+
+1. `shared/outreach-core/approval-system/approval-manager.js` - Added 3 new functions
+
+#### Testing
+
+**Unit Tests:**
+- ✅ `getQueueItem()` - Retrieves queue items correctly
+- ✅ `approveTemplate()` - Approves and saves to templates.json
+- ✅ `editAndApproveTemplate()` - Edits content and approves
+- ✅ `approveAllPending()` - Batch approves all pending
+
+**Integration Tests:**
+- ✅ Full workflow: approve → resume → export
+- ✅ Database status updates to "exported"
+- ✅ Lemlist API integration working
+
+**End-to-End Testing:**
+- Verify in Lemlist UI (https://app.lemlist.com/campaigns/)
+- Check leads created with correct email content
+- Verify email sequences configured (4 emails)
+- Confirm icebreaker field populated (first 200 chars)
+- Validate custom variables: firstName, companyName, linkedinUrl
+
+#### Architecture Decision
+
+**Manual Resume (Option B) vs Auto-Resume:**
+- Chose manual `resume-approval.js` command over auto-watch system
+- Rationale: `approvedTemplates` loaded once at function start in `generateAndExport()`
+- Manual command is explicit, controllable, simpler to test
+- User workflow: approve → run resume command → export
+
+#### Benefits
+
+- **No More JSON Editing:** User-friendly CLI instead of manual file editing
+- **Quality Control:** Review AI-generated content before sending
+- **Batch Operations:** Approve multiple categories quickly
+- **Edit Flexibility:** Fix tone/messaging without regenerating
+- **Database Integration:** Automatic status tracking
+- **Clear Workflow:** Step-by-step approval → resume → export
+
+#### Credits
+
+Special thanks to user for requesting the approval workflow and providing feedback on CLI design.
+
+---
+
 ## [1.2.0] - 2026-02-09
 
 ### Added - Claude (Anthropic) Provider Support
