@@ -57,7 +57,7 @@ const CURRENCY_MAP = {
  * @returns {string} Country code (UK, US, AU, CA, NZ, EU)
  */
 function detectCountryFromLocation(location) {
-  if (!location) return "UK"; // Default to UK
+  if (!location || typeof location !== 'string') return "UK"; // Default to UK
 
   const locationLower = location.toLowerCase();
 

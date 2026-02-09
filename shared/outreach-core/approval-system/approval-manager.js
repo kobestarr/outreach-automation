@@ -6,8 +6,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const APPROVAL_QUEUE_PATH = "/root/outreach-automation/shared/outreach-core/data/approval-queue.json";
-const APPROVED_TEMPLATES_PATH = "/root/outreach-automation/shared/outreach-core/data/approved-templates.json";
+const DATA_DIR = path.join(__dirname, "..", "data");
+const APPROVAL_QUEUE_PATH = path.join(DATA_DIR, "approval-queue.json");
+const APPROVED_TEMPLATES_PATH = path.join(DATA_DIR, "approved-templates.json");
 
 /**
  * Check if email needs approval (first of business type)
