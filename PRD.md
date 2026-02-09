@@ -1,14 +1,14 @@
 # Outreach Automation Platform - Product Requirements Document
 
-**Version:** 1.1.1
-**Last Updated:** February 8, 2026
+**Version:** 1.2.0
+**Last Updated:** February 9, 2026
 **Status:** Active
 
 ---
 
 ## Overview
 
-The Outreach Automation Platform is a local business outreach system that combines automated lead discovery (via Outscraper Google Maps API) with sophisticated, personalized cold email and LinkedIn outreach using GPT-4 content generation.
+The Outreach Automation Platform is a local business outreach system that combines automated lead discovery (via Outscraper Google Maps API) with sophisticated, personalized cold email and LinkedIn outreach using AI content generation (OpenAI GPT-4 or Anthropic Claude).
 
 ### Core Value Proposition
 
@@ -34,9 +34,22 @@ Enable digital agencies and service providers to run highly personalized, multi-
 
 **Credentials:** Managed via `shared/outreach-core/credentials-loader.js`
 
-### 2. Content Generation Layer (Micro-Offer System v1.0)
-**Technology:** OpenAI GPT-4 API
+### 2. Content Generation Layer (Micro-Offer System v1.2)
+**Technology:** OpenAI GPT-4 API **or** Anthropic Claude API (configurable via `CONTENT_PROVIDER` environment variable)
 **Purpose:** Generate personalized cold emails and LinkedIn messages
+
+**Provider Options:**
+- **OpenAI (default):** GPT-4 for content generation, ~$0.01/email
+- **Anthropic (recommended):** Claude Sonnet 4.5 for content generation (~$0.01/email, better quality) or Claude Haiku 4.5 for revenue estimation (~$0.003/email, 75% cheaper)
+
+**Provider Switching:**
+```bash
+# Use Anthropic Claude (recommended)
+export CONTENT_PROVIDER=claude
+
+# Use OpenAI GPT-4 (default)
+export CONTENT_PROVIDER=openai
+```
 
 #### 2.1 Category Mapping (`category-mapper.js`)
 **11 Industry Groups:**
@@ -99,17 +112,16 @@ Enable digital agencies and service providers to run highly personalized, multi-
 - Specific over generic ("22 reviews" not "some reviews")
 - **ALWAYS end with "Sent from my iPhone"** (no name, no other signature - feels like quick mobile message)
 
-**GPT-4 Settings:**
-- Model: `gpt-4`
-- Temperature: `0.7`
-- Max tokens: `1500`
+**API Settings:**
+- **OpenAI:** Model: `gpt-4`, Temperature: `0.7`, Max tokens: `1500`
+- **Anthropic (recommended):** Model: `claude-sonnet-4-5-20250929`, Temperature: `0.7`, Max tokens: `1500`
 
 **Output Format:**
 ```javascript
 {
   subject: "lowercase subject line",
-  body: "email body <100 words",
-  fullContent: "raw GPT response",
+  body: "email body <120 words",
+  fullContent: "raw AI response",
   metadata: {
     primaryHook: "lowReviews",
     toneRegion: "UK",
@@ -118,9 +130,10 @@ Enable digital agencies and service providers to run highly personalized, multi-
     observationSignals: ["lowReviews", "noWebsite"],
     microOfferPrice: "£97",
     fullOfferPrice: "£497",
-    model: "gpt-4",
+    provider: "claude",
+    model: "claude-sonnet-4-5-20250929",
     temperature: 0.7,
-    generatedAt: "2026-02-08T..."
+    generatedAt: "2026-02-09T..."
   }
 }
 ```
@@ -142,10 +155,9 @@ Enable digital agencies and service providers to run highly personalized, multi-
 - No emojis (unprofessional in B2B)
 - Keep total message under 500 characters
 
-**GPT-4 Settings:**
-- Model: `gpt-4`
-- Temperature: `0.75` (higher for spontaneity)
-- Max tokens: `800`
+**API Settings:**
+- **OpenAI:** Model: `gpt-4`, Temperature: `0.75`, Max tokens: `800`
+- **Anthropic (recommended):** Model: `claude-sonnet-4-5-20250929`, Temperature: `0.75`, Max tokens: `800`
 
 **Functions:**
 - `generateConnectionNote()` - Initial connection request (no sales pitch)
@@ -238,7 +250,7 @@ Enable digital agencies and service providers to run highly personalized, multi-
 ### Dependencies
 - Node.js 14+ (native HTTPS module, no axios/node-fetch)
 - better-sqlite3 (SQLite database)
-- OpenAI API key (GPT-4 access)
+- **OpenAI API key (GPT-4 access)** OR **Anthropic API key (Claude access)** - configurable
 - Outscraper API key
 
 ### File Structure
@@ -250,9 +262,11 @@ outreach-automation/
 │       │   ├── category-mapper.js          [11 category groups + angles]
 │       │   ├── observation-signals.js      [6 signal detectors]
 │       │   ├── currency-localization.js    [Pricing by country]
-│       │   ├── gpt-email-generator.js      [20-rule email system]
-│       │   ├── gpt-linkedin-generator.js   [18-rule LinkedIn system]
-│       │   ├── index.js                    [Entry point/orchestrator]
+│       │   ├── gpt-email-generator.js      [24-rule email system - OpenAI]
+│       │   ├── gpt-linkedin-generator.js   [21-rule LinkedIn system - OpenAI]
+│       │   ├── claude-email-generator.js   [24-rule email system - Anthropic]
+│       │   ├── claude-linkedin-generator.js [21-rule LinkedIn system - Anthropic]
+│       │   ├── index.js                    [Entry point/provider switcher]
 │       │   └── test-micro-offer.js         [Integration tests]
 │       ├── export-managers/
 │       │   ├── lemlist-exporter.js
@@ -261,7 +275,11 @@ outreach-automation/
 ├── ksd/
 │   └── local-outreach/
 │       └── orchestrator/
-│           └── main.js                     [Campaign orchestrator]
+│           ├── main.js                     [Campaign orchestrator]
+│           └── modules/
+│               ├── revenue-estimator.js    [Claude Haiku revenue estimation]
+│               ├── google-maps-scraper.js  [HasData scraper]
+│               └── google-maps-scraper-outscraper.js [Outscraper primary]
 ├── MICRO_OFFER_OUTREACH_SYSTEM.md          [Comprehensive documentation]
 ├── PRD.md                                  [This file]
 └── CHANGELOG.md                            [Version history]
