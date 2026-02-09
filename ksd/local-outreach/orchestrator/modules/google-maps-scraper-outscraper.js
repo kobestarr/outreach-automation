@@ -10,7 +10,8 @@ const https = require("https");
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 const logger = require("../../../../shared/outreach-core/logger");
 
-const OUTSCRAPER_BASE_URL = "api.outscraper.com";
+// Scrapula API (formerly Outscraper)
+const SCRAPULA_BASE_URL = "api.datapipeplatform.com";
 const REQUEST_TIMEOUT_MS = 60000;
 const INITIAL_POLL_DELAY_MS = 2000;
 const MAX_POLL_DELAY_MS = 16000;
@@ -103,7 +104,7 @@ function submitOutscraperJob(query, apiKey, extractEmails) {
     });
 
     const options = {
-      hostname: OUTSCRAPER_BASE_URL,
+      hostname: SCRAPULA_BASE_URL,
       path: `/maps/search-v3?${params.toString()}`,
       method: "GET",
       headers: {
@@ -194,7 +195,7 @@ function pollOutscraperJob(jobId, apiKey) {
       }
 
       const options = {
-        hostname: OUTSCRAPER_BASE_URL,
+        hostname: SCRAPULA_BASE_URL,
         path: `/requests/${jobId}`,
         method: "GET",
         headers: {
