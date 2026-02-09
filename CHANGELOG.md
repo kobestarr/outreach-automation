@@ -7,6 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2026-02-09
+
+### Fixed - Outscraper 0 Results Bug (Query Parameters)
+
+#### The Problem
+After fixing the two-domain architecture in v1.1.3, Outscraper API was still returning **0 results** despite successful job submission and completion. The API would respond with `status: "Success"` but `data: []` (empty array).
+
+#### Root Cause - Three Parameter Issues
+
+**Issue 1: Extra Parameters Causing 0 Results**
+- Including `language`, `extractEmails` parameters caused the API to return empty results
+- Only `query`, `limit`, and `region` parameters should be used
+
+**Issue 2: Uppercase Postcodes**
+- Query with uppercase postcode: `"hairdressers Bramhall, SK7"` → 0 results
+- Query with lowercase postcode: `"hairdressers bramhall, sk7"` → 31 results
+- API is case-sensitive for location queries
+
+**Issue 3: Incorrect Query Format**
+- Initial attempt used separate `categories` parameter (doesn't exist in API)
+- Correct format embeds business type in query string
+
+#### The Fix
+
+```javascript
+// BEFORE (BROKEN - 0 results)
+const params = new URLSearchParams({
+  query: "hairdressers Bramhall, SK7",  // uppercase postcode
+  categories: "hairdressers",            // ❌ This param doesn't exist!
+  limit: '50',
+  language: 'en',                        // ❌ Causes 0 results
+  region: 'uk',
+  extractEmails: 'true'                  // ❌ Causes 0 results
+});
+
+// AFTER (FIXED - 31 results)
+const fullQuery = `${businessType} ${locationQuery.toLowerCase()}`;  // lowercase
+const params = new URLSearchParams({
+  query: fullQuery,  // "hairdressers bramhall, sk7"
+  limit: '500',
+  region: 'uk'  // Keeps results geographically focused
+  // Do NOT include: language, extractEmails
+});
+```
+
+#### Testing Results
+
+| Configuration | Results | Status |
+|--------------|---------|--------|
+| Uppercase + extra params | 0 | ❌ Broken |
+| Lowercase + extra params | 0 | ❌ Broken |
+| Lowercase + minimal params (no region) | 144 | ⚠️ Too broad |
+| **Lowercase + query/limit/region only** | **31** | ✅ **Perfect** |
+
+**Verified Results:**
+- 29 businesses in SK7 postcode (Bramhall proper)
+- 2 businesses in SK2 (nearby Stockport)
+- Matches expected count from other coder's testing
+
+#### Investigation Process
+
+1. **Direct API testing** revealed working query format
+2. **Parameter elimination** identified which params cause issues
+3. **Case sensitivity testing** found lowercase requirement
+4. **Geographic scoping** confirmed `region` parameter keeps results focused
+
+#### Files Modified
+
+- `ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper.js`
+  - Line 106-108: Convert query to lowercase
+  - Line 110-115: Use minimal parameters (query, limit, region only)
+  - Added documentation explaining parameter requirements
+
+#### Key Learnings
+
+1. **Outscraper API is parameter-sensitive** - Extra params can cause silent failures (0 results)
+2. **Case sensitivity matters** - Lowercase postcodes work, uppercase may not
+3. **No `categories` parameter exists** - Business type must be embedded in query string
+4. **The `region` parameter is important** - Without it, results can be too geographically broad
+
+#### Credits
+
+Special thanks to the other coder who provided the working query format and confirmed the expected result count (29 businesses).
+
+---
+
 ## [1.1.3] - 2026-02-08
 
 ### Fixed - Critical Outscraper API Bug
