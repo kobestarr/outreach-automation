@@ -1,6 +1,6 @@
 # Outreach Automation Platform - Product Requirements Document
 
-**Version:** 1.1.0
+**Version:** 1.1.1
 **Last Updated:** February 8, 2026
 **Status:** Active
 
@@ -81,11 +81,15 @@ Enable digital agencies and service providers to run highly personalized, multi-
 **Detection Logic:** UK postcode patterns, US state abbreviations, country-specific city names (default: UK)
 
 #### 2.4 Email Generator (`gpt-email-generator.js`)
-**20-Rule Copywriting System:**
+**20-Rule Copywriting System (Anti-AI Optimized):**
 - Write like a busy business owner, not a marketer
 - No buzzwords, jargon, or corporate speak
 - Emails under 100 words (4-5 sentences max)
 - Lowercase subject lines (feels less sales-y)
+- **ALWAYS start with casual greeting:** "Hi [Name]," or "Hey [Name],"
+- **Reference business name ONLY** - never add location/postcode (e.g., "The Cutting Room" not "The Cutting Room in Bramhall, SK7")
+- **Use plain language:** "help keeping clients" not "help with client retention", "rebooking" not "retention"
+- **ALWAYS say "From just £X"** NEVER "For just £X"
 - Lead with specific observation, not generic pleasantry
 - Reference local context (location, competitor, category)
 - One clear CTA per email (micro-offer link or calendar)
@@ -93,6 +97,7 @@ Enable digital agencies and service providers to run highly personalized, multi-
 - No exclamation marks (feels desperate)
 - Conversational tone with contractions
 - Specific over generic ("22 reviews" not "some reviews")
+- **ALWAYS end with "Sent from my iPhone"** (no name, no other signature - feels like quick mobile message)
 
 **GPT-4 Settings:**
 - Model: `gpt-4`
@@ -121,13 +126,17 @@ Enable digital agencies and service providers to run highly personalized, multi-
 ```
 
 #### 2.5 LinkedIn Generator (`gpt-linkedin-generator.js`)
-**18-Rule LinkedIn System:**
+**18-Rule LinkedIn System (Anti-AI Optimized):**
 - Connection notes: 1-2 sentences max (<300 chars)
-- Reference their title/business, not generic "great to connect"
+- Sound human, not corporate: "I love" not "I'm intrigued by" or "amazing work"
 - NO sales pitch in connection note (just context)
-- First message (post-connection): 2-3 sentences, shared context
-- Offer value (case study, tip, resource) not just "did you see my email?"
-- Low-pressure CTA (reply/react, not "book a call")
+- **Business name ONLY:** NEVER include location - write "The Cutting Room" NOT "The Cutting Room in Bramhall"
+- **NO corporate/marketing speak AT ALL:** Banned words include "differentiate", "unique value proposition", "target audience", "standing out", "crowded market", "articulate", "unique qualities", "showcase", "position", "brand identity"
+- **Use plain language:** "get more clients" not "acquire customers", "keep clients coming back" not "retention strategy"
+- First message: Start with "Hi [Name], I don't know if you saw my email so I thought I'd try here."
+- NEVER mention resources/articles that don't exist (no fake case studies/articles)
+- **Offer practical operations help** (bookings, scheduling, client communication) NOT market positioning/branding advice
+- Low-pressure CTA: "Let me know if that's useful?" or "Worth a chat?"
 - UK tone (professional but warm)
 - **Different angle than email** (critical requirement)
 - No emojis (unprofessional in B2B)
@@ -174,18 +183,27 @@ Enable digital agencies and service providers to run highly personalized, multi-
 - **Currency localization** (6 regions with appropriate pricing)
 
 ### Copywriting Philosophy
-**Email:** Write like a busy business owner reaching out to a peer, not a marketer pitching a stranger.
+**Email:** Write like a busy business owner reaching out to a peer on mobile, not a marketer pitching a stranger.
 - Under 100 words
 - Lowercase subjects
 - No buzzwords or exclamation marks
 - Lead with observation, not self-introduction
 - Specific over generic
+- Always start with casual greeting ("Hi [Name]," or "Hey [Name],")
+- Business name only (never include location)
+- Plain language ("help keeping clients" not "client retention")
+- "From just £X" pricing format
+- End with "Sent from my iPhone" (feels spontaneous, not crafted)
 
-**LinkedIn:** Professional but warm, value-focused.
+**LinkedIn:** Professional but warm, value-focused, practical operations help.
 - Connection notes <300 chars
 - No sales pitch in connection request
-- First DM offers value (case study, tip, resource)
-- Low-pressure CTA
+- Business name only (never include location)
+- No corporate/marketing speak (banned: "differentiate", "unique value proposition", "standing out", etc.)
+- Plain language alternatives ("get more clients" not "acquire customers")
+- First DM starts with "Hi [Name], I don't know if you saw my email so I thought I'd try here."
+- Offer practical operations help (bookings, scheduling) NOT market positioning advice
+- Low-pressure CTA: "Let me know if that's useful?" or "Worth a chat?"
 
 ---
 

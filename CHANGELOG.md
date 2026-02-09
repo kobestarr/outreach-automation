@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-02-08
+
+### Fixed - Anti-AI Content Improvements
+
+#### Metadata Bug
+- **Fixed params passing in `gpt-email-generator.js`**
+  - Changed `buildEmailPrompt()` to receive original `params` object directly
+  - Metadata now correctly populates: categoryGroup, primaryHook, observationSignals, pricing
+  - Previously returned null values due to object reference mismatch
+
+#### Email Generator Enhancements
+- **Enhanced EMAIL_SYSTEM_PROMPT with anti-AI rules**
+  - Rule 5: ALWAYS start with casual greeting "Hi [Name]," or "Hey [Name],"
+  - Rule 6: Reference business name ONLY - never add location/postcode
+  - Rule 7: Use plain language - "help keeping clients" not "help with client retention"
+  - Rule 8: ALWAYS say "From just £X" NEVER "For just £X"
+  - Rule 20: ALWAYS end with "Sent from my iPhone" (no name signature)
+  - Emails now sound like busy business owner dashing off quick message on mobile
+
+#### LinkedIn Generator Enhancements
+- **Enhanced LINKEDIN_SYSTEM_PROMPT with comprehensive corporate language bans**
+  - Rule 5: Banned corporate/marketing speak - "differentiate", "unique value proposition", "target audience", "standing out", "crowded market", "articulate", "unique qualities", "showcase", "position", "brand identity"
+  - Rule 6: Added plain language alternatives - "get more clients" not "acquire customers", "keep clients coming back" not "retention strategy"
+  - No more AI tells like "I was impressed by [Business]'s presence in [Location]"
+
+- **Updated `generateLinkedInMessage()` prompt**
+  - Explicitly focus on practical operations help (bookings, scheduling, client communication)
+  - Explicitly ban market positioning/branding/differentiation advice
+  - Suggest specific low-pressure CTAs: "Let me know if that's useful?" or "Worth a chat?"
+  - Messages now offer tactical operations help instead of strategic marketing advice
+
+### Changed
+- Email signature changed from just first name to "Sent from my iPhone"
+- LinkedIn messages focus on practical operations instead of market positioning
+
+### Testing
+- Tested across TRADESPEOPLE, HEALTH_BEAUTY, FOOD_HOSPITALITY categories
+- All outputs use natural UK language: "Fancy a chat?", "bang-up job", "nifty strategy"
+- Zero corporate buzzwords detected
+- All business names appear without location
+- All pricing uses "From just £X" format
+
+---
+
 ## [1.1.0] - 2026-02-08
 
 ### Added - Micro-Offer Outreach System
