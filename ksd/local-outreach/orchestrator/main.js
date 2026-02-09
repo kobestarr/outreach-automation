@@ -1,6 +1,5 @@
 const { scrapeGoogleMaps } = require("./modules/google-maps-scraper");
 const { scrapeGoogleMapsOutscraper } = require("./modules/google-maps-scraper-outscraper");
-const { scrapeGoogleMapsScrapula } = require("./modules/google-maps-scraper-scrapula");
 const { filterChains } = require("./modules/chain-filter");
 const { getOwnerName } = require("./modules/companies-house");
 const { discoverEmail } = require("../../../shared/outreach-core/email-discovery");
