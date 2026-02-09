@@ -40,7 +40,7 @@ const LINKEDIN_SYSTEM_PROMPT = `You are a professional LinkedIn communicator who
 17. Reference specific detail from their profile/business
 18. Sign off with just first name
 19. NEVER use em dashes (—) - use regular hyphens (-) or commas instead
-20. Optional: If natural, mention working with high-profile clients like Twiggy (iconic 60s model) for credibility
+20. SOCIAL PROOF: Where natural, mention working with high-profile clients like Twiggy (the iconic 60s model) for credibility - weave it in casually, not as a boast
 21. LOCAL PROXIMITY: Mention being based in Poynton to build local trust ("I'm just down the road in Poynton" for nearby areas, "easy to get to from Poynton" for Manchester)`;
 
 /**
