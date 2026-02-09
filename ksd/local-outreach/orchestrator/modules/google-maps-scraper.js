@@ -106,13 +106,13 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
             const jobId = result.id || result.jobId || result.job_id;
 
             // Poll for results
-            pollHasDataJob(jobId, apiKey, postcode)
+            pollHasDataJob(jobId, apiKey, postcode, businessTypes)
               .then(resolve)
               .catch(reject);
           } else if (result.items || result.data) {
             // Direct results (if API returns them immediately)
             const businesses = result.items || result.data || [];
-            resolve(filterByPostcode(parseBusinesses(businesses), postcode));
+            resolve(filterByPostcode(parseBusinesses(businesses, businessTypes), postcode));
           } else {
             logger.error('google-maps-scraper', 'Unexpected response format', { resultKeys: Object.keys(result) });
             reject(new Error("Unexpected HasData response format"));
@@ -148,9 +148,10 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
  * Fetch JSON results from HasData download URL
  * @param {string} jsonUrl - The download URL for JSON results
  * @param {string} postcode - Postcode to filter results
+ * @param {Array<string>} businessTypes - Business type keywords (for category fallback)
  * @returns {Promise<Array>} Array of parsed business objects
  */
-function fetchHasDataJson(jsonUrl, postcode) {
+function fetchHasDataJson(jsonUrl, postcode, businessTypes = []) {
   return new Promise((resolve, reject) => {
     const url = new URL(jsonUrl);
     const options = {
@@ -172,7 +173,7 @@ function fetchHasDataJson(jsonUrl, postcode) {
       res.on("end", () => {
         try {
           const businesses = JSON.parse(data);
-          const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses]);
+          const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses], businessTypes);
           resolve(filterByPostcode(parsed, postcode));
         } catch (error) {
           logger.error('google-maps-scraper', 'Failed to parse JSON results', { error: error.message, preview: data.substring(0, 200) });
@@ -200,10 +201,11 @@ function fetchHasDataJson(jsonUrl, postcode) {
  * @param {string} jobId - Job ID from initial request
  * @param {string} apiKey - API key for authentication
  * @param {string} postcode - Postcode to filter results
+ * @param {Array<string>} businessTypes - Business type keywords (for category fallback)
  * @returns {Promise<Array>} Array of business objects
  * @throws {Error} If job fails or times out
  */
-function pollHasDataJob(jobId, apiKey, postcode) {
+function pollHasDataJob(jobId, apiKey, postcode, businessTypes = []) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
 
@@ -235,12 +237,12 @@ function pollHasDataJob(jobId, apiKey, postcode) {
               // HasData returns download URLs when finished
               if (typeof result.data === "object" && result.data.json) {
                 // Fetch JSON data from download URL
-                fetchHasDataJson(result.data.json, postcode)
+                fetchHasDataJson(result.data.json, postcode, businessTypes)
                   .then(resolve)
                   .catch(reject);
               } else if (Array.isArray(result.data)) {
                 // Direct data array (fallback)
-                const businesses = parseBusinesses(result.data);
+                const businesses = parseBusinesses(result.data, businessTypes);
                 resolve(filterByPostcode(businesses, postcode));
               } else {
                 logger.error('google-maps-scraper', 'Unexpected data format', { dataType: typeof result.data });
@@ -329,12 +331,20 @@ function extractPostcodeFromAddress(address) {
 
 /**
  * Parse HasData business data into standard format
+ * @param {Array} businesses - Raw business data from HasData
+ * @param {Array<string>} businessTypes - Search keywords used (for category fallback)
+ * @returns {Array} Parsed business objects
  */
-function parseBusinesses(businesses) {
+function parseBusinesses(businesses, businessTypes = []) {
+  // Use first search keyword as category fallback if API doesn't provide one
+  const fallbackCategory = businessTypes && businessTypes.length > 0
+    ? businessTypes[0]
+    : "unknown";
+
   return businesses.map(b => {
     const address = b.address || b.formattedAddress || "";
     const postcode = extractPostcodeFromAddress(address);
-    
+
     return {
       name: b.name || b.businessName || b.title || (b.address ? b.address.split(',')[0].trim() : "Unknown Business"),
       address: address,
@@ -343,7 +353,7 @@ function parseBusinesses(businesses) {
       website: b.website || b.url,
       rating: b.rating || b.averageRating,
       reviewCount: b.reviewCount || b.userRatingsTotal || 0,
-      category: b.category || (b.types && b.types[0]) || "unknown",
+      category: b.category || (b.types && b.types[0]) || fallbackCategory,
       location: {
         lat: (b.location && b.location.lat) || (b.geometry && b.geometry.location && b.geometry.location.lat),
         lng: (b.location && b.location.lng) || (b.geometry && b.geometry.location && b.geometry.location.lng)

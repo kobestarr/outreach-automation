@@ -107,9 +107,8 @@ function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails)
 
     const params = new URLSearchParams({
       query: fullQuery,
-      limit: '500',
-      region: 'uk'  // Keep region to focus results
-      // Do NOT include language, extractEmails - causes issues
+      limit: '500'
+      // Do NOT include language, region, extractEmails - causes 0 results bug
     });
 
     const options = {

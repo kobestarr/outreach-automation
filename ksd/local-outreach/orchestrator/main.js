@@ -66,11 +66,14 @@ async function enrichBusiness(business) {
     }
   }
   
-  // Step 4: Revenue estimation
-  const revenueEstimate = await estimateRevenue(enriched);
-  enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
-  enriched.revenueBand = revenueEstimate.revenueBand;
-  enriched.revenueConfidence = revenueEstimate.confidence;
+  // Step 4: Revenue estimation (TEMP DISABLED - uses OpenAI quota)
+  // const revenueEstimate = await estimateRevenue(enriched);
+  // enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
+  // enriched.revenueBand = revenueEstimate.revenueBand;
+  // enriched.revenueConfidence = revenueEstimate.confidence;
+  enriched.estimatedRevenue = null;
+  enriched.revenueBand = "Unknown";
+  enriched.revenueConfidence = 0;
   
   // Step 5: Tier assignment
   const tier = assignTier(enriched.estimatedRevenue);
@@ -195,6 +198,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
     try {
       // Generate content
       const content = await generateOutreachContent(business, {
+        provider: process.env.CONTENT_PROVIDER || 'claude', // Use Claude by default
         generateEmail: true,
         generateLinkedIn: !!business.linkedInUrl,
         emailSequence: true
