@@ -66,14 +66,11 @@ async function enrichBusiness(business) {
     }
   }
   
-  // Step 4: Revenue estimation (TEMP DISABLED - uses OpenAI quota)
-  // const revenueEstimate = await estimateRevenue(enriched);
-  // enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
-  // enriched.revenueBand = revenueEstimate.revenueBand;
-  // enriched.revenueConfidence = revenueEstimate.confidence;
-  enriched.estimatedRevenue = null;
-  enriched.revenueBand = "Unknown";
-  enriched.revenueConfidence = 0;
+  // Step 4: Revenue estimation (using Claude/Anthropic)
+  const revenueEstimate = await estimateRevenue(enriched);
+  enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
+  enriched.revenueBand = revenueEstimate.revenueBand;
+  enriched.revenueConfidence = revenueEstimate.confidence;
   
   // Step 5: Tier assignment
   const tier = assignTier(enriched.estimatedRevenue);
