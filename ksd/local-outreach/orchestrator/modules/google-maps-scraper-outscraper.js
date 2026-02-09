@@ -99,17 +99,16 @@ async function scrapeQuery(locationQuery, businessType, apiKey, extractEmails) {
 function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails) {
   return new Promise((resolve, reject) => {
     // Build query with business type embedded (NOT as separate categories parameter)
-    // Outscraper API expects: "hairdressers Bramhall, SK7"
-    const fullQuery = businessType 
-      ? `${businessType} ${locationQuery}`
-      : locationQuery;
-    
+    // Outscraper API expects: "hairdressers Bramhall, sk7" (lowercase postcode)
+    // IMPORTANT: Use minimal parameters - extra params (language, region, extractEmails) can cause 0 results
+    const fullQuery = businessType
+      ? `${businessType} ${locationQuery.toLowerCase()}`  // lowercase for consistency
+      : locationQuery.toLowerCase();
+
     const params = new URLSearchParams({
       query: fullQuery,
-      limit: '500',
-      language: 'en',
-      region: 'uk',
-      extractEmails: extractEmails ? 'true' : 'false'
+      limit: '500'
+      // Do NOT include language, region, extractEmails - causes 0 results bug
     });
 
     const options = {
