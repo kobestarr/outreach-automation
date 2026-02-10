@@ -158,24 +158,45 @@ function extractRegisteredAddress(html) {
 function extractOwnerNames(html) {
   if (!html) return [];
 
-  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const text = html.replace(/<[^>]+>/g, '\n').replace(/\s+/g, ' ');
   const names = [];
 
-  // Patterns for director/owner mentions with titles
-  const titlePatterns = [
+  // Patterns for director/owner mentions with titles BEFORE name
+  const titleFirstPatterns = [
     /(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor)[\s:]+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi,
     /(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[\s,]+(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor)/gi,
     /(?:Founded by|Run by|Led by|Owned by)[\s:]+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi
   ];
 
-  for (const pattern of titlePatterns) {
+  // Patterns for name FOLLOWED by title (common on team pages)
+  // e.g., "Christopher Needham BDS Principal Dentist"
+  const nameFirstPatterns = [
+    /(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(?:BDS|MBChB|MBBS|MD|PhD|BSc|MSc)?\s*(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Associate|Lead|Senior|Head|Chief)/gi,
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(?:BDS|MBChB|MBBS|MD|PhD|BSc|MSc)\s+(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Dentist)/gi
+  ];
+
+  // Process title-first patterns
+  for (const pattern of titleFirstPatterns) {
     let match;
     while ((match = pattern.exec(text)) !== null) {
       const name = match[1].trim();
-      // Validate: 2-4 words, each capitalized, reasonable length
       if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
-        // Extract title if present in the matched text
         const titleMatch = match[0].match(/(Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Dr\.?|Mr\.?|Mrs\.?|Ms\.?)/i);
+        names.push({
+          name: name,
+          title: titleMatch ? titleMatch[0] : null
+        });
+      }
+    }
+  }
+
+  // Process name-first patterns
+  for (const pattern of nameFirstPatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const name = match[1].trim();
+      if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
+        const titleMatch = match[0].match(/(BDS|MBChB|MBBS|MD|PhD|Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Associate)/i);
         names.push({
           name: name,
           title: titleMatch ? titleMatch[0] : null
@@ -213,27 +234,78 @@ async function scrapeWebsite(url) {
     // Fetch main page
     const html = await fetchWebsite(url);
 
+    // Extract from meta tags first (often has team info)
+    const metaNames = [];
+    const metaDescription = html.match(/<meta\s+(?:name|property)=["'](?:description|og:description)["']\s+content=["']([^"']+)["']/i);
+    if (metaDescription && metaDescription[1]) {
+      const metaText = metaDescription[1].replace(/&amp;/g, '&');
+      // Look for names with "Dr" prefix in meta description
+      const drPattern = /Dr\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g;
+      let match;
+      while ((match = drPattern.exec(metaText)) !== null) {
+        metaNames.push({ name: match[1].trim(), title: 'Dr' });
+      }
+      if (metaNames.length > 0) {
+        logger.info('website-scraper', 'Found names in meta description', { count: metaNames.length });
+      }
+    }
+
     // Extract all available data
     const registrationNumber = extractRegistrationNumber(html);
     const registeredAddress = extractRegisteredAddress(html);
-    const ownerNames = extractOwnerNames(html);
 
-    // Try to fetch /about page for additional owner info
-    let aboutHtml = null;
-    try {
-      const aboutUrl = new URL(url);
-      aboutUrl.pathname = '/about';
-      aboutHtml = await fetchWebsite(aboutUrl.toString(), 5000);
-      const aboutNames = extractOwnerNames(aboutHtml);
-      // Merge with main page names
-      for (const name of aboutNames) {
-        if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
-          ownerNames.push(name);
-        }
+    // Start with meta description names (highest priority)
+    const ownerNames = [...metaNames];
+
+    // Also extract from main page content using pattern matching
+    const mainPageNames = extractOwnerNames(html);
+    for (const name of mainPageNames) {
+      if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
+        ownerNames.push(name);
       }
-    } catch (error) {
-      // About page fetch failed - not critical
-      logger.debug('website-scraper', 'Could not fetch /about page', { error: error.message });
+    }
+
+    // Try to fetch team/about pages for additional owner info
+    const teamPageUrls = [
+      '/about', '/about-us', '/team', '/meet-the-team', '/our-team',
+      '/meet-the-team-subtitle', '/team-members', '/staff', '/people', '/directors'
+    ];
+
+    for (const path of teamPageUrls) {
+      try {
+        const teamUrl = new URL(url);
+        teamUrl.pathname = path;
+        const teamHtml = await fetchWebsite(teamUrl.toString(), 5000);
+
+        // Extract from team page meta description first
+        const teamMetaDescription = teamHtml.match(/<meta\s+(?:name|property)=["'](?:description|og:description)["']\s+content=["']([^"']+)["']/i);
+        if (teamMetaDescription && teamMetaDescription[1]) {
+          const teamMetaText = teamMetaDescription[1].replace(/&amp;/g, '&');
+          const drPattern = /Dr\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g;
+          let match;
+          while ((match = drPattern.exec(teamMetaText)) !== null) {
+            const name = match[1].trim();
+            if (!ownerNames.find(n => n.name.toLowerCase() === name.toLowerCase())) {
+              ownerNames.push({ name: name, title: 'Dr' });
+              logger.info('website-scraper', `Found name in ${path} meta description`, { name });
+            }
+          }
+        }
+
+        // Also extract from team page HTML content
+        const teamNames = extractOwnerNames(teamHtml);
+        for (const name of teamNames) {
+          if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
+            ownerNames.push(name);
+          }
+        }
+        if (teamNames.length > 0) {
+          logger.info('website-scraper', `Found names on ${path}`, { count: teamNames.length });
+        }
+      } catch (error) {
+        // Team page fetch failed - not critical, try next one
+        logger.debug('website-scraper', `Could not fetch ${path} page`, { error: error.message });
+      }
     }
 
     const result = {

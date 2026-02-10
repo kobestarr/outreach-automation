@@ -108,7 +108,16 @@ async function addLeadToCampaign(campaignId, leadData) {
       phone: leadData.phone,
       companyDomain: leadData.companyDomain || extractDomainSafely(leadData.website),
       icebreaker: leadData.icebreaker,
-      timezone: leadData.timezone || "Europe/London"
+      timezone: leadData.timezone || "Europe/London",
+      // Custom merge variables
+      localIntro: leadData.localIntro,
+      observationSignal: leadData.observationSignal,
+      meetingOption: leadData.meetingOption,
+      microOfferPrice: leadData.microOfferPrice,
+      multiOwnerNote: leadData.multiOwnerNote || '',
+      noNameNote: leadData.noNameNote || '',
+      businessType: leadData.businessType,
+      location: leadData.location
     });
     
     const options = {
