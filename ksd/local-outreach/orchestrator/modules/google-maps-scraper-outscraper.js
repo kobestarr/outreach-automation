@@ -121,11 +121,17 @@ function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails)
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       if (res.statusCode >= 400) {
-        res.on("data", (chunk) => { data += chunk; });
+        res.on("data", (chunk) => {
+          chunks.push(chunk);
+          totalLength += chunk.length;
+        });
         res.on("end", () => {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           logger.error('google-maps-scraper-outscraper', 'Outscraper HTTP error', {
             statusCode: res.statusCode,
             preview: data.substring(0, 200)
@@ -142,10 +148,12 @@ function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails)
       }
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
+        const data = Buffer.concat(chunks, totalLength).toString('utf8');
         try {
           const result = JSON.parse(data);
 
@@ -212,13 +220,17 @@ function pollOutscraperJob(jobId, apiKey) {
       };
 
       const req = https.request(options, (res) => {
-        let data = "";
+        // Use Buffer pattern to prevent memory leak from string concatenation
+        const chunks = [];
+        let totalLength = 0;
 
         res.on("data", (chunk) => {
-          data += chunk;
+          chunks.push(chunk);
+          totalLength += chunk.length;
         });
 
         res.on("end", () => {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           try {
             const result = JSON.parse(data);
 

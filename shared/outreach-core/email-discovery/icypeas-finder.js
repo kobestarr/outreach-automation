@@ -57,13 +57,17 @@ async function findEmail({ firstName, lastName, domainOrCompany }) {
     };
 
     const req = https.request(options, (res) => {
-      let data = '';
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on('data', (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on('end', () => {
+        const data = Buffer.concat(chunks, totalLength).toString('utf8');
         try {
           const result = JSON.parse(data);
 
@@ -162,13 +166,17 @@ function pollIcypeasResult(searchId, apiKey) {
       };
 
       const req = https.request(options, (res) => {
-        let data = '';
+        // Use Buffer pattern to prevent memory leak from string concatenation
+        const chunks = [];
+        let totalLength = 0;
 
         res.on('data', (chunk) => {
-          data += chunk;
+          chunks.push(chunk);
+          totalLength += chunk.length;
         });
 
         res.on('end', () => {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           try {
             const result = JSON.parse(data);
 

@@ -46,19 +46,25 @@ function fetchWebsite(url, timeout = 10000) {
         return reject(new Error(`HTTP ${res.statusCode}`));
       }
 
-      let data = '';
-      res.setEncoding('utf8');
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on('data', (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
+
         // Limit response size to 1MB
-        if (data.length > 1024 * 1024) {
+        if (totalLength > 1024 * 1024) {
           req.destroy();
           reject(new Error('Response too large'));
         }
       });
 
-      res.on('end', () => resolve(data));
+      res.on('end', () => {
+        const data = Buffer.concat(chunks, totalLength).toString('utf8');
+        resolve(data);
+      });
     });
 
     req.on('timeout', () => {
