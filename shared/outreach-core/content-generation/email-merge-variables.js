@@ -177,14 +177,26 @@ function getMultiOwnerNote(business) {
   }
 
   // Get names of other owners (excluding first one we're addressing)
-  const otherOwners = business.owners
+  const otherOwnerNames = business.owners
     .slice(1) // Skip first owner (they're in {{firstName}})
     .map(o => o.firstName)
     .filter(name => name && name.trim()) // Remove empty/null names
-    .join(' and '); // "Sarah and John" or just "Sarah"
+    .slice(0, 5); // Cap at 5 people max
 
-  if (!otherOwners) {
+  if (otherOwnerNames.length === 0) {
     return ""; // No valid other names found
+  }
+
+  // Format with commas and Oxford comma
+  let otherOwners;
+  if (otherOwnerNames.length === 1) {
+    otherOwners = otherOwnerNames[0];
+  } else if (otherOwnerNames.length === 2) {
+    otherOwners = otherOwnerNames.join(' and ');
+  } else {
+    // 3+ names: "Sarah, John, and Mike" (Oxford comma)
+    const lastIndex = otherOwnerNames.length - 1;
+    otherOwners = otherOwnerNames.slice(0, lastIndex).join(', ') + ', and ' + otherOwnerNames[lastIndex];
   }
 
   const companyName = business.businessName || business.name;

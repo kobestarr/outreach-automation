@@ -150,13 +150,92 @@ function extractRegisteredAddress(html) {
 }
 
 /**
+ * Extract email addresses from HTML
+ * @param {string} html - HTML content
+ * @returns {Array<string>} Array of email addresses found
+ */
+function extractEmails(html) {
+  if (!html) return [];
+
+  const emailPattern = /\b[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  const emails = html.match(emailPattern) || [];
+
+  // Deduplicate and filter out common generic emails
+  const genericEmails = /^(info|contact|hello|support|admin|enquiries|mail)@/i;
+  return [...new Set(emails)].filter(email => !genericEmails.test(email));
+}
+
+/**
+ * Check if a person's name matches email patterns on the website
+ * Tests patterns like: firstname.lastname@domain, firstnamelastname@domain, firstname@domain
+ * Also checks role-based emails (pm@, manager@, owner@) against job titles
+ * @param {string} fullName - Person's full name (e.g., "Christopher Needham")
+ * @param {Array<string>} emails - Array of email addresses found on website
+ * @param {string} title - Person's job title (e.g., "Practice Manager", "Owner")
+ * @returns {boolean} True if name matches any email pattern
+ */
+function nameMatchesEmailPattern(fullName, emails, title = null) {
+  if (!fullName || !emails || emails.length === 0) return false;
+
+  const nameParts = fullName.toLowerCase().split(' ');
+  if (nameParts.length < 2) return false;
+
+  const firstName = nameParts[0];
+  const lastName = nameParts[nameParts.length - 1];
+
+  // Test personal email patterns
+  const namePatterns = [
+    `${firstName}.${lastName}@`,       // Christopher.Needham@
+    `${firstName}${lastName}@`,        // ChristopherNeedham@
+    `${firstName}@`,                   // Christopher@
+    `${firstName[0]}${lastName}@`,     // CNeedham@
+    `${firstName[0]}.${lastName}@`     // C.Needham@
+  ];
+
+  // Check personal email patterns
+  const hasPersonalEmail = emails.some(email => {
+    const emailLower = email.toLowerCase();
+    return namePatterns.some(pattern => emailLower.includes(pattern));
+  });
+
+  if (hasPersonalEmail) return true;
+
+  // Check role-based email patterns if title provided
+  if (title) {
+    const titleLower = title.toLowerCase();
+    const rolePatterns = [];
+
+    // Map job titles to common role-based email prefixes
+    if (titleLower.includes('practice manager') || titleLower.includes('office manager')) {
+      rolePatterns.push('pm@', 'manager@', 'office@');
+    } else if (titleLower.includes('owner') || titleLower.includes('proprietor') || titleLower.includes('founder')) {
+      rolePatterns.push('owner@', 'director@', 'ceo@');
+    } else if (titleLower.includes('director') || titleLower.includes('managing director')) {
+      rolePatterns.push('director@', 'md@');
+    } else if (titleLower.includes('reception')) {
+      rolePatterns.push('reception@', 'front@');
+    }
+
+    if (rolePatterns.length > 0) {
+      return emails.some(email => {
+        const emailLower = email.toLowerCase();
+        return rolePatterns.some(pattern => emailLower.startsWith(pattern));
+      });
+    }
+  }
+
+  return false;
+}
+
+/**
  * Extract owner/director names from HTML
  * Looks for names on About, Team, Contact pages and footer
  * Supports healthcare professionals, business titles, and contextual mentions
  * @param {string} html - HTML content
- * @returns {Array<{name: string, title: string|null}>} Array of potential owner names
+ * @param {Array<string>} emails - Optional array of emails to validate against
+ * @returns {Array<{name: string, title: string|null, hasEmailMatch: boolean}>} Array of potential owner names
  */
-function extractOwnerNames(html) {
+function extractOwnerNames(html, emails = []) {
   if (!html) return [];
 
   const text = html.replace(/<[^>]+>/g, '\n').replace(/\s+/g, ' ');
@@ -282,11 +361,29 @@ function extractOwnerNames(html) {
     }
   }
 
-  if (unique.length > 0) {
-    logger.info('website-scraper', 'Found owner names', { count: unique.length, names: unique.map(n => n.name) });
+  // Validate names against email patterns and add hasEmailMatch property
+  const validated = unique.map(owner => ({
+    ...owner,
+    hasEmailMatch: nameMatchesEmailPattern(owner.name, emails, owner.title)
+  }));
+
+  // Sort by email match (names with matching emails first)
+  validated.sort((a, b) => {
+    if (a.hasEmailMatch && !b.hasEmailMatch) return -1;
+    if (!a.hasEmailMatch && b.hasEmailMatch) return 1;
+    return 0;
+  });
+
+  if (validated.length > 0) {
+    const matchCount = validated.filter(n => n.hasEmailMatch).length;
+    logger.info('website-scraper', 'Found owner names', {
+      count: validated.length,
+      emailMatches: matchCount,
+      names: validated.map(n => `${n.name}${n.hasEmailMatch ? ' ✓' : ''}`)
+    });
   }
 
-  return unique;
+  return validated;
 }
 
 /**
@@ -301,6 +398,10 @@ async function scrapeWebsite(url) {
     // Fetch main page
     const html = await fetchWebsite(url);
 
+    // Extract emails first (used for name validation)
+    const emails = extractEmails(html);
+    logger.info('website-scraper', 'Extracted emails from main page', { count: emails.length });
+
     // Extract from meta tags first (often has team info)
     const metaNames = [];
     const metaDescription = html.match(/<meta\s+(?:name|property)=["'](?:description|og:description)["']\s+content=["']([^"']+)["']/i);
@@ -310,7 +411,12 @@ async function scrapeWebsite(url) {
       const drPattern = /Dr\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g;
       let match;
       while ((match = drPattern.exec(metaText)) !== null) {
-        metaNames.push({ name: match[1].trim(), title: 'Dr' });
+        const name = match[1].trim();
+        metaNames.push({
+          name: name,
+          title: 'Dr',
+          hasEmailMatch: nameMatchesEmailPattern(name, emails, 'Dr')
+        });
       }
       if (metaNames.length > 0) {
         logger.info('website-scraper', 'Found names in meta description', { count: metaNames.length });
@@ -325,7 +431,7 @@ async function scrapeWebsite(url) {
     const ownerNames = [...metaNames];
 
     // Also extract from main page content using pattern matching
-    const mainPageNames = extractOwnerNames(html);
+    const mainPageNames = extractOwnerNames(html, emails);
     for (const name of mainPageNames) {
       if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
         ownerNames.push(name);
@@ -348,6 +454,10 @@ async function scrapeWebsite(url) {
         teamUrl.pathname = path;
         const teamHtml = await fetchWebsite(teamUrl.toString(), 5000);
 
+        // Extract emails from team page (may have additional staff emails)
+        const teamEmails = extractEmails(teamHtml);
+        const allEmails = [...new Set([...emails, ...teamEmails])]; // Combine and dedupe
+
         // Extract from team page meta description first
         const teamMetaDescription = teamHtml.match(/<meta\s+(?:name|property)=["'](?:description|og:description)["']\s+content=["']([^"']+)["']/i);
         if (teamMetaDescription && teamMetaDescription[1]) {
@@ -357,14 +467,18 @@ async function scrapeWebsite(url) {
           while ((match = drPattern.exec(teamMetaText)) !== null) {
             const name = match[1].trim();
             if (!ownerNames.find(n => n.name.toLowerCase() === name.toLowerCase())) {
-              ownerNames.push({ name: name, title: 'Dr' });
+              ownerNames.push({
+                name: name,
+                title: 'Dr',
+                hasEmailMatch: nameMatchesEmailPattern(name, allEmails, 'Dr')
+              });
               logger.info('website-scraper', `Found name in ${path} meta description`, { name });
             }
           }
         }
 
         // Also extract from team page HTML content
-        const teamNames = extractOwnerNames(teamHtml);
+        const teamNames = extractOwnerNames(teamHtml, allEmails);
         for (const name of teamNames) {
           if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
             ownerNames.push(name);
@@ -379,6 +493,13 @@ async function scrapeWebsite(url) {
       }
     }
 
+    // Sort owner names - prioritize those with email matches
+    ownerNames.sort((a, b) => {
+      if (a.hasEmailMatch && !b.hasEmailMatch) return -1;
+      if (!a.hasEmailMatch && b.hasEmailMatch) return 1;
+      return 0;
+    });
+
     const result = {
       registrationNumber,
       registeredAddress,
@@ -386,11 +507,13 @@ async function scrapeWebsite(url) {
       scrapedAt: new Date().toISOString()
     };
 
+    const emailMatchCount = ownerNames.filter(n => n.hasEmailMatch).length;
     logger.info('website-scraper', 'Website scraping complete', {
       url,
       hasRegistrationNumber: !!registrationNumber,
       hasAddress: !!registeredAddress,
-      ownerNamesCount: ownerNames.length
+      ownerNamesCount: ownerNames.length,
+      emailMatchCount: emailMatchCount
     });
 
     return result;
