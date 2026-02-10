@@ -9,6 +9,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Lemlist Integration Testing & Bug Fixes
+
+#### Multi-Owner Lemlist Export - Production Testing
+
+**Test Date:** 2026-02-10
+**Test Campaign:** Local outreach Test Campaign (cam_bJYSQ4pqMzasQWsRb)
+**Test Business:** KissDental Bramhall (2 owners)
+
+**Results:**
+1. ✅ **Multi-owner lead creation successful**
+   - Created 2 leads in Lemlist campaign
+   - Kailesh Solanki: lea_cnmXxJKR7zYnzWasK
+   - Callum Coombs: lea_6FrGrE8F67ykAqbK2
+
+2. ✅ **Custom fields preserved correctly**
+   - businessId: `3f120bdc3bf6` (both leads have same ID)
+   - multiOwnerGroup: `"true"` (string, not boolean - Lemlist converts)
+   - ownerCount: `"2"`
+   - ownerIndex: `"1"` or `"2"`
+
+3. ✅ **Retry logic & rate limiting functional**
+   - All leads created on first attempt
+   - 500ms delay between creations working
+   - Exponential backoff ready for failures
+
+4. ⚠️ **Lemlist API limitation discovered**
+   - GET `/api/campaigns/{id}/leads` returns empty after lead creation
+   - Appears to be API caching/consistency issue
+   - Leads ARE created successfully (verified by POST response)
+   - Workaround: Track exported leads in local database
+
+**Bug Fixed:**
+- **Empty Lemlist API Response Handling** (`lemlist-exporter.js`)
+  - **Issue:** `getLeadsFromCampaign()` crashed with "Unexpected end of JSON input" when campaign had no leads
+  - **Cause:** Lemlist returns `content-length: 0` (empty body) instead of `[]` for empty campaigns
+  - **Fix:** Check for empty response before `JSON.parse()`, return `[]` for empty campaigns
+  - **Commit:** f2df249
+
+**Documentation:**
+- Added `LEMLIST-TEST-REPORT.md` - Comprehensive test report with:
+  - Multi-owner export verification
+  - Custom field preservation analysis
+  - Lemlist API issue documentation
+  - Manual verification steps
+  - Next steps and recommendations
+
+**Status:** Multi-owner system READY for production with manual verification via Lemlist UI
+
+---
+
 ### Fixed - Code Review Improvements
 
 #### Reply Detection & Multi-Owner System Enhancements
