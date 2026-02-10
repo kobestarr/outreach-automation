@@ -14,6 +14,9 @@ const { exportToProsp } = require("../../../shared/outreach-core/export-managers
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 const logger = require("../../../shared/outreach-core/logger");
 const { scrapeWebsite, parseName } = require("../../../shared/outreach-core/enrichment/website-scraper");
+const { extractEmailsFromWebsite } = require('../../../shared/outreach-core/email-discovery/website-email-extractor');
+const { extractEmailsFromSocialMedia } = require('../../../shared/outreach-core/email-discovery/social-media-email-extractor');
+const { generateEmailPatterns, verifyEmailExists } = require('../../../shared/outreach-core/email-discovery/email-pattern-matcher');
 
 /**
  * Main enrichment function - now supports multiple owners
@@ -100,13 +103,33 @@ async function enrichBusiness(business) {
     }
   }
 
-  // If still no owners, skip this business
+  // If still no owners, use company name as fallback
   if (allOwners.length === 0 || !allOwners[0].firstName) {
-    logger.warn('main', 'No owner firstName found - skipping business', {
+    logger.warn('main', 'No owner firstName found - using company name as fallback', {
       business: business.name,
       website: business.website
     });
-    return null; // Signal to skip this business
+
+    // Create fallback owner using short company name
+    const { getShortNameForTeam } = require('../../../shared/outreach-core/content-generation/company-name-humanizer');
+    const companyName = business.businessName || business.name || "Business";
+    const shortName = getShortNameForTeam(companyName);
+
+    allOwners = [{
+      firstName: `${shortName} Team`, // Include "Team" in firstName for email greeting
+      lastName: "", // Empty since full name already in firstName
+      fullName: `${shortName} Team`,
+      title: null,
+      source: 'fallback'
+    }];
+
+    enriched.usedFallbackName = true; // Flag for email template
+
+    logger.info('main', 'Using short name for fallback', {
+      original: companyName,
+      short: shortName,
+      fullFallback: `${shortName} Team`
+    });
   }
 
   // Step 2: Set backward-compatible single-owner fields (first owner)
@@ -116,6 +139,124 @@ async function enrichBusiness(business) {
   enriched.ownerFullName = firstOwner.fullName;
   enriched.ownerTitle = firstOwner.title;
   enriched.ownerSource = firstOwner.source;
+
+  // PHASE 1.5: Email Extraction (NEW)
+  // Extract emails from website and social media BEFORE owner discovery
+  // This ensures we have fallback emails even if owner discovery fails
+
+  logger.info('main', 'Starting email extraction phase', {
+    business: business.name,
+    hasWebsite: !!business.website,
+    hasInstagram: !!business.instagramUrl,
+    hasFacebook: !!business.facebookUrl
+  });
+
+  const discoveredEmails = [];
+
+  // Step 1: Extract from website
+  if (business.website) {
+    try {
+      const websiteEmails = await extractEmailsFromWebsite(business.website);
+      discoveredEmails.push(...websiteEmails);
+
+      logger.info('main', 'Website email extraction complete', {
+        business: business.name,
+        count: websiteEmails.length,
+        emails: websiteEmails
+      });
+    } catch (error) {
+      logger.error('main', 'Website email extraction failed', {
+        business: business.name,
+        error: error.message
+      });
+    }
+  }
+
+  // Step 2: Extract from social media (if no website emails found)
+  if (discoveredEmails.length === 0 && (business.instagramUrl || business.facebookUrl || business.linkedInUrl)) {
+    try {
+      const socialEmails = await extractEmailsFromSocialMedia(business);
+      discoveredEmails.push(...socialEmails);
+
+      logger.info('main', 'Social media email extraction complete', {
+        business: business.name,
+        count: socialEmails.length,
+        emails: socialEmails
+      });
+    } catch (error) {
+      logger.error('main', 'Social media email extraction failed', {
+        business: business.name,
+        error: error.message
+      });
+    }
+  }
+
+  // Step 3: Pattern matching (if still no emails and have domain)
+  if (discoveredEmails.length === 0 && business.website) {
+    try {
+      const domain = new URL(business.website).hostname;
+      const patterns = generateEmailPatterns(domain);
+
+      // Verify patterns with DNS check
+      for (const pattern of patterns) {
+        const exists = await verifyEmailExists(pattern);
+        if (exists) {
+          discoveredEmails.push(pattern);
+          logger.info('main', 'Pattern-matched email verified', {
+            business: business.name,
+            email: pattern
+          });
+          break; // Only take first valid pattern
+        }
+      }
+    } catch (error) {
+      logger.error('main', 'Pattern matching failed', {
+        business: business.name,
+        error: error.message
+      });
+    }
+  }
+
+  // Step 4: Verify all discovered emails with Reoon
+  if (discoveredEmails.length > 0) {
+    const { verifyEmails } = require('../../../shared/outreach-core/email-verification/reoon-verifier');
+
+    try {
+      const verifiedResults = await verifyEmails(discoveredEmails, 'power');
+
+      // Store verified emails in business object for later use
+      business.extractedEmails = verifiedResults
+        .filter(result => result.isValid)
+        .map(result => ({
+          email: result.email,
+          source: 'website-extraction',
+          verified: true,
+          verifiedAt: result.verifiedAt
+        }));
+
+      logger.info('main', 'Email extraction and verification complete', {
+        business: business.name,
+        discovered: discoveredEmails.length,
+        verified: business.extractedEmails.length
+      });
+
+    } catch (error) {
+      logger.error('main', 'Email verification failed', {
+        business: business.name,
+        error: error.message
+      });
+      business.extractedEmails = [];
+    }
+  } else {
+    business.extractedEmails = [];
+
+    logger.warn('main', 'No emails discovered from website/social media', {
+      business: business.name
+    });
+  }
+
+  // Add 500ms delay to avoid rate limiting
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   // Step 3: Discover emails for ALL owners (Icypeas for first 2, pattern-match for rest)
   const extractDomainSafely = (website) => {
@@ -185,10 +326,40 @@ async function enrichBusiness(business) {
 
   // Step 5: Set primary email (first owner's email for backward compatibility)
   const firstOwnerWithEmail = enrichedOwners.find(o => o.email);
+
   if (firstOwnerWithEmail) {
     enriched.ownerEmail = firstOwnerWithEmail.email;
     enriched.emailSource = firstOwnerWithEmail.emailSource;
     enriched.emailVerified = firstOwnerWithEmail.emailVerified;
+
+  } else if (business.extractedEmails && business.extractedEmails.length > 0) {
+    // NEW: Use website/social media extracted email
+    enriched.ownerEmail = business.extractedEmails[0].email;
+    enriched.emailSource = 'website-extraction';
+    enriched.emailVerified = business.extractedEmails[0].verified;
+
+    logger.info('main', 'Using extracted email from website/social media', {
+      business: business.name,
+      email: enriched.ownerEmail
+    });
+
+  } else if (business.email) {
+    // Fallback to business email from Outscraper (Phase 1)
+    enriched.ownerEmail = business.email;
+    enriched.emailSource = 'outscraper-business';
+    enriched.emailVerified = false; // Outscraper doesn't verify emails
+
+    logger.info('main', 'Using business email from Outscraper as fallback', {
+      business: business.name,
+      email: business.email
+    });
+
+  } else {
+    // STILL SKIP if no email at all (neither owner email nor business email)
+    logger.warn('main', 'No email found (neither owner email nor business email) - skipping business', {
+      business: business.name
+    });
+    return null; // Signal to skip this business
   }
 
   // Step 6: LinkedIn enrichment (conditional - for first owner only)
