@@ -1,7 +1,7 @@
 # Outreach Automation Platform - Product Requirements Document
 
-**Version:** 1.2.0
-**Last Updated:** February 9, 2026
+**Version:** 1.4.0
+**Last Updated:** February 10, 2026
 **Status:** Active
 
 ---
@@ -165,13 +165,174 @@ export CONTENT_PROVIDER=openai
 
 ### 3. Export Layer
 **Export Managers:**
-- `lemlist-exporter.js` - CSV export for Lemlist platform
+- `lemlist-exporter.js` - CSV export for Lemlist platform (supports multi-owner businesses)
 - `prosp-exporter.js` - CSV export for Prosp platform
 
 **Capabilities:**
 - Transform generated content into platform-specific CSV formats
 - Handle custom field mappings
 - Validate required fields before export
+- Multi-owner support: Creates one lead per owner for same business
+- Business ID linking for reply detection
+
+#### 3.1 Multi-Owner Support (`lemlist-exporter.js`, `multi-owner-templates.js`)
+
+**Problem:** Many businesses have multiple owners/partners (e.g., dental practices with 2+ dentists, law firms with multiple partners). Contacting only one owner misses opportunities and can send emails to the wrong decision-maker.
+
+**Solution:** Extract all business owners (up to 5), discover emails for each, create personalized multi-owner email, and export one Lemlist lead per owner with cross-lead linking.
+
+**Owner Extraction (3 sources, tried in order):**
+1. **Companies House API (by registration number)**
+   - Extracts from website metadata/footer
+   - Returns all company officers
+   - Most accurate for UK businesses
+
+2. **Website Scraping**
+   - Scrapes "About Us" / "Meet the Team" pages
+   - Pattern-matches director names and titles
+   - Backup when no registration number
+
+3. **Companies House Search (by business name + postcode)**
+   - Searches Companies House by business name
+   - Fallback when other methods fail
+   - Less accurate (name matching required)
+
+**Email Discovery with Rate Limiting:**
+- **First 2 owners:** Icypeas API (~$0.01/lookup, ~95% accuracy)
+- **Remaining 3 owners:** Pattern-matching (free, ~70% accuracy)
+- **Rationale:** Balance cost vs coverage (2 contacts better than 1)
+
+**Dynamic Email Templates:**
+```javascript
+// Greeting generation
+generateGreeting(owners)
+// 1 owner:  "Hi Sarah,"
+// 2 owners: "Hi Sarah and John,"
+// 3+ owners: "Hi Sarah, John, and Michael,"
+
+// Transparency paragraph (multi-owner only)
+generateTransparencyParagraph(owners)
+// "I wasn't sure which of you would be the best person to speak with
+// about this, so I'm reaching out to everyone. Hope that's okay!"
+
+// Closing line (multi-owner only)
+generateClosingLine(owners)
+// "Please let me know which one of you is the best to chat with
+// regarding this."
+```
+
+**Lemlist Multi-Lead Export:**
+- Creates **one lead per owner** in Lemlist
+- All owners receive **the same multi-owner email**
+- Each lead tagged with:
+  - `businessId`: Unique MD5 hash (business name + location)
+  - `multiOwnerGroup`: `true`
+  - `ownerCount`: Total number of owners
+  - `ownerIndex`: Owner position (1, 2, 3...)
+
+**Example Output:**
+```json
+{
+  "Lead 1 (Kailesh)": {
+    "email": "kailesh.solanki@kissdental.co.uk",
+    "firstName": "Kailesh",
+    "businessId": "35aec0802d24",
+    "multiOwnerGroup": true,
+    "ownerCount": 2,
+    "ownerIndex": 1
+  },
+  "Lead 2 (Callum)": {
+    "email": "callum@kissdental.co.uk",
+    "firstName": "Callum",
+    "businessId": "35aec0802d24",
+    "multiOwnerGroup": true,
+    "ownerCount": 2,
+    "ownerIndex": 2
+  }
+}
+```
+
+**Benefits:**
+- Contact ALL decision-makers (not just one)
+- Transparent approach builds trust
+- Increases response rate (more people see email)
+- Clarifies who should respond
+
+#### 3.2 Reply Detection System (`reply-detector.js`, `check-replies.js`)
+
+**Problem:** When one owner replies, the system continues emailing other owners, creating awkward situations and damaging professional reputation.
+
+**Solution:** Automatic reply detection with cross-lead sequence stopping.
+
+**How It Works:**
+1. All owners' leads tagged with same `businessId`
+2. Reply detector polls Lemlist API for lead replies (manual or cron)
+3. When any owner replies, detector:
+   - Identifies the replying lead
+   - Finds all leads with same `businessId`
+   - Auto-unsubscribes other owners from campaign
+   - Logs action for transparency
+4. Related sequences stop immediately
+
+**Polling Frequency:**
+- **Recommended:** Every 10 minutes via cron
+- **Manual:** Run `check-replies.js` anytime
+- **Watch mode:** Continuous monitoring (`--watch` flag)
+
+**CLI Commands:**
+```bash
+# Manual check (all campaigns)
+node shared/outreach-core/export-managers/check-replies.js
+
+# Continuous monitoring (every 5 min)
+node shared/outreach-core/export-managers/check-replies.js --watch
+
+# Check specific campaign
+node shared/outreach-core/export-managers/check-replies.js cam_abc123
+
+# Cron job (every 10 min)
+*/10 * * * * cd /path && node check-replies.js >> logs/reply-detection.log 2>&1
+```
+
+**Cron Setup (Recommended):**
+```bash
+# Edit crontab
+crontab -e
+
+# Add line to check every 10 minutes
+*/10 * * * * cd /Users/kobestarr/Downloads/outreach-automation && node shared/outreach-core/export-managers/check-replies.js >> logs/reply-detection.log 2>&1
+```
+
+**Reply Detection Output:**
+```
+🔍 Reply Detection System
+
+📧 Campaign: cam_abc123
+   New replies: 1
+   Sequences stopped: 1
+
+   ✅ Kailesh Solanki (kailesh.solanki@kissdental.co.uk) replied
+      Company: KissDental Bramhall
+      Stopped sequences for:
+         - Callum Coombs (callum@kissdental.co.uk)
+
+📊 Summary:
+   Total new replies: 1
+   Total sequences stopped: 1
+   Campaigns checked: 1
+```
+
+**State Management:**
+- Tracks processed replies in `reply-detector-state.json`
+- Prevents duplicate processing
+- Keeps last 1000 replies (auto-cleanup)
+- Records last check timestamp
+
+**Benefits:**
+- Prevents awkward continued emails after reply
+- Maintains professional reputation
+- Saves manual work (no manual sequence stopping)
+- Transparent logging of all actions
 
 ### 4. Storage Layer
 **Technology:** better-sqlite3 (SQLite)
@@ -242,6 +403,60 @@ export CONTENT_PROVIDER=openai
 3. Generate localized content with appropriate pricing
 4. Export with region tags
 5. Launch localized campaigns
+
+### Workflow 4: Multi-Owner Business Campaign
+**Use Case:** Businesses with multiple owners/partners (dental practices, law firms, consulting firms)
+
+**Example:** KissDental Bramhall (Dr. Kailesh Solanki + Dr. Callum Coombs)
+
+1. **Run Campaign:**
+   ```bash
+   node ksd/local-outreach/orchestrator/main.js Bramhall SK7 "dentists"
+   ```
+   - System extracts all owners (up to 5)
+   - Discovers emails for each owner (Icypeas for first 2, pattern-matching for rest)
+   - Generates multi-owner email with "Hi Kailesh and Callum,"
+   - Adds transparency paragraph and closing line
+
+2. **Review Email:**
+   ```bash
+   node shared/outreach-core/approval-system/approve-cli.js
+   ```
+   - Review multi-owner email template
+   - Verify greeting includes all names
+   - Check transparency messaging
+
+3. **Export to Lemlist:**
+   ```bash
+   node ksd/local-outreach/orchestrator/utils/resume-approval.js Bramhall SK7
+   ```
+   - Creates 2 leads (one per owner)
+   - Both tagged with `businessId: 35aec0802d24`
+   - Both receive same multi-owner email
+
+4. **Monitor for Replies:**
+   ```bash
+   # Setup cron job (every 10 min)
+   crontab -e
+   */10 * * * * cd /path && node shared/outreach-core/export-managers/check-replies.js >> logs/reply-detection.log 2>&1
+   ```
+   - When Kailesh replies → Callum's sequence stops automatically
+   - Prevents awkward continued emails
+   - Logs all actions
+
+**Expected Output:**
+- Email subject: "quick question about kiss dental's social media"
+- Email greeting: "Hi Kailesh and Callum,"
+- Email body: (standard content)
+- Transparency: "I wasn't sure which of you would be the best person to speak with about this, so I'm reaching out to everyone. Hope that's okay!"
+- Closing: "Please let me know which one of you is the best to chat with regarding this."
+- Signature: "Sent from my iPhone"
+
+**Reply Detection:**
+- Kailesh replies → System detects reply in next cron run
+- System finds Callum's lead (same `businessId`)
+- System unsubscribes Callum from campaign
+- Result: No more emails sent to Callum
 
 ---
 
