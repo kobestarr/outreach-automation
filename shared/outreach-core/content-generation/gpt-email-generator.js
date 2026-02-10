@@ -177,18 +177,19 @@ async function generateEmailContent(params) {
       });
     });
 
-    // Set request timeout (OpenAI can be slow)
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy();
-      reject(new Error(`OpenAI API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
-    });
-
+    // Register error handler BEFORE timeout to ensure proper cleanup order
     req.on("error", (error) => {
       if (error.code === "ECONNRESET") {
         reject(new Error("OpenAI API connection reset - request may have timed out"));
       } else {
         reject(new Error(`OpenAI API request error: ${error.message}`));
       }
+    });
+
+    // Set request timeout (OpenAI can be slow)
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error(`OpenAI API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
     });
 
     req.write(postData);

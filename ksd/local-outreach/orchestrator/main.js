@@ -273,7 +273,8 @@ async function enrichBusiness(business) {
   const enrichedOwners = [];
 
   for (let i = 0; i < allOwners.length; i++) {
-    const owner = allOwners[i];
+    // Clone owner object to prevent race conditions during async operations
+    const owner = { ...allOwners[i] };
     const useIcypeas = i < 2; // Only use Icypeas for first 2 owners
 
     logger.info('main', 'Discovering email for owner', {
