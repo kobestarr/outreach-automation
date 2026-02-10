@@ -1,0 +1,377 @@
+{
+  "version": "1.0.0",
+  "systemName": "Outreach Automation Pipeline",
+  "description": "Multi-stage pipeline: Discover → Enrich → Generate → Export",
+  "lastUpdated": "2026-02-10",
+
+  "modules": {
+    "discovery": {
+      "google-maps-scraper-outscraper": {
+        "purpose": "Scrape businesses from Google Maps using Outscraper API",
+        "input": "Location, postcode, business categories",
+        "output": "Array of businesses with basic info (name, address, phone, website, reviews)",
+        "whenToUse": "Initial business discovery for a location/postcode",
+        "filePath": "ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper.js"
+      }
+    },
+
+    "enrichment": {
+      "website-scraper": {
+        "purpose": "Extract company registration, owner names, and emails (ALL IN ONE PASS)",
+        "input": "Website URL",
+        "output": "{ ownerNames (with hasEmailMatch, matchedEmail), emails, registrationNumber, registeredAddress }",
+        "whenToUse": "After Google Maps scraping, for each business with a website",
+        "keyBehavior": "Two-phase: (1) Extract all emails first, (2) Extract names and validate against emails with email claiming",
+        "filePath": "shared/outreach-core/enrichment/website-scraper.js",
+        "keyFunctions": {
+          "scrapeWebsite": "Main entry point, returns all website data",
+          "extractEmails": "Extract all emails from HTML",
+          "extractOwnerNames": "Extract names and validate against emails",
+          "findMatchingEmail": "Match name to email with email claiming logic"
+        }
+      },
+      "website-email-extractor": {
+        "purpose": "Fallback comprehensive email discovery",
+        "input": "Website URL",
+        "output": "Array of email addresses",
+        "whenToUse": "DEPRECATED - website-scraper now handles email extraction",
+        "status": "Redundant if website-scraper works properly",
+        "filePath": "shared/outreach-core/email-discovery/website-email-extractor.js"
+      },
+      "icypeas-finder": {
+        "purpose": "Premium LinkedIn-based email discovery",
+        "input": "Business name, domain, location",
+        "output": "Verified business emails with confidence scores",
+        "whenToUse": "When website scraping fails completely",
+        "cost": "Premium API, use sparingly",
+        "filePath": "shared/outreach-core/email-discovery/icypeas-finder.js"
+      },
+      "social-media-email-extractor": {
+        "purpose": "DEPRECATED - Extract emails from social media",
+        "status": "DISABLED - Violates Terms of Service",
+        "whenToUse": "NEVER USE",
+        "filePath": "shared/outreach-core/email-discovery/social-media-email-extractor.js"
+      }
+    },
+
+    "verification": {
+      "reoon-verifier": {
+        "purpose": "Verify email deliverability using Reoon API",
+        "input": "Email address",
+        "output": "Verification status (valid/invalid/risky)",
+        "whenToUse": "Before exporting leads to Lemlist to avoid bounces",
+        "filePath": "shared/outreach-core/email-verification/reoon-verifier.js"
+      }
+    },
+
+    "contentGeneration": {
+      "email-merge-variables": {
+        "purpose": "Generate ALL merge variables for email personalization",
+        "input": "Enriched business object",
+        "output": "Complete merge variable set",
+        "whenToUse": "After enrichment, before export to Lemlist",
+        "filePath": "shared/outreach-core/content-generation/email-merge-variables.js",
+        "keyFunctions": {
+          "getAllMergeVariables": "Main function - returns all variables",
+          "getMultiOwnerNote": "Handles multi-owner scenarios (capped at 5, Oxford comma)",
+          "getLocalIntro": "Proximity-based intro (local vs UK-wide)",
+          "getObservationSignal": "Business-specific hooks",
+          "getMicroOfferPrice": "Tiered pricing based on business tier",
+          "getMeetingOption": "In-person vs phone based on proximity"
+        }
+      },
+      "observation-signals": {
+        "purpose": "Compute observation signals for email hooks",
+        "input": "Business data (reviews, website quality, social media)",
+        "output": "Ranked signals (lowReviews, noWebsite, poorWebsite, etc.)",
+        "whenToUse": "Called by email-merge-variables automatically",
+        "filePath": "shared/outreach-core/content-generation/observation-signals.js"
+      },
+      "gpt-email-generator": {
+        "purpose": "Generate custom email copy using GPT-4",
+        "input": "Business data, prompt template",
+        "output": "Custom-written email content",
+        "whenToUse": "For fully custom emails (not using templates)",
+        "filePath": "shared/outreach-core/content-generation/gpt-email-generator.js"
+      }
+    },
+
+    "export": {
+      "lemlist-exporter": {
+        "purpose": "Export leads to Lemlist email campaigns",
+        "input": "Campaign ID, lead data with merge variables",
+        "output": "Success/failure status, handles duplicates",
+        "whenToUse": "Final step after enrichment + merge variable generation",
+        "filePath": "shared/outreach-core/export-managers/lemlist-exporter.js"
+      }
+    },
+
+    "utilities": {
+      "logger": {
+        "purpose": "Centralized logging with PII masking",
+        "whenToUse": "All logging throughout the system",
+        "keyFeature": "Automatically masks email addresses to avoid GDPR violations",
+        "filePath": "shared/outreach-core/logger.js"
+      },
+      "credentials-loader": {
+        "purpose": "Load API credentials and track usage quotas",
+        "whenToUse": "System initialization, quota checking",
+        "output": "API keys, usage tracking data",
+        "filePath": "shared/outreach-core/credentials-loader.js"
+      }
+    }
+  },
+
+  "processFlow": {
+    "phase1_discovery": {
+      "step": 1,
+      "action": "google-maps-scraper-outscraper",
+      "description": "Discover businesses from Google Maps",
+      "input": "Location, postcode, categories",
+      "output": "Array of businesses with basic info"
+    },
+    "phase2_dataCollection": {
+      "step": 2,
+      "action": "website-scraper (ALL DATA IN ONE PASS)",
+      "description": "Extract all data from website in a single fetch",
+      "subSteps": [
+        "2A: Extract ALL emails from website (extractEmails)",
+        "2B: Extract ALL owner/staff names from website (extractOwnerNames)",
+        "2C: Validate names against emails with email claiming (findMatchingEmail)",
+        "2D: Sort names by email validation (validated first)"
+      ],
+      "output": "{ ownerNames (sorted by hasEmailMatch), emails, registration data }",
+      "keyPoint": "Email claiming ensures only one person can claim each email"
+    },
+    "phase3_intelligentEnrichment": {
+      "step": 3,
+      "action": "email-merge-variables.getAllMergeVariables",
+      "description": "Generate personalized merge variables",
+      "input": "Enriched business object",
+      "output": "Complete merge variable set with multi-owner note"
+    },
+    "phase4_export": {
+      "step": 4,
+      "action": "lemlist-exporter.addLeadToCampaign",
+      "description": "Export lead to Lemlist campaign",
+      "input": "Campaign ID, lead data",
+      "output": "Lead exported successfully or duplicate detected"
+    }
+  },
+
+  "emailMatchingRules": {
+    "personalPatterns": {
+      "description": "Personal email patterns tested in order of priority",
+      "patterns": [
+        "firstname.lastname@",
+        "firstnamelastname@",
+        "firstname@",
+        "flastname@",
+        "f.lastname@"
+      ],
+      "priority": 1,
+      "note": "Personal emails always win over role-based emails"
+    },
+    "roleBasedPatterns": {
+      "description": "Role-based email patterns mapped to job titles",
+      "priority": 2,
+      "mappings": {
+        "Practice Manager|Office Manager": {
+          "patterns": ["pm@", "manager@", "office@"],
+          "level": "senior"
+        },
+        "Owner|Founder|Proprietor": {
+          "patterns": ["owner@", "director@", "ceo@"],
+          "level": "senior"
+        },
+        "Director|Managing Director": {
+          "patterns": ["director@", "md@"],
+          "level": "senior"
+        },
+        "Receptionist": {
+          "patterns": ["reception@", "front@"],
+          "level": "junior"
+        }
+      }
+    },
+    "duplicateHandling": {
+      "rule": "Email Claiming - First-come first-served",
+      "description": "Track claimed emails in Set, only one person can claim each email",
+      "priority": "Personal emails > Senior roles > Junior roles",
+      "implementation": "findMatchingEmail(name, title, emails, claimedEmails)",
+      "example": {
+        "scenario": "Two receptionists, one reception@ email",
+        "input": [
+          "Zoe Tierney (Receptionist)",
+          "Natasha Lallement (Receptionist)"
+        ],
+        "output": [
+          "Zoe Tierney: hasEmailMatch=true, matchedEmail=reception@",
+          "Natasha Lallement: hasEmailMatch=false, matchedEmail=null"
+        ],
+        "emailMatchCount": 1,
+        "note": "First person to match claims the email"
+      }
+    },
+    "countingLogic": {
+      "emailMatchCount": "Count of UNIQUE emails matched (not people)",
+      "peopleWithEmails": "Count of people who have email matches",
+      "formula": "emailMatchCount = new Set(ownerNames.map(n => n.matchedEmail)).size"
+    }
+  },
+
+  "multiOwnerNoteRules": {
+    "cap": 5,
+    "description": "Multi-owner note formatting rules",
+    "format": {
+      "0_or_1_owner": "",
+      "1_other_person": "Michael",
+      "2_other_people": "Michael and Barbara",
+      "3+_other_people": "Michael, Barbara, and Nicola (Oxford comma)"
+    },
+    "template": "Quick note – I'm also reaching out to {{otherOwners}} since I wasn't sure who handles this at {{companyName}}. ",
+    "implementation": "getMultiOwnerNote(business)",
+    "example": {
+      "owners": ["Amanda", "Zoe", "Christopher", "Michael", "Barbara", "Nicola", "Lauren"],
+      "primaryContact": "Amanda",
+      "otherOwners": "Zoe, Christopher, Michael, Barbara, and Nicola",
+      "note": "Capped at 5 other people (Lauren excluded)"
+    }
+  },
+
+  "businessObjectStructure": {
+    "afterDiscovery": {
+      "description": "Business object after Google Maps scraping",
+      "fields": {
+        "name": "Business name",
+        "businessName": "Official business name",
+        "website": "Website URL",
+        "phone": "Phone number",
+        "address": "Full address",
+        "postcode": "Postcode",
+        "location": "City, region",
+        "category": "Business category",
+        "rating": "Google rating",
+        "reviews": "Number of reviews",
+        "assignedOfferTier": "tier1-tier5 (auto-assigned)"
+      }
+    },
+    "afterEnrichment": {
+      "description": "Business object after website scraping",
+      "additionalFields": {
+        "ownerFirstName": "Primary contact first name",
+        "ownerLastName": "Primary contact last name",
+        "owners": "Array of all owner objects",
+        "registrationNumber": "Company registration number",
+        "registeredAddress": "Registered company address"
+      },
+      "ownerObjectStructure": {
+        "firstName": "Owner first name",
+        "fullName": "Owner full name",
+        "title": "Job title or qualification",
+        "hasEmailMatch": "Boolean - email validated",
+        "matchedEmail": "The email that matched (or null)"
+      }
+    },
+    "afterMergeVariables": {
+      "description": "Business object with complete merge variables",
+      "mergeVariableFields": {
+        "firstName": "Primary contact first name",
+        "lastName": "Primary contact last name",
+        "companyName": "Company name",
+        "location": "Location",
+        "businessType": "Business type",
+        "localIntro": "Proximity-based intro",
+        "observationSignal": "Business-specific hook",
+        "meetingOption": "In-person vs phone",
+        "microOfferPrice": "Tiered pricing",
+        "multiOwnerNote": "Multi-owner acknowledgment (capped at 5, Oxford comma)",
+        "noNameNote": "No-name fallback acknowledgment",
+        "isNearby": "Boolean - within 45 mins",
+        "tier": "tier1-tier5",
+        "postcode": "Postcode"
+      }
+    }
+  },
+
+  "commonPitfalls": {
+    "fetchingWebsiteMultipleTimes": {
+      "problem": "Separate calls to scrapeWebsite, extractEmailsFromWebsite, getRegistrationNumber",
+      "solution": "Use website-scraper.scrapeWebsite() once - returns everything"
+    },
+    "notValidatingNamesAgainstEmails": {
+      "problem": "Extracting names without email validation leads to wrong primary contact",
+      "solution": "Always pass emails to extractOwnerNames() for validation"
+    },
+    "ignoringDuplicateEmails": {
+      "problem": "Multiple people claiming same email inflates emailMatchCount",
+      "solution": "Use email claiming with Set to track claimed emails"
+    },
+    "usingSocialMediaExtractors": {
+      "problem": "Violates Terms of Service, legal risk",
+      "solution": "NEVER use social-media-email-extractor.js - it's deprecated"
+    }
+  },
+
+  "apiKeys": {
+    "required": [
+      "OUTSCRAPER_API_KEY - Google Maps scraping",
+      "REOON_API_KEY - Email verification",
+      "LEMLIST_API_KEY - Campaign export"
+    ],
+    "optional": [
+      "ICYPEAS_API_KEY - Premium LinkedIn email discovery",
+      "OPENAI_API_KEY - Custom email generation"
+    ],
+    "location": ".env file in project root"
+  },
+
+  "nearbyPostcodes": {
+    "description": "Postcodes within 45 minutes of Poynton SK12",
+    "baseLocation": "Poynton SK12",
+    "postcodes": [
+      "SK12", "SK7", "SK6", "SK8", "SK1", "SK2", "SK3", "SK4",
+      "SK9", "SK10", "SK17", "SK22", "SK23",
+      "WA14", "WA15", "WA16",
+      "M20", "M21", "M22", "M23", "M19", "M14", "M13"
+    ],
+    "configLocation": "email-merge-variables.js - NEARBY_POSTCODES array"
+  },
+
+  "tierPricing": {
+    "description": "Tiered pricing multipliers applied to base micro-offer price",
+    "basePrices": {
+      "UK": "£97",
+      "US": "$127",
+      "EU": "€109"
+    },
+    "tiers": {
+      "tier1": {
+        "multiplier": 5,
+        "description": "High revenue businesses",
+        "examplePrice": "£485"
+      },
+      "tier2": {
+        "multiplier": 3,
+        "description": "Medium-high revenue",
+        "examplePrice": "£291"
+      },
+      "tier3": {
+        "multiplier": 2,
+        "description": "Medium revenue",
+        "examplePrice": "£194"
+      },
+      "tier4": {
+        "multiplier": 1.5,
+        "description": "Medium-low revenue",
+        "examplePrice": "£145"
+      },
+      "tier5": {
+        "multiplier": 1,
+        "description": "Low revenue",
+        "examplePrice": "£97"
+      }
+    },
+    "configLocation": "email-merge-variables.js - TIER_MULTIPLIERS object"
+  }
+}

@@ -166,65 +166,70 @@ function extractEmails(html) {
 }
 
 /**
- * Check if a person's name matches email patterns on the website
- * Tests patterns like: firstname.lastname@domain, firstnamelastname@domain, firstname@domain
- * Also checks role-based emails (pm@, manager@, owner@) against job titles
+ * Find matching email for a person, respecting already-claimed emails
+ * Implements email claiming logic: only one person can claim each email
+ * Priority: Personal emails > Senior roles > Junior roles
+ *
  * @param {string} fullName - Person's full name (e.g., "Christopher Needham")
- * @param {Array<string>} emails - Array of email addresses found on website
  * @param {string} title - Person's job title (e.g., "Practice Manager", "Owner")
- * @returns {boolean} True if name matches any email pattern
+ * @param {Array<string>} emails - All emails found on website
+ * @param {Set<string>} claimedEmails - Emails already claimed by other people
+ * @returns {string|null} Matching email or null
  */
-function nameMatchesEmailPattern(fullName, emails, title = null) {
-  if (!fullName || !emails || emails.length === 0) return false;
+function findMatchingEmail(fullName, title, emails, claimedEmails = new Set()) {
+  if (!fullName || !emails || emails.length === 0) return null;
 
   const nameParts = fullName.toLowerCase().split(' ');
-  if (nameParts.length < 2) return false;
+  if (nameParts.length < 2) return null;
 
   const firstName = nameParts[0];
   const lastName = nameParts[nameParts.length - 1];
 
-  // Test personal email patterns
-  const namePatterns = [
-    `${firstName}.${lastName}@`,       // Christopher.Needham@
-    `${firstName}${lastName}@`,        // ChristopherNeedham@
-    `${firstName}@`,                   // Christopher@
-    `${firstName[0]}${lastName}@`,     // CNeedham@
-    `${firstName[0]}.${lastName}@`     // C.Needham@
+  // Priority 1: Personal email patterns (highest priority)
+  const personalPatterns = [
+    `${firstName}.${lastName}@`,       // christopher.needham@
+    `${firstName}${lastName}@`,        // christopherneedham@
+    `${firstName}@`,                   // christopher@
+    `${firstName[0]}${lastName}@`,     // cneedham@
+    `${firstName[0]}.${lastName}@`     // c.needham@
   ];
 
-  // Check personal email patterns
-  const hasPersonalEmail = emails.some(email => {
-    const emailLower = email.toLowerCase();
-    return namePatterns.some(pattern => emailLower.includes(pattern));
-  });
+  // Check personal email patterns first
+  for (const pattern of personalPatterns) {
+    const match = emails.find(email => {
+      const emailLower = email.toLowerCase();
+      return emailLower.includes(pattern) && !claimedEmails.has(email);
+    });
+    if (match) return match;
+  }
 
-  if (hasPersonalEmail) return true;
-
-  // Check role-based email patterns if title provided
+  // Priority 2: Role-based email patterns (if title provided)
   if (title) {
     const titleLower = title.toLowerCase();
-    const rolePatterns = [];
+    let rolePatterns = [];
 
-    // Map job titles to common role-based email prefixes
+    // Map job titles to email patterns with priority
     if (titleLower.includes('practice manager') || titleLower.includes('office manager')) {
-      rolePatterns.push('pm@', 'manager@', 'office@');
+      rolePatterns = ['pm@', 'manager@', 'office@']; // Senior role
     } else if (titleLower.includes('owner') || titleLower.includes('proprietor') || titleLower.includes('founder')) {
-      rolePatterns.push('owner@', 'director@', 'ceo@');
+      rolePatterns = ['owner@', 'director@', 'ceo@']; // Senior role
     } else if (titleLower.includes('director') || titleLower.includes('managing director')) {
-      rolePatterns.push('director@', 'md@');
+      rolePatterns = ['director@', 'md@']; // Senior role
     } else if (titleLower.includes('reception')) {
-      rolePatterns.push('reception@', 'front@');
+      rolePatterns = ['reception@', 'front@']; // Junior role
     }
 
-    if (rolePatterns.length > 0) {
-      return emails.some(email => {
+    // Check role-based patterns
+    for (const pattern of rolePatterns) {
+      const match = emails.find(email => {
         const emailLower = email.toLowerCase();
-        return rolePatterns.some(pattern => emailLower.startsWith(pattern));
+        return emailLower.startsWith(pattern) && !claimedEmails.has(email);
       });
+      if (match) return match;
     }
   }
 
-  return false;
+  return null; // No match found or all matches already claimed
 }
 
 /**
@@ -361,11 +366,27 @@ function extractOwnerNames(html, emails = []) {
     }
   }
 
-  // Validate names against email patterns and add hasEmailMatch property
-  const validated = unique.map(owner => ({
-    ...owner,
-    hasEmailMatch: nameMatchesEmailPattern(owner.name, emails, owner.title)
-  }));
+  // Validate names against email patterns with email claiming
+  // Only one person can claim each email (fixes duplicate email bug)
+  const claimedEmails = new Set();
+  const validated = unique.map(owner => {
+    const matchedEmail = findMatchingEmail(owner.name, owner.title, emails, claimedEmails);
+
+    if (matchedEmail) {
+      claimedEmails.add(matchedEmail); // Claim the email so others can't use it
+      return {
+        ...owner,
+        hasEmailMatch: true,
+        matchedEmail: matchedEmail // Store which email matched
+      };
+    } else {
+      return {
+        ...owner,
+        hasEmailMatch: false,
+        matchedEmail: null
+      };
+    }
+  });
 
   // Sort by email match (names with matching emails first)
   validated.sort((a, b) => {
@@ -375,10 +396,17 @@ function extractOwnerNames(html, emails = []) {
   });
 
   if (validated.length > 0) {
-    const matchCount = validated.filter(n => n.hasEmailMatch).length;
+    // Count UNIQUE emails (not people) - fixes duplicate email counting bug
+    const uniqueMatchedEmails = new Set(
+      validated
+        .filter(n => n.hasEmailMatch && n.matchedEmail)
+        .map(n => n.matchedEmail)
+    );
+
     logger.info('website-scraper', 'Found owner names', {
       count: validated.length,
-      emailMatches: matchCount,
+      peopleWithEmails: validated.filter(n => n.hasEmailMatch).length,
+      uniqueEmailsMatched: uniqueMatchedEmails.size, // Correct count of unique emails
       names: validated.map(n => `${n.name}${n.hasEmailMatch ? ' ✓' : ''}`)
     });
   }
@@ -415,7 +443,8 @@ async function scrapeWebsite(url) {
         metaNames.push({
           name: name,
           title: 'Dr',
-          hasEmailMatch: nameMatchesEmailPattern(name, emails, 'Dr')
+          hasEmailMatch: false, // Will be validated later with email claiming
+          matchedEmail: null
         });
       }
       if (metaNames.length > 0) {
@@ -470,7 +499,8 @@ async function scrapeWebsite(url) {
               ownerNames.push({
                 name: name,
                 title: 'Dr',
-                hasEmailMatch: nameMatchesEmailPattern(name, allEmails, 'Dr')
+                hasEmailMatch: false, // Will be validated later with email claiming
+                matchedEmail: null
               });
               logger.info('website-scraper', `Found name in ${path} meta description`, { name });
             }
@@ -493,6 +523,28 @@ async function scrapeWebsite(url) {
       }
     }
 
+    // Final email claiming pass on ALL merged names
+    // This ensures only one person claims each email, even if they come from different sources
+    const claimedEmails = new Set();
+    ownerNames.forEach(owner => {
+      // Skip if already validated by extractOwnerNames (from team pages)
+      if (owner.hasEmailMatch && owner.matchedEmail) {
+        claimedEmails.add(owner.matchedEmail);
+        return;
+      }
+
+      // Validate names that don't have email matches yet (meta description names)
+      const matchedEmail = findMatchingEmail(owner.name, owner.title, emails, claimedEmails);
+      if (matchedEmail) {
+        claimedEmails.add(matchedEmail);
+        owner.hasEmailMatch = true;
+        owner.matchedEmail = matchedEmail;
+      } else {
+        owner.hasEmailMatch = false;
+        owner.matchedEmail = null;
+      }
+    });
+
     // Sort owner names - prioritize those with email matches
     ownerNames.sort((a, b) => {
       if (a.hasEmailMatch && !b.hasEmailMatch) return -1;
@@ -507,13 +559,20 @@ async function scrapeWebsite(url) {
       scrapedAt: new Date().toISOString()
     };
 
-    const emailMatchCount = ownerNames.filter(n => n.hasEmailMatch).length;
+    // Count UNIQUE emails (not people) - fixes duplicate email counting bug
+    const uniqueMatchedEmails = new Set(
+      ownerNames
+        .filter(n => n.hasEmailMatch && n.matchedEmail)
+        .map(n => n.matchedEmail)
+    );
+
     logger.info('website-scraper', 'Website scraping complete', {
       url,
       hasRegistrationNumber: !!registrationNumber,
       hasAddress: !!registeredAddress,
       ownerNamesCount: ownerNames.length,
-      emailMatchCount: emailMatchCount
+      peopleWithEmails: ownerNames.filter(n => n.hasEmailMatch).length,
+      uniqueEmailsMatched: uniqueMatchedEmails.size // Correct count of unique emails
     });
 
     return result;
