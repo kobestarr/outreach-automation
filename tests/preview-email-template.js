@@ -84,9 +84,11 @@ Would you be open to ${mergeVars.meetingOption} to discuss?
 I can start with a micro-offer at just ${mergeVars.microOfferPrice} to prove value first.
 
 Best regards,
-Kobe
+Kobi
 
 P.S. - I'm based locally in Poynton, so I understand the ${mergeVars.location} market well.
+
+Sent from my iPhone
   `.trim();
 
   console.log(emailTemplate);
@@ -120,9 +122,11 @@ Would you be open to ${noNameVars.meetingOption} to discuss?
 I can start with a micro-offer at just ${noNameVars.microOfferPrice} to prove value first.
 
 Best regards,
-Kobe
+Kobi
 
 P.S. - I'm based locally in Poynton, so I understand the ${noNameVars.location} market well.
+
+Sent from my iPhone
   `.trim();
 
   console.log(noNameEmail);
