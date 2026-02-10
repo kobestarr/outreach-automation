@@ -398,6 +398,11 @@ async function getLeadsFromCampaign(campaignId) {
       res.on("end", () => {
         try {
           if (res.statusCode >= 200 && res.statusCode < 300) {
+            // Handle empty response (Lemlist returns content-length: 0 for empty campaigns)
+            if (!data || data.trim().length === 0) {
+              resolve([]);
+              return;
+            }
             const result = JSON.parse(data);
             resolve(result);
           } else {
