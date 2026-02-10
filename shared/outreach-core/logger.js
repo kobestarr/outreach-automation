@@ -42,27 +42,80 @@ function shouldLog(level) {
 }
 
 /**
- * Sanitize data to remove sensitive information
+ * Mask email address for privacy (GDPR compliance)
+ * Example: john.doe@example.com → jo***@ex***.com
+ */
+function maskEmail(email) {
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return email;
+  }
+
+  const [localPart, domain] = email.split('@');
+
+  // Mask local part (keep first 2 chars)
+  const maskedLocal = localPart.length > 2
+    ? localPart.substring(0, 2) + '***'
+    : '***';
+
+  // Mask domain (keep first 2 chars)
+  const maskedDomain = domain.length > 2
+    ? domain.substring(0, 2) + '***'
+    : '***';
+
+  return `${maskedLocal}@${maskedDomain}`;
+}
+
+/**
+ * Sanitize data to remove sensitive information and mask PII
  */
 function sanitizeData(data) {
   if (typeof data !== 'object' || data === null) {
+    // Check if it's a string that looks like an email
+    if (typeof data === 'string' && data.includes('@') && data.includes('.')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(data)) {
+        return maskEmail(data);
+      }
+    }
     return data;
   }
-  
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeData(item));
+  }
+
   const sensitiveKeys = ['apiKey', 'api_key', 'key', 'token', 'password', 'secret', 'authorization'];
+  const emailKeys = ['email', 'emails', 'emailAddress', 'from', 'to', 'cc', 'bcc'];
   const sanitized = {};
-  
+
   for (const [key, value] of Object.entries(data)) {
     const lowerKey = key.toLowerCase();
+
+    // Redact sensitive keys
     if (sensitiveKeys.some(sk => lowerKey.includes(sk))) {
       sanitized[key] = '[REDACTED]';
-    } else if (typeof value === 'object' && value !== null) {
+    }
+    // Mask email fields
+    else if (emailKeys.includes(lowerKey)) {
+      if (Array.isArray(value)) {
+        sanitized[key] = value.map(email => maskEmail(email));
+      } else if (typeof value === 'string') {
+        sanitized[key] = maskEmail(value);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    // Recursively sanitize objects
+    else if (typeof value === 'object' && value !== null) {
       sanitized[key] = sanitizeData(value);
-    } else {
+    }
+    // Keep other values as-is
+    else {
       sanitized[key] = value;
     }
   }
-  
+
   return sanitized;
 }
 

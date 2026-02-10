@@ -35,8 +35,12 @@ function fetchWebsite(url, timeout = 10000) {
     };
 
     const req = protocol.get(url, options, (res) => {
-      // Handle redirects
+      // Handle redirects with socket cleanup
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        // Clean up current request before following redirect
+        req.destroy();
+        res.destroy();
+
         return fetchWebsite(res.headers.location, timeout)
           .then(resolve)
           .catch(reject);

@@ -201,10 +201,20 @@ function submitOutscraperJob(locationQuery, businessType, apiKey, extractEmails)
 function pollOutscraperJob(jobId, apiKey) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
+    const MAX_POLL_TIME_MS = 5 * 60 * 1000; // 5 minutes absolute maximum
+    const startTime = Date.now();
 
     const poll = () => {
       attempts++;
 
+      // Check absolute timeout (wall-clock time)
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime > MAX_POLL_TIME_MS) {
+        reject(new Error(`Outscraper job polling absolute timeout after ${Math.round(elapsedTime / 1000)}s (max ${MAX_POLL_TIME_MS / 1000}s)`));
+        return;
+      }
+
+      // Check attempt-based timeout
       if (attempts > MAX_POLL_ATTEMPTS) {
         reject(new Error(`Outscraper job polling timeout after ${MAX_POLL_ATTEMPTS} attempts`));
         return;

@@ -129,8 +129,18 @@ function checkAvailability() {
   return checkDailyLimit("reoon");
 }
 
+/**
+ * Get remaining quota for email verification
+ * @returns {number} Number of remaining verifications
+ */
+function getQuotaRemaining() {
+  const limitCheck = checkDailyLimit("reoon");
+  return limitCheck.remaining;
+}
+
 module.exports = {
   verifyEmail,
   verifyEmails,
-  checkAvailability
+  checkAvailability,
+  getQuotaRemaining
 };

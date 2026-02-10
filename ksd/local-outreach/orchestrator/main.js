@@ -144,6 +144,35 @@ async function enrichBusiness(business) {
   // Extract emails from website and social media BEFORE owner discovery
   // This ensures we have fallback emails even if owner discovery fails
 
+  // QUOTA PRE-CHECK: Verify sufficient quota before batch operations
+  // This prevents partial failures and wasted API calls
+  const MIN_REQUIRED_QUOTA = 5; // Minimum credits needed for email verification
+  try {
+    const { getQuotaRemaining } = require('../../../shared/outreach-core/email-verification/reoon-verifier');
+    const quotaRemaining = await getQuotaRemaining();
+
+    if (quotaRemaining < MIN_REQUIRED_QUOTA) {
+      logger.warn('main', 'Insufficient Reoon quota - skipping email extraction', {
+        business: business.name,
+        quotaRemaining,
+        minRequired: MIN_REQUIRED_QUOTA
+      });
+      // Skip email extraction but continue with owner discovery
+      enriched.extractedEmails = [];
+      return enriched; // Return early with partial enrichment
+    }
+
+    logger.debug('main', 'Quota check passed', {
+      business: business.name,
+      quotaRemaining
+    });
+  } catch (error) {
+    logger.warn('main', 'Quota check failed - continuing anyway', {
+      business: business.name,
+      error: error.message
+    });
+  }
+
   logger.info('main', 'Starting email extraction phase', {
     business: business.name,
     hasWebsite: !!business.website,
@@ -161,8 +190,8 @@ async function enrichBusiness(business) {
 
       logger.info('main', 'Website email extraction complete', {
         business: business.name,
-        count: websiteEmails.length,
-        emails: websiteEmails
+        count: websiteEmails.length
+        // emails removed for PII compliance - use debug logs if needed
       });
     } catch (error) {
       logger.error('main', 'Website email extraction failed', {
