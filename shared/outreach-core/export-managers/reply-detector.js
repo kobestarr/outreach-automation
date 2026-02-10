@@ -13,6 +13,9 @@ const fs = require("fs");
 const path = require("path");
 
 const REPLY_STATE_FILE = path.join(__dirname, "../data/reply-detector-state.json");
+const REPLY_EXPIRY_DAYS = 30; // Expire processed replies after 30 days
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 /**
  * Load reply detector state
@@ -20,12 +23,28 @@ const REPLY_STATE_FILE = path.join(__dirname, "../data/reply-detector-state.json
 function loadState() {
   try {
     if (fs.existsSync(REPLY_STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(REPLY_STATE_FILE, "utf8"));
+      const state = JSON.parse(fs.readFileSync(REPLY_STATE_FILE, "utf8"));
+      // Migrate old state format if needed
+      if (!state.processedRepliesWithTimestamp) {
+        state.processedRepliesWithTimestamp = state.processedReplies.map(id => ({
+          id,
+          timestamp: new Date().toISOString()
+        }));
+      }
+      return state;
     }
-    return { processedReplies: [], lastCheck: null };
+    return { 
+      processedReplies: [], 
+      processedRepliesWithTimestamp: [],
+      lastCheck: null 
+    };
   } catch (error) {
     logger.error('reply-detector', 'Failed to load state', { error: error.message });
-    return { processedReplies: [], lastCheck: null };
+    return { 
+      processedReplies: [], 
+      processedRepliesWithTimestamp: [],
+      lastCheck: null 
+    };
   }
 }
 
@@ -46,10 +65,57 @@ function saveState(state) {
 
 /**
  * Check if lead has replied
- * Lemlist marks leads with isReplied: true or hasReplied: true
+ * Lemlist uses 'status' field with value 'replied' to indicate replies
+ * Also checks legacy boolean fields for backward compatibility
  */
 function hasReplied(lead) {
+  // Primary check: Lemlist status field
+  if (lead.status && lead.status.toLowerCase() === 'replied') {
+    return true;
+  }
+  
+  // Debug logging to help diagnose reply detection issues
+  logger.debug('reply-detector', 'Checking lead for reply', {
+    email: lead.email,
+    status: lead.status,
+    isReplied: lead.isReplied,
+    hasReplied: lead.hasReplied,
+    replied: lead.replied
+  });
+  
+  // Legacy boolean checks (for backward compatibility)
   return lead.isReplied === true || lead.hasReplied === true || lead.replied === true;
+}
+
+/**
+ * Retry a function with exponential backoff
+ * @param {Function} fn - Function to retry
+ * @param {string} operation - Operation name for logging
+ * @returns {Promise<any>}
+ */
+async function withRetry(fn, operation) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        logger.warn('reply-detector', `${operation} failed, retrying`, {
+          attempt,
+          maxRetries: MAX_RETRIES,
+          delay,
+          error: error.message
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
 }
 
 /**
@@ -88,7 +154,12 @@ async function stopRelatedLeads(campaignId, businessId, repliedEmail, allLeads) 
 
   for (const lead of relatedLeads) {
     try {
-      await unsubscribeLead(campaignId, lead.email);
+      // Use retry logic for unsubscribe
+      await withRetry(
+        () => unsubscribeLead(campaignId, lead.email),
+        `Unsubscribe lead ${lead.email}`
+      );
+      
       stopped.push({
         email: lead.email,
         firstName: lead.firstName,
@@ -103,9 +174,10 @@ async function stopRelatedLeads(campaignId, businessId, repliedEmail, allLeads) 
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
-      logger.error('reply-detector', 'Failed to stop lead', {
+      logger.error('reply-detector', 'Failed to stop lead after retries', {
         email: lead.email,
-        error: error.message
+        error: error.message,
+        attempts: MAX_RETRIES
       });
       errors.push({
         email: lead.email,
@@ -115,6 +187,40 @@ async function stopRelatedLeads(campaignId, businessId, repliedEmail, allLeads) 
   }
 
   return { stopped, errors };
+}
+
+/**
+ * Clean up old processed replies (time-based expiry)
+ * @param {Object} state - Current state
+ */
+function cleanupOldReplies(state) {
+  if (!state.processedRepliesWithTimestamp || state.processedRepliesWithTimestamp.length === 0) {
+    return;
+  }
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - REPLY_EXPIRY_DAYS);
+  
+  const beforeCount = state.processedRepliesWithTimestamp.length;
+  
+  state.processedRepliesWithTimestamp = state.processedRepliesWithTimestamp.filter(item => {
+    const replyDate = new Date(item.timestamp);
+    return replyDate >= cutoffDate;
+  });
+  
+  // Keep backward compatibility with processedReplies array
+  state.processedReplies = state.processedRepliesWithTimestamp.map(item => item.id);
+  
+  const afterCount = state.processedRepliesWithTimestamp.length;
+  const removedCount = beforeCount - afterCount;
+  
+  if (removedCount > 0) {
+    logger.info('reply-detector', 'Cleaned up old processed replies', {
+      removed: removedCount,
+      remaining: afterCount,
+      expiryDays: REPLY_EXPIRY_DAYS
+    });
+  }
 }
 
 /**
@@ -145,6 +251,9 @@ async function checkCampaignForReplies(campaignId) {
       totalLeads: leads.length
     });
 
+    // Clean up old replies before processing
+    cleanupOldReplies(state);
+
     // Find leads that have replied
     const repliedLeads = leads.filter(hasReplied);
 
@@ -165,7 +274,10 @@ async function checkCampaignForReplies(campaignId) {
       const replyId = `${campaignId}-${repliedLead.email}`;
 
       // Skip if already processed
-      if (state.processedReplies.includes(replyId)) {
+      const alreadyProcessed = state.processedRepliesWithTimestamp.some(
+        item => item.id === replyId
+      );
+      if (alreadyProcessed) {
         continue;
       }
 
@@ -205,13 +317,12 @@ async function checkCampaignForReplies(campaignId) {
         });
       }
 
-      // Mark as processed
+      // Mark as processed with timestamp
+      state.processedRepliesWithTimestamp.push({
+        id: replyId,
+        timestamp: new Date().toISOString()
+      });
       state.processedReplies.push(replyId);
-    }
-
-    // Clean up old processed replies (keep last 1000)
-    if (state.processedReplies.length > 1000) {
-      state.processedReplies = state.processedReplies.slice(-1000);
     }
 
     state.lastCheck = new Date().toISOString();

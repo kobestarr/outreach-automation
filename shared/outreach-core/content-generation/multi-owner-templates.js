@@ -62,6 +62,40 @@ function generateClosingLine(owners) {
 }
 
 /**
+ * Remove existing greeting from email body
+ * Handles various greeting formats including edge cases
+ * @param {string} body - Email body content
+ * @returns {string} Body with greeting removed
+ */
+function removeExistingGreeting(body) {
+  if (!body || typeof body !== 'string') {
+    return body;
+  }
+
+  // Pattern to match common greetings
+  // Matches: "Hi Name," "Hey Name," "Hello Name," with optional whitespace
+  // Handles multiple names: "Hi Sarah and John," "Hi Sarah, John, and Mike,"
+  const greetingPatterns = [
+    // Standard greetings with name(s)
+    /^(Hi|Hey|Hello)\s+[^,\n]+,?\s*\n*/im,
+    // Greetings with "there" or "team"
+    /^(Hi|Hey|Hello)\s+(there|team),?\s*\n*/im,
+    // Greetings with multiple people (comma-separated)
+    /^(Hi|Hey|Hello)\s+[^,]+(,\s+[^,]+)*\s+and\s+[^,]+,?\s*\n*/im,
+    // Very short greetings (just "Hi," or "Hey,")
+    /^(Hi|Hey|Hello),?\s*\n*/im
+  ];
+
+  let cleanedBody = body;
+  
+  for (const pattern of greetingPatterns) {
+    cleanedBody = cleanedBody.replace(pattern, '');
+  }
+
+  return cleanedBody;
+}
+
+/**
  * Generate complete email body with multi-owner support
  * @param {string} baseBody - Base email body content
  * @param {Array<Object>} owners - Array of owner objects
@@ -75,8 +109,8 @@ function generateMultiOwnerEmailBody(baseBody, owners) {
   // Remove "Subject:" line if present (Claude sometimes includes it)
   let cleanedBody = baseBody.replace(/^Subject:.*?\n+/im, '');
 
-  // Remove any existing "Hi [name]," greeting (handle various formats)
-  cleanedBody = cleanedBody.replace(/^(Hi|Hey|Hello)\s+[^,]+,?\n*/im, '');
+  // Remove any existing greeting using improved regex
+  cleanedBody = removeExistingGreeting(cleanedBody);
 
   // Extract "Sent from my iPhone" if present (will re-add at the end)
   let signature = "";

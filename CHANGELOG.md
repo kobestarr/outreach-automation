@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed - Code Review Improvements
+
+#### Reply Detection & Multi-Owner System Enhancements
+
+**Fixed:**
+1. **Reply Detection Logic** (`reply-detector.js`)
+   - **Issue:** Only checked boolean fields (`isReplied`, `hasReplied`, `replied`)
+   - **Fix:** Now checks Lemlist `status` field for `"replied"` value (primary method)
+   - Added debug logging to diagnose reply detection issues
+   - Maintains backward compatibility with boolean fields
+
+2. **Time-Based Reply Expiry** (`reply-detector.js`)
+   - **Issue:** State file used count-based cleanup (keep last 1000), could re-process old replies
+   - **Fix:** Changed to time-based expiry (30 days) with timestamp tracking
+   - New state format: `{ id, timestamp }` for each processed reply
+   - Auto-migrates old state format on load
+
+3. **Retry Logic for Unsubscribe** (`reply-detector.js`)
+   - **Issue:** `unsubscribeLead()` failures were logged but not retried
+   - **Fix:** Added `withRetry()` helper with exponential backoff (3 retries)
+   - Specific handling for rate limit errors (429)
+
+4. **Configurable Rate Limiting** (`lemlist-exporter.js`)
+   - **Issue:** Fixed 500ms delay between lead creations
+   - **Fix:** Made delay configurable via `LEMLIST_LEAD_DELAY_MS` env var (default: 500ms)
+   - Added exponential backoff retry logic for all API calls
+   - Better error handling for rate limit responses
+
+5. **SHA-256 for Business ID** (`lemlist-exporter.js`)
+   - **Issue:** Used MD5 hash (cryptographically broken)
+   - **Fix:** Changed to SHA-256 for better collision resistance
+   - Still produces 12-character identifier
+
+6. **Improved Greeting Regex** (`multi-owner-templates.js`)
+   - **Issue:** Single regex pattern couldn't handle all greeting variations
+   - **Fix:** Added `removeExistingGreeting()` with multiple patterns:
+     - Standard greetings: "Hi Name,"
+     - Generic greetings: "Hi there," "Hey team,"
+     - Multi-person greetings: "Hi Sarah, John, and Mike,"
+     - Short greetings: "Hi," "Hey,"
+
+---
+
 ## [1.4.0] - 2026-02-10
 
 ### Added - Multi-Owner Email Support + Reply Detection
@@ -189,7 +234,7 @@ node shared/outreach-core/export-managers/check-replies.js
 - Acceptable latency for reply detection
 
 **Business ID Linking:**
-- MD5 hash of `businessName + location`
+- SHA-256 hash of `businessName + location`
 - 12-character unique identifier
 - Prevents collisions across different businesses
 - Enables cross-lead reply tracking

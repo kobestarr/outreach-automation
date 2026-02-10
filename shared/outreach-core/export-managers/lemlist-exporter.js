@@ -8,6 +8,12 @@ const crypto = require("crypto");
 const { getCredential } = require("../credentials-loader");
 const logger = require("../logger");
 
+// Configuration
+const LEMLIST_BASE_URL = "api.lemlist.com";
+const DEFAULT_DELAY_MS = parseInt(process.env.LEMLIST_LEAD_DELAY_MS, 10) || 500;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
 /**
  * Safely extract domain from website URL
  * @param {string} website - Website URL
@@ -25,15 +31,56 @@ function extractDomainSafely(website) {
 
 /**
  * Generate unique business ID for linking multi-owner leads
+ * Uses SHA-256 for better collision resistance than MD5
  * @param {Object} business - Business object
  * @returns {string} Unique business ID
  */
 function generateBusinessId(business) {
   const identifier = `${business.businessName || business.name}-${business.location || business.address}`;
-  return crypto.createHash("md5").update(identifier).digest("hex").substring(0, 12);
+  return crypto.createHash("sha256").update(identifier).digest("hex").substring(0, 12);
 }
 
-const LEMLIST_BASE_URL = "api.lemlist.com";
+/**
+ * Retry a function with exponential backoff
+ * @param {Function} fn - Function to retry
+ * @param {string} operation - Operation name for logging
+ * @returns {Promise<any>}
+ */
+async function withRetry(fn, operation) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      // Check if it's a rate limit error (429)
+      if (error.message && error.message.includes('429')) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+        logger.warn('lemlist-exporter', `${operation} rate limited, retrying`, {
+          attempt,
+          maxRetries: MAX_RETRIES,
+          delay
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        logger.warn('lemlist-exporter', `${operation} failed, retrying`, {
+          attempt,
+          maxRetries: MAX_RETRIES,
+          delay,
+          error: error.message
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        break;
+      }
+    }
+  }
+  
+  throw lastError;
+}
 
 /**
  * Add lead to Lemlist campaign
@@ -249,7 +296,12 @@ async function exportToLemlist(business, campaignId, emailSequence) {
       };
 
       try {
-        const lead = await addLeadToCampaign(campaignId, leadData);
+        // Use retry logic for lead creation
+        const lead = await withRetry(
+          () => addLeadToCampaign(campaignId, leadData),
+          `Create lead for ${owner.email}`
+        );
+        
         leads.push(lead);
         logger.info('lemlist-exporter', 'Created lead for owner', {
           owner: owner.fullName,
@@ -257,15 +309,16 @@ async function exportToLemlist(business, campaignId, emailSequence) {
           leadId: lead._id
         });
 
-        // Small delay between lead creations to avoid rate limits
+        // Configurable delay between lead creations to avoid rate limits
         if (i < ownersWithEmails.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, DEFAULT_DELAY_MS));
         }
       } catch (error) {
-        logger.error('lemlist-exporter', 'Failed to create lead for owner', {
+        logger.error('lemlist-exporter', 'Failed to create lead for owner after retries', {
           owner: owner.fullName,
           email: owner.email,
-          error: error.message
+          error: error.message,
+          attempts: MAX_RETRIES
         });
         errors.push({
           owner: owner.fullName,
@@ -309,7 +362,10 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     ownerIndex: 1
   };
 
-  return addLeadToCampaign(campaignId, leadData);
+  return withRetry(
+    () => addLeadToCampaign(campaignId, leadData),
+    `Create lead for ${leadData.email}`
+  );
 }
 
 /**

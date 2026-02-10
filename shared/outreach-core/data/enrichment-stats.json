@@ -1,0 +1,9 @@
+{
+  "linkedInSuccessRate": {
+    "dentist": {
+      "attempts": 3,
+      "successes": 0,
+      "rate": 0
+    }
+  }
+}
