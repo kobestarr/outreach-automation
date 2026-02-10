@@ -30,6 +30,20 @@
           "findMatchingEmail": "Match name to email with email claiming logic"
         }
       },
+      "linkedin-enrichment": {
+        "purpose": "Find LinkedIn profiles using Icypeas Find People API",
+        "input": "{ firstName, lastName, companyName, location }",
+        "output": "{ linkedInUrl, title, company, location, found: boolean }",
+        "whenToUse": "After website scraping, to find owner LinkedIn profiles for outreach",
+        "keyBehavior": "Uses Icypeas API to find LinkedIn profiles, with decision logic and quota tracking",
+        "filePath": "shared/outreach-core/linkedin-enrichment/",
+        "keyFunctions": {
+          "enrichLinkedIn": "Main entry point - finds LinkedIn profile for business owner",
+          "findLinkedInProfile": "Icypeas API call to find profile",
+          "shouldEnrichLinkedIn": "Decision logic - checks if enrichment is needed and worth cost"
+        },
+        "cost": "Icypeas API credits - use decision logic to optimize"
+      },
       "website-email-extractor": {
         "purpose": "Fallback comprehensive email discovery",
         "input": "Website URL",
@@ -80,6 +94,28 @@
           "getMeetingOption": "In-person vs phone based on proximity"
         }
       },
+      "linkedin-message-generator": {
+        "purpose": "Generate LinkedIn connection notes and messages (300 char limit)",
+        "input": "Business object with merge variables",
+        "output": "Personalized LinkedIn connection note + follow-up messages",
+        "whenToUse": "After LinkedIn enrichment, before export to Prosp",
+        "filePath": "shared/outreach-core/content-generation/linkedin-message-generator.js",
+        "note": "LinkedIn connection notes limited to 300 characters"
+      },
+      "claude-linkedin-generator": {
+        "purpose": "Generate LinkedIn messages using Claude AI",
+        "input": "Business data, message type (connection/follow-up)",
+        "output": "AI-generated LinkedIn message",
+        "whenToUse": "For fully custom LinkedIn messages using Claude",
+        "filePath": "shared/outreach-core/content-generation/claude-linkedin-generator.js"
+      },
+      "gpt-linkedin-generator": {
+        "purpose": "Generate LinkedIn messages using GPT-4",
+        "input": "Business data, message type (connection/follow-up)",
+        "output": "AI-generated LinkedIn message",
+        "whenToUse": "For fully custom LinkedIn messages using GPT-4",
+        "filePath": "shared/outreach-core/content-generation/gpt-linkedin-generator.js"
+      },
       "observation-signals": {
         "purpose": "Compute observation signals for email hooks",
         "input": "Business data (reviews, website quality, social media)",
@@ -101,8 +137,61 @@
         "purpose": "Export leads to Lemlist email campaigns",
         "input": "Campaign ID, lead data with merge variables",
         "output": "Success/failure status, handles duplicates",
-        "whenToUse": "Final step after enrichment + merge variable generation",
+        "whenToUse": "For EMAIL outreach - final step after enrichment + merge variable generation",
         "filePath": "shared/outreach-core/export-managers/lemlist-exporter.js"
+      },
+      "prosp-exporter": {
+        "purpose": "Export leads to Prosp LinkedIn campaigns",
+        "input": "Business with LinkedIn URL, connection note",
+        "output": "Lead added to Prosp campaign with custom fields",
+        "whenToUse": "For LINKEDIN outreach - after LinkedIn enrichment",
+        "filePath": "shared/outreach-core/export-managers/prosp-exporter.js",
+        "keyFunctions": {
+          "exportToProsp": "Main export function",
+          "addLeadToCampaign": "Add lead to Prosp campaign",
+          "sendConnectionRequest": "Send LinkedIn connection request",
+          "sendLinkedInMessage": "Send LinkedIn message"
+        }
+      }
+    },
+
+    "linkedInOutreach": {
+      "prosp-client": {
+        "purpose": "Core Prosp API client for LinkedIn automation",
+        "input": "API calls to Prosp platform",
+        "output": "LinkedIn connection requests, messages, conversation history",
+        "whenToUse": "Backend for all LinkedIn outreach via Prosp",
+        "filePath": "shared/outreach-core/prosp-integration/prosp-client.js",
+        "keyFunctions": {
+          "addLeadToCampaign": "Add lead to Prosp campaign with custom data",
+          "sendLinkedInMessage": "Send text message via Prosp",
+          "sendVoiceMessage": "Send voice message via Prosp",
+          "getConversation": "Get conversation history with lead",
+          "getCampaigns": "List all campaigns",
+          "startCampaign": "Start a campaign",
+          "stopCampaign": "Stop a campaign"
+        },
+        "rateLimit": "Built-in delays: 1s between owners, 2s before messages, 500ms for conversations"
+      },
+      "linkedin-outreach": {
+        "purpose": "Orchestrate LinkedIn outreach via Prosp (connection + messaging)",
+        "input": "Business object with owners array + LinkedIn URLs",
+        "output": "Results object with addedToCampaign count, messagesSent count, errors",
+        "whenToUse": "After LinkedIn enrichment, to send connection requests + messages",
+        "filePath": "shared/outreach-core/prosp-integration/linkedin-outreach.js",
+        "keyFunctions": {
+          "sendLinkedInOutreach": "Main function - adds leads to campaign, optionally sends messages",
+          "checkLinkedInReplies": "Check for replies from leads"
+        },
+        "multiOwnerSupport": "Handles businesses with multiple owners, sends to all with LinkedIn URLs",
+        "customFields": "Passes firstName, lastName, companyName, category, location, tier, pricing to Prosp"
+      },
+      "webhook-handler": {
+        "purpose": "Handle Prosp webhooks for reply tracking",
+        "input": "Webhook events from Prosp (has_msg_replied, send_msg, accept_invite)",
+        "output": "Processed webhook events, database updates",
+        "whenToUse": "Set up webhook endpoint to track LinkedIn replies",
+        "filePath": "shared/outreach-core/prosp-integration/webhook-handler.js"
       }
     },
 
@@ -143,19 +232,38 @@
       "output": "{ ownerNames (sorted by hasEmailMatch), emails, registration data }",
       "keyPoint": "Email claiming ensures only one person can claim each email"
     },
+    "phase2b_linkedInEnrichment": {
+      "step": "2B",
+      "action": "linkedin-enrichment.enrichLinkedIn (OPTIONAL)",
+      "description": "Find LinkedIn profiles for business owners",
+      "input": "{ firstName, lastName, companyName, location }",
+      "output": "{ linkedInUrl, linkedInData }",
+      "whenToUse": "If planning LinkedIn outreach via Prosp",
+      "cost": "Icypeas API credits - use decision logic"
+    },
     "phase3_intelligentEnrichment": {
       "step": 3,
-      "action": "email-merge-variables.getAllMergeVariables",
-      "description": "Generate personalized merge variables",
+      "action": "email-merge-variables.getAllMergeVariables OR linkedin-message-generator",
+      "description": "Generate personalized merge variables for email OR LinkedIn",
       "input": "Enriched business object",
-      "output": "Complete merge variable set with multi-owner note"
+      "output": "Complete merge variable set with multi-owner note (email) OR LinkedIn message (300 char limit)",
+      "note": "Use email-merge-variables for Lemlist, linkedin-message-generator for Prosp"
     },
     "phase4_export": {
       "step": 4,
-      "action": "lemlist-exporter.addLeadToCampaign",
-      "description": "Export lead to Lemlist campaign",
-      "input": "Campaign ID, lead data",
-      "output": "Lead exported successfully or duplicate detected"
+      "action": "lemlist-exporter.addLeadToCampaign OR prosp-exporter.exportToProsp",
+      "description": "Export lead to Lemlist (email) OR Prosp (LinkedIn)",
+      "emailExport": {
+        "action": "lemlist-exporter.addLeadToCampaign",
+        "input": "Campaign ID, lead data with email merge variables",
+        "output": "Lead exported to Lemlist email campaign"
+      },
+      "linkedInExport": {
+        "action": "prosp-integration.sendLinkedInOutreach",
+        "input": "Campaign ID, list ID, business with LinkedIn URLs",
+        "output": "Leads added to Prosp LinkedIn campaign with custom fields",
+        "multiOwnerSupport": "Sends to all owners with LinkedIn URLs"
+      }
     }
   },
 
