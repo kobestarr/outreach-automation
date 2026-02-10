@@ -9,6 +9,231 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Generic Email Copy with businessType Merge Variable
+
+**Date:** 2026-02-10
+
+**Problem:** Email copy hard-coded specific business categories (e.g., "dentists", "gyms") which made templates less adaptable. LinkedIn messages were too long and promotional.
+
+**Solution:** Implemented generic language system using `{{businessType}}` merge variable for adaptable email templates. Created simple LinkedIn message generator that references email sent.
+
+**Changes:**
+
+1. **Business Type Helper** - New module for category-to-plural-type conversion
+   - `getBusinessType()` - Converts "dentist" → "dentists", "gym" → "gyms"
+   - Smart pluralization for unknown categories
+   - Supports 60+ business types
+
+2. **Updated Email Generators** - Generic language in Claude/GPT generators
+   - Use "local businesses" or `{{businessType}}` instead of hard-coded categories
+   - Example: "including dentists like KissDental" → "including {{businessType}} like {{companyName}}"
+   - Templates now reusable across similar businesses
+
+3. **LinkedIn Message Generator** - Simple, natural LinkedIn messages
+   - References email sent: "I just sent you an email about {{companyName}}"
+   - Multi-channel approach: "Wanted to connect here too"
+   - 3 template variations for authenticity
+   - Connection request notes (max 300 chars)
+
+4. **Updated Prosp Integration** - Uses simple LinkedIn messages
+   - No longer uses full email content for LinkedIn
+   - Short, natural messages that reference email
+   - Example: "Hi John, I just sent you an email about KissDental. Thought I'd reach out here too - easier to stay in touch."
+
+**Files Added:**
+- `shared/outreach-core/content-generation/business-type-helper.js` - Category-to-type conversion (180 lines)
+- `shared/outreach-core/content-generation/linkedin-message-generator.js` - Simple LinkedIn messages (103 lines)
+
+**Files Modified:**
+- `shared/outreach-core/content-generation/claude-email-generator.js` - Generic language with businessType
+- `ksd/local-outreach/orchestrator/utils/export-to-prosp.js` - Uses LinkedIn message generator
+
+**Example Output:**
+
+**Email (generic language):**
+> "I work with local businesses including dentists like KissDental..."
+
+**LinkedIn Message:**
+> "Hi John, I just sent you an email about KissDental. Thought I'd reach out here too - easier to stay in touch. Let me know if you'd like to chat."
+
+**Merge Variables:**
+- `{{businessType}}` - Plural business type ("dentists", "gyms", "salons")
+- `{{companyName}}` - Humanized company name
+- `{{firstName}}` - Owner first name
+
+**Status:** ✅ Production ready - Generic, adaptable templates
+
+---
+
+### Added - Prosp LinkedIn Integration
+
+**Date:** 2026-02-10
+
+**Problem:** The outreach system only supported email outreach via Lemlist. LinkedIn outreach (connection requests, messages) was manual and not automated.
+
+**Solution:** Built full Prosp.ai integration for automated LinkedIn outreach with connection requests, personalized messages, and reply tracking via webhooks.
+
+**Features:**
+1. **Prosp API Client** - Core client for all Prosp API interactions
+   - Add leads to campaigns with custom fields
+   - Send LinkedIn messages and voice messages
+   - Get conversation history
+   - Campaign management (start/stop)
+   - Built-in rate limiting and error handling
+
+2. **LinkedIn Outreach Orchestrator** - High-level outreach automation
+   - Multi-owner support (businesses with multiple owners)
+   - Automatic LinkedIn enrichment integration
+   - Custom field population (businessId, tier, pricing, etc.)
+   - Immediate send or campaign auto-send modes
+
+3. **Webhook Handler** - Real-time event tracking
+   - Reply detection (`has_msg_replied`)
+   - Message sent tracking
+   - Connection acceptance tracking
+   - Tag and engagement tracking
+   - Express.js middleware for easy integration
+
+4. **Export Utility** - CLI tool for exporting businesses to Prosp
+   - `export-to-prosp.js` - Export single business to LinkedIn campaign
+   - LinkedIn enrichment integration
+   - Dry run mode for testing
+   - Database status updates
+
+**Files Added:**
+- `shared/outreach-core/prosp-integration/prosp-client.js` - Core API client (383 lines)
+- `shared/outreach-core/prosp-integration/linkedin-outreach.js` - Outreach orchestrator (216 lines)
+- `shared/outreach-core/prosp-integration/webhook-handler.js` - Webhook handlers (313 lines)
+- `shared/outreach-core/prosp-integration/index.js` - Main export file
+- `shared/outreach-core/prosp-integration/README.md` - Complete documentation
+- `ksd/local-outreach/orchestrator/utils/export-to-prosp.js` - CLI export utility (393 lines)
+
+**Environment Variables:**
+```bash
+PROSP_API_KEY=your_api_key
+PROSP_CAMPAIGN_ID=cam_xxx
+PROSP_LIST_ID=list_xxx
+PROSP_SENDER_URL=https://www.linkedin.com/in/your-profile
+```
+
+**Usage:**
+```bash
+# Export business to Prosp LinkedIn campaign
+node ksd/local-outreach/orchestrator/utils/export-to-prosp.js "KissDental Bramhall"
+
+# With immediate message send
+node ksd/local-outreach/orchestrator/utils/export-to-prosp.js "Dentist Practice" --send-now
+
+# Dry run
+node ksd/local-outreach/orchestrator/utils/export-to-prosp.js "Business" --dry-run
+```
+
+**Custom Fields Sent to Prosp:**
+- `firstName`, `lastName` - Owner details
+- `companyName` - Humanized company name
+- `category` - Business category (dentist, gym, etc.)
+- `location` - Business location
+- `businessId` - Database ID for multi-owner tracking
+- `offerTier` - Assigned tier (tier1-tier5)
+- `setupFee`, `monthlyPrice` - Pricing info
+
+**Webhook Events Supported:**
+- `has_msg_replied` - Lead replied to message
+- `send_msg` - Message sent
+- `send_connection` - Connection request sent
+- `accept_invite` - Connection accepted
+- `like_last_post`, `comment_last_post` - Engagement tracking
+
+**Rate Limiting:**
+- 1 second delay between processing multiple owners
+- 2 seconds delay before sending immediate messages
+- 500ms delay when checking conversations
+- Compliant with LinkedIn limits (100 connections/day, 50 messages/day)
+
+**Status:** ✅ READY for production - Full LinkedIn automation via Prosp
+
+---
+
+### Added - Lemlist Email Sequence Helper Script
+
+**Date:** 2026-02-10
+
+**Problem:** Lemlist API doesn't apply email sequences programmatically via PATCH requests. Email sequences must be configured manually in Lemlist UI, which is time-consuming and error-prone.
+
+**Solution:** Built helper script to generate Lemlist-ready email copy with proper merge variables for easy copy-paste into Lemlist UI.
+
+**Features:**
+1. **Merge Variable Formatting** - Automatically converts business-specific values to `{{variable}}` syntax
+   - `{{firstName}}` - Owner first name
+   - `{{companyName}}` - Humanized company name
+   - `{{location}}` - Business location
+   - `{{linkedinUrl}}` - LinkedIn profile URL
+
+2. **4-Email Sequence** - Generates complete email sequence:
+   - Email 1 (Day 0): Initial outreach with observation hook
+   - Email 2 (Day 3): Follow-up referencing initial email
+   - Email 3 (Day 7): Different angle from category angles
+   - Email 4 (Day 14): Final attempt with different CTA
+
+3. **Step-by-Step Instructions** - Provides detailed setup instructions for each email:
+   - Subject line (formatted)
+   - Email body (formatted)
+   - Delay timing (0, 3, 7, 14 days)
+   - Tracking settings (opens, clicks)
+
+4. **Custom Field Mapping** - Shows how to map database fields to Lemlist custom fields
+
+**Files Added:**
+- `ksd/local-outreach/orchestrator/utils/export-email-sequence.js` - Email sequence export utility (246 lines)
+
+**Usage:**
+```bash
+# Export email sequence for manual Lemlist setup
+node ksd/local-outreach/orchestrator/utils/export-email-sequence.js "KissDental Bramhall"
+
+# Output format:
+# EMAIL 1 — Send 0 days after previous
+# ─────────────────────────────────────
+# SUBJECT: [merge-variable formatted subject]
+# BODY: [merge-variable formatted body]
+# [Setup instructions]
+```
+
+**Example Output:**
+```
+EMAIL 1 — Send 0 days after previous
+────────────────────────────────────────────────────────────────────────────────
+
+SUBJECT:
+quick thought for {{companyName}}
+
+BODY:
+Hi {{firstName}},
+
+I noticed {{companyName}} in {{location}} and saw your Google reviews...
+[Full email with merge variables]
+
+────────────────────────────────────────────────────────────────────────────────
+LEMLIST SETUP INSTRUCTIONS:
+
+1. In Lemlist campaign editor, add "Email" step
+2. Set delay: 0 days after previous step
+3. Copy SUBJECT above into subject field
+4. Copy BODY above into email body field
+5. Verify merge variables: {{firstName}}, {{companyName}}, {{location}}
+6. Enable tracking: Opens ✓, Clicks ✓
+```
+
+**Integration:**
+- Works with any business in database
+- Automatically humanizes company names
+- Preserves email quality from Claude/GPT generators
+- Ready for Lemlist custom field mapping
+
+**Status:** ✅ Ready for use - Manual Lemlist setup workaround until Prosp LinkedIn takes over
+
+---
+
 ### Added - Company Name Humanizer
 
 **Problem:** Emails referenced scraped company names with locations and legal suffixes (e.g., "KissDental Bramhall", "Kobestarr Digital Limited") which sounds robotic and reveals the content is scraped from Google Maps.

@@ -133,8 +133,22 @@ async function addLeadToCampaign(campaignId, leadData) {
             const result = JSON.parse(data);
             resolve(result);
           } else {
-            const error = JSON.parse(data);
-            reject(new Error(`Lemlist API error (${res.statusCode}): ${error.message || error.error || data}`));
+            // Try to parse as JSON, but handle plain text errors (e.g., "Lead already exists")
+            let errorMessage = data;
+            try {
+              const error = JSON.parse(data);
+              errorMessage = error.message || error.error || data;
+            } catch (e) {
+              // Response is plain text, use as-is
+              errorMessage = data;
+            }
+
+            // Special handling for duplicate lead errors
+            if (data.includes("Lead already exists") || data.includes("already exist")) {
+              reject(new Error(`DUPLICATE_LEAD: ${errorMessage}`));
+            } else {
+              reject(new Error(`Lemlist API error (${res.statusCode}): ${errorMessage}`));
+            }
           }
         } catch (error) {
           reject(new Error(`Failed to parse Lemlist response: ${error.message}`));
@@ -314,22 +328,55 @@ async function exportToLemlist(business, campaignId, emailSequence) {
           await new Promise(resolve => setTimeout(resolve, DEFAULT_DELAY_MS));
         }
       } catch (error) {
-        logger.error('lemlist-exporter', 'Failed to create lead for owner after retries', {
-          owner: owner.fullName,
-          email: owner.email,
-          error: error.message,
-          attempts: MAX_RETRIES
-        });
-        errors.push({
-          owner: owner.fullName,
-          email: owner.email,
-          error: error.message
-        });
+        // Check if error is duplicate lead (not a real failure)
+        const isDuplicate = error.message.includes('DUPLICATE_LEAD') ||
+                           error.message.includes('already in the campaign') ||
+                           error.message.includes('already exist');
+
+        if (isDuplicate) {
+          logger.warn('lemlist-exporter', 'Lead already exists in campaign', {
+            owner: owner.fullName,
+            email: owner.email,
+            campaignId: campaignId
+          });
+          errors.push({
+            owner: owner.fullName,
+            email: owner.email,
+            error: 'DUPLICATE_LEAD',
+            isDuplicate: true
+          });
+        } else {
+          logger.error('lemlist-exporter', 'Failed to create lead for owner after retries', {
+            owner: owner.fullName,
+            email: owner.email,
+            error: error.message,
+            attempts: MAX_RETRIES
+          });
+          errors.push({
+            owner: owner.fullName,
+            email: owner.email,
+            error: error.message,
+            isDuplicate: false
+          });
+        }
       }
     }
 
-    if (errors.length > 0 && leads.length === 0) {
-      throw new Error(`Failed to create any leads. Errors: ${errors.map(e => e.error).join(', ')}`);
+    // Only throw error if there are genuine (non-duplicate) failures
+    const genuineErrors = errors.filter(e => !e.isDuplicate);
+    const duplicateErrors = errors.filter(e => e.isDuplicate);
+
+    if (genuineErrors.length > 0 && leads.length === 0) {
+      throw new Error(`Failed to create any leads. Errors: ${genuineErrors.map(e => e.error).join(', ')}`);
+    }
+
+    // Log warning if all leads were duplicates
+    if (duplicateErrors.length === ownersWithEmails.length && leads.length === 0) {
+      logger.warn('lemlist-exporter', 'All leads already exist in campaign', {
+        campaignId: campaignId,
+        duplicateCount: duplicateErrors.length,
+        owners: duplicateErrors.map(e => e.owner)
+      });
     }
 
     return {
@@ -337,7 +384,9 @@ async function exportToLemlist(business, campaignId, emailSequence) {
       leads: leads,
       errors: errors,
       successCount: leads.length,
-      failureCount: errors.length
+      failureCount: genuineErrors.length,
+      duplicateCount: duplicateErrors.length,
+      allDuplicates: duplicateErrors.length === ownersWithEmails.length && leads.length === 0
     };
   }
 
@@ -472,6 +521,125 @@ async function unsubscribeLead(campaignId, email) {
   });
 }
 
+/**
+ * Configure campaign email sequence
+ * Sets up the email steps (sequence) for a Lemlist campaign
+ * @param {string} campaignId - Campaign ID
+ * @param {Array<Object>} emailSequence - Array of email objects with subject, body, delayDays
+ * @returns {Promise<Object>} Configuration result
+ */
+async function configureCampaignSequence(campaignId, emailSequence) {
+  const apiKey = getCredential("lemlist", "apiKey");
+  const authString = Buffer.from(":" + apiKey).toString("base64");
+
+  if (!Array.isArray(emailSequence) || emailSequence.length === 0) {
+    throw new Error('Email sequence must be a non-empty array');
+  }
+
+  logger.info('lemlist-exporter', 'Configuring campaign email sequence', {
+    campaignId,
+    emailCount: emailSequence.length
+  });
+
+  // Lemlist email steps configuration
+  // Note: Lemlist API requires email steps to be added individually via POST to /emailSteps endpoint
+  // We'll use the simpler approach of updating the entire campaign configuration
+  const emailSteps = emailSequence.map((email, index) => {
+    return {
+      _id: `step-${index + 1}`, // Lemlist requires unique ID for each step
+      type: "email",
+      position: index + 1,
+      delay: email.delayDays || 0,
+      delayUnit: "days",
+      subject: email.subject || `Follow-up ${index + 1}`,
+      body: email.body || "",
+      // Optional fields
+      trackOpens: true,
+      trackClicks: true,
+      isDeleted: false
+    };
+  });
+
+  return new Promise((resolve, reject) => {
+    // Use campaign update endpoint with proper email steps structure
+    const postData = JSON.stringify({
+      emailSteps: emailSteps
+    });
+
+    const options = {
+      hostname: LEMLIST_BASE_URL,
+      path: `/api/campaigns/${campaignId}`,
+      method: "PATCH",
+      headers: {
+        "Authorization": `Basic ${authString}`,
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        try {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            // Parse response (optional - campaign update returns campaign object)
+            if (data) {
+              JSON.parse(data); // Validate JSON
+            }
+
+            logger.info('lemlist-exporter', 'Campaign sequence configured successfully', {
+              campaignId,
+              emailSteps: emailSteps.length
+            });
+
+            resolve({
+              success: true,
+              campaignId: campaignId,
+              emailStepsConfigured: emailSteps.length,
+              emailSteps: emailSteps.map(step => ({
+                position: step.position,
+                subject: step.subject,
+                delay: step.delay
+              }))
+            });
+          } else {
+            let errorMessage = data;
+            try {
+              const error = JSON.parse(data);
+              errorMessage = error.message || error.error || data;
+            } catch (e) {
+              // Response is plain text, use as-is
+              errorMessage = data;
+            }
+
+            logger.error('lemlist-exporter', 'Failed to configure campaign sequence', {
+              campaignId,
+              statusCode: res.statusCode,
+              error: errorMessage
+            });
+
+            reject(new Error(`Lemlist API error (${res.statusCode}): ${errorMessage}`));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse Lemlist response: ${error.message}`));
+        }
+      });
+    });
+
+    req.on("error", (error) => {
+      reject(new Error(`Lemlist API request error: ${error.message}`));
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
 module.exports = {
   exportToLemlist,
   addLeadToCampaign,
@@ -479,5 +647,6 @@ module.exports = {
   getCampaigns,
   getLeadsFromCampaign,
   unsubscribeLead,
-  generateBusinessId
+  generateBusinessId,
+  configureCampaignSequence
 };

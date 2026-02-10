@@ -16,6 +16,7 @@ const { computeObservationSignals, selectPrimarySignal, getSignalHook } = requir
 const { getCurrencyForLocation } = require("./currency-localization");
 const { generateMultiOwnerEmailBody } = require("./multi-owner-templates");
 const { humanizeCompanyName } = require("./company-name-humanizer");
+const { getBusinessType } = require("./business-type-helper");
 
 const ANTHROPIC_BASE_URL = "api.anthropic.com";
 const REQUEST_TIMEOUT_MS = 60000;
@@ -261,31 +262,36 @@ function buildEmailPrompt(params) {
   // 6. Get currency for location
   const currency = getCurrencyForLocation(location, country);
 
-  // 7. Store metadata for later (attach to params for access in resolve)
+  // 7. Get business type (plural) for generic language
+  const businessType = getBusinessType(category);
+
+  // 8. Store metadata for later (attach to params for access in resolve)
   params._metadata = {
     categoryGroup,
     signals,
     primarySignal,
     primaryAngle,
+    businessType,
     country: currency.country,
     microOfferPrice: `${currency.symbol}${currency.microOffer}`,
     fullOfferPrice: `${currency.symbol}${currency.fullOffer}`
   };
 
-  // 8. Build barter mention if available
+  // 9. Build barter mention if available
   let barterNote = "";
   if (barterOpportunity && barterOpportunity.available && barterOpportunity.eligible) {
     barterNote = `
 
-Barter Context: This business offers ${barterOpportunity.offering}. If appropriate, mention this subtly and naturally as a connection point (e.g., "I'm a regular at places like yours" or "I love supporting local ${category} businesses"). Keep it conversational, NOT an explicit barter pitch.`;
+Barter Context: This business offers ${barterOpportunity.offering}. If appropriate, mention this subtly and naturally as a connection point (e.g., "I'm a regular at places like yours" or "I love supporting local ${businessType} like ${businessName}"). Keep it conversational, NOT an explicit barter pitch.`;
   }
 
-  // 9. Build micro-offer prompt
+  // 10. Build micro-offer prompt
   return `Write a cold email for a UK local business using the micro-offer approach.
 
 Business: ${businessName || "their business"}
 Owner: ${ownerFirstName || "the owner"}
 Category: ${category} (${categoryGroup})
+Business Type (for generic language): ${businessType}
 Location: ${location}
 Observation: ${primarySignal ? `${primarySignal} - ${signalHook}` : "general opportunity"}
 Category Angle: ${primaryAngle}
@@ -315,6 +321,11 @@ Requirements:
   * For Manchester city center: "I'm in Poynton so easy to get to Manchester - 20 min on the train"
   * For other nearby towns (within 30 min): "I'm based in Poynton, just a short drive away"
   * Keep it natural and casual, not forced
+- CRITICAL GENERIC LANGUAGE: Use generic language for adaptability:
+  * Use "local businesses" or the provided business type (e.g., "${businessType}") instead of specific category
+  * Example: "including ${businessType} like ${businessName}" NOT "including dentists like KissDental Bramhall"
+  * This allows the email to be reused as a template across similar businesses
+  * Keep it natural - don't force the generic language if it sounds awkward
 
 Output format:
 Subject: [subject line]
@@ -375,29 +386,97 @@ function parseEmailContent(content) {
 async function generateEmailSequence(businessData, sequenceConfig = {}) {
   const emails = [];
 
-  // Email 1: Initial outreach
-  emails.push(await generateEmailContent({
+  // Email 1: Initial outreach (uses micro-offer system with observation hook)
+  const email1 = await generateEmailContent({
     ...businessData,
     customPrompt: sequenceConfig.email1Prompt || undefined
-  }));
+  });
+  email1.delayDays = 0;
+  emails.push(email1);
 
-  // Email 2: Follow-up (if no response)
-  emails.push(await generateEmailContent({
-    ...businessData,
-    customPrompt: sequenceConfig.email2Prompt || `Write a follow-up email (Email 2 of 4) for ${businessData.businessName}. This is a gentle follow-up with a helpful tip or resource. Keep it brief and low-pressure.`
-  }));
+  // Email 2: Follow-up with different angle (3-4 days later)
+  const email2Prompt = `Write a follow-up email for ${businessData.businessName} (a ${businessData.category || 'business'}).
 
-  // Email 3: Case study/value prop
-  emails.push(await generateEmailContent({
-    ...businessData,
-    customPrompt: sequenceConfig.email3Prompt || `Write a follow-up email (Email 3 of 4) for ${businessData.businessName}. Share a brief case study or specific value proposition. Still low-pressure.`
-  }));
+CONTEXT: This is Email 2 of 4. They didn't respond to the first email about your original observation.
 
-  // Email 4: Final touch
-  emails.push(await generateEmailContent({
+APPROACH: Use a DIFFERENT angle from the first email. Choose one:
+- If first email was about social media → talk about reviews or rebooking
+- If first email was about reviews → talk about online booking or automation
+- If first email was about rebooking → talk about social proof or visibility
+
+Keep it brief, conversational, and reference that you "sent a note before" or "not sure if you saw my last email" casually.
+
+Follow ALL 24 rules (lowercase subject, under 120 words, observation-based, micro-offer format).
+
+CRITICAL OUTPUT FORMAT:
+- Return ONLY the email text
+- DO NOT include markdown formatting like **Subject:** or **Body:**
+- DO NOT include section headers or labels
+- Just write the email naturally as if sending it`;
+
+  const email2 = await generateEmailContent({
     ...businessData,
-    customPrompt: sequenceConfig.email4Prompt || `Write a final follow-up email (Email 4 of 4) for ${businessData.businessName}. This is the last one - make it clear but still respectful.`
-  }));
+    customPrompt: email2Prompt
+  });
+  email2.delayDays = 3;
+  emails.push(email2);
+
+  // Email 3: Case study/proof (7 days after Email 1)
+  const email3Prompt = `Write a follow-up email for ${businessData.businessName} (a ${businessData.category || 'business'}).
+
+CONTEXT: This is Email 3 of 4. Third touch with no response yet.
+
+APPROACH: Share a brief, specific example:
+- A similar ${businessData.category || 'business'} you helped
+- Specific results (e.g., "went from 40% rebooking to 68% in 6 weeks")
+- What you did that worked
+- Keep it casual, not a formal case study
+
+Mention you're local (Poynton) and available for a quick chat.
+
+Follow ALL 24 rules (lowercase subject, under 120 words, specific numbers, micro-offer format).
+
+CRITICAL OUTPUT FORMAT:
+- Return ONLY the email text as it would be sent
+- DO NOT include markdown formatting like **Subject:** or **Body:**
+- DO NOT include section headers, labels, or meta-commentary
+- Just write the natural email content`;
+
+  const email3 = await generateEmailContent({
+    ...businessData,
+    customPrompt: email3Prompt
+  });
+  email3.delayDays = 7;
+  emails.push(email3);
+
+  // Email 4: Final touch (14 days after Email 1)
+  const email4Prompt = `Write a final follow-up email for ${businessData.businessName} (a ${businessData.category || 'business'}).
+
+CONTEXT: This is Email 4 of 4. Last attempt - no response yet.
+
+APPROACH: Polite breakup email:
+- Acknowledge you've sent a few notes
+- Give them an easy out ("no worries if not a priority right now")
+- One final clear CTA with calendar link
+- Respectful tone - not desperate or annoyed
+- Make it clear this is the last contact
+
+Keep it SHORT (under 80 words) and graceful.
+
+Follow ALL 24 rules (lowercase subject, brief, casual tone, micro-offer format).
+
+CRITICAL OUTPUT FORMAT:
+- Return ONLY the email text as it would be sent
+- DO NOT include markdown formatting like **Subject:** or **Body:**
+- DO NOT include section headers, labels, or meta-commentary
+- Just write the natural email content`;
+
+  const email4 = await generateEmailContent({
+    ...businessData,
+    customPrompt: email4Prompt
+  });
+  email4.delayDays = 14;
+  emails.push(email4);
 
   return emails;
 }
