@@ -162,7 +162,24 @@ function extractEmails(html) {
 
   // Deduplicate and filter out common generic emails
   const genericEmails = /^(info|contact|hello|support|admin|enquiries|mail)@/i;
-  return [...new Set(emails)].filter(email => !genericEmails.test(email));
+
+  // CRITICAL: Filter out image files and other non-email patterns
+  // Images: .jpg, .jpeg, .png, .gif, .svg, .webp, .ico, etc.
+  // Files: .js, .css, .pdf, .zip, etc.
+  const fileExtensions = /\.(jpg|jpeg|png|gif|svg|webp|ico|bmp|tiff|js|css|pdf|zip|rar|doc|docx|xls|xlsx|mp4|mov|avi|mp3|wav)$/i;
+
+  return [...new Set(emails)].filter(email => {
+    // Filter out generic emails
+    if (genericEmails.test(email)) return false;
+
+    // CRITICAL: Filter out file paths that match email pattern (e.g., "image@2x.jpg")
+    if (fileExtensions.test(email)) return false;
+
+    // Filter out emails with numbers in domain that look like image dimensions (e.g., "@2x", "@3x")
+    if (/@\d+x\./i.test(email)) return false;
+
+    return true;
+  });
 }
 
 /**
