@@ -152,6 +152,7 @@ function extractRegisteredAddress(html) {
 /**
  * Extract owner/director names from HTML
  * Looks for names on About, Team, Contact pages and footer
+ * Supports healthcare professionals, business titles, and contextual mentions
  * @param {string} html - HTML content
  * @returns {Array<{name: string, title: string|null}>} Array of potential owner names
  */
@@ -161,51 +162,117 @@ function extractOwnerNames(html) {
   const text = html.replace(/<[^>]+>/g, '\n').replace(/\s+/g, ' ');
   const names = [];
 
-  // Patterns for director/owner mentions with titles BEFORE name
+  // Pattern 1: Names with professional qualifications (BDS, MSc, PhD, etc.)
+  // e.g., "Christopher Needham BDS", "Laura Gill BDS MJDF RCS Eng", "Michael Clark BDS MSc (Endo)"
+  const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d)(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/gi;
+  let match;
+  while ((match = qualificationPattern.exec(text)) !== null) {
+    const name = match[1].trim();
+    if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
+      const qualification = match[2];
+      names.push({ name, title: qualification });
+    }
+  }
+
+  // Pattern 2: Business titles BEFORE name (more reliable)
+  // e.g., "Principal Christopher Needham", "Owner Sarah Johnson", "Founder Mike Chen"
   const titleFirstPatterns = [
-    /(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor)[\s:]+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi,
-    /(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[\s,]+(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor)/gi,
-    /(?:Founded by|Run by|Led by|Owned by)[\s:]+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi
+    /(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner)[\s:]+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi,
+    /(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)[\s,]+(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor)/gi
   ];
 
-  // Patterns for name FOLLOWED by title (common on team pages)
-  // e.g., "Christopher Needham BDS Principal Dentist"
-  const nameFirstPatterns = [
-    /(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(?:BDS|MBChB|MBBS|MD|PhD|BSc|MSc)?\s*(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Associate|Lead|Senior|Head|Chief)/gi,
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(?:BDS|MBChB|MBBS|MD|PhD|BSc|MSc)\s+(?:Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Dentist)/gi
-  ];
-
-  // Process title-first patterns
   for (const pattern of titleFirstPatterns) {
-    let match;
     while ((match = pattern.exec(text)) !== null) {
       const name = match[1].trim();
-      if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
+      // Ensure name doesn't end with job-related words
+      if (name.length >= 5 && name.length <= 50 &&
+          /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}$/.test(name) &&
+          !name.match(/\b(Dental|Lead|Senior|Junior|Manager|Director|Officer)$/)) {
         const titleMatch = match[0].match(/(Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Dr\.?|Mr\.?|Mrs\.?|Ms\.?)/i);
-        names.push({
-          name: name,
-          title: titleMatch ? titleMatch[0] : null
-        });
+        names.push({ name, title: titleMatch ? titleMatch[0] : null });
       }
     }
   }
 
-  // Process name-first patterns
-  for (const pattern of nameFirstPatterns) {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      const name = match[1].trim();
-      if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
-        const titleMatch = match[0].match(/(BDS|MBChB|MBBS|MD|PhD|Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Partner|Associate)/i);
-        names.push({
-          name: name,
-          title: titleMatch ? titleMatch[0] : null
-        });
-      }
+  // Pattern 3: Context clues (founded by, joined by, graduated from)
+  // e.g., "founded by Christopher Needham", "practice was started by Sarah Johnson"
+  const contextPattern = /(?:founded|started|established|run|led|owned|joined|managed|graduated)\s+(?:by|from)\s+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi;
+  while ((match = contextPattern.exec(text)) !== null) {
+    const name = match[1].trim();
+    if (name.length >= 5 && name.length <= 50 &&
+        /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}$/.test(name) &&
+        !name.match(/\b(Dental|Lead|Senior|Junior|Manager|Director|Officer|University|School|College)$/)) {
+      names.push({ name, title: 'Founder' });
     }
   }
 
-  // Remove duplicates
+  // Pattern 4: General names near job indicators (works for any business type)
+  // Finds proper names followed by job-related terms within proximity
+  // Two sub-patterns: (a) name directly before indicator, (b) name with 1-2 words before indicator
+
+  // Helper function to validate if a string looks like a real person's name
+  const isValidPersonName = (name) => {
+    // Reject common non-name words that get capitalized in sentences
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc)\b/i;
+
+    const firstWord = name.split(' ')[0].toLowerCase();
+    if (nonNameWords.test(firstWord)) {
+      return false;
+    }
+
+    // Reject if second word is a qualification (BDS, MSc, etc.)
+    const secondWord = name.split(' ')[1];
+    if (secondWord && /^(BDS|MBBS|MBChB|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Eng)$/i.test(secondWord)) {
+      return false;
+    }
+
+    // Reject names ending with job-related words, qualifications, or country codes
+    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co)$/i)) {
+      return false;
+    }
+
+    // Reject if contains lowercase articles or conjunctions
+    if (name.match(/\b(the|and|as|an|of|in|on|at|to|for|with|from|by)\b/)) {
+      return false;
+    }
+
+    // Require that both words start with uppercase and contain mostly lowercase
+    const words = name.split(' ');
+    for (const word of words) {
+      if (!/^[A-Z][a-z]{1,}$/.test(word)) {
+        return false;
+      }
+    }
+
+    return name.length >= 5 && name.length <= 40;
+  };
+
+  // 4a: Name immediately followed by job indicator (most reliable)
+  // e.g., "Amanda Lynam Practice Manager", "Natasha Lallement Receptionist"
+  const directPattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(Practice\s+Manager|Office\s+Manager|Lead\s+Nurse|Senior\s+Nurse|Dental\s+Nurse|Dental\s+Hygienist|Dental\s+Therapist|Dental\s+Surgeon|Receptionist|Manager|Director|Owner|Founder|Partner|Associate|Hygienist|Therapist|Nurse|Dentist|Surgeon|Administrator|Accountant|Consultant|Engineer|Plumber|Electrician|Chef|Stylist|Barber|Technician|Specialist|Coordinator|Officer)\b/gi;
+
+  while ((match = directPattern.exec(text)) !== null) {
+    const name = match[1].trim();
+    const indicator = match[2].trim();
+
+    if (isValidPersonName(name)) {
+      names.push({ name, title: indicator });
+    }
+  }
+
+  // 4b: Name followed by GDC Number (UK dental professionals)
+  // e.g., "Barbara Woodall Dental Hygienist - GDC Number"
+  const gdcProximityPattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\s+[A-Za-z\s-]{0,30}?GDC\s+Number/gi;
+
+  while ((match = gdcProximityPattern.exec(text)) !== null) {
+    const name = match[1].trim();
+
+    if (isValidPersonName(name)) {
+      names.push({ name, title: 'Professional' });
+    }
+  }
+
+  // Remove duplicates (keep first occurrence which is usually highest priority)
   const unique = [];
   const seen = new Set();
   for (const item of names) {
@@ -265,10 +332,14 @@ async function scrapeWebsite(url) {
       }
     }
 
-    // Try to fetch team/about pages for additional owner info
+    // Try to fetch team/about/contact/blog pages for additional owner info
+    // For small local business websites, checking all common pages increases name discovery
     const teamPageUrls = [
-      '/about', '/about-us', '/team', '/meet-the-team', '/our-team',
-      '/meet-the-team-subtitle', '/team-members', '/staff', '/people', '/directors'
+      '/about', '/about-us', '/about-me', '/aboutus',
+      '/team', '/meet-the-team', '/our-team', '/meet-the-team-subtitle', '/team-members',
+      '/staff', '/people', '/directors',
+      '/contact', '/contact-us', '/contactus',
+      '/blog', '/insights', '/news'
     ];
 
     for (const path of teamPageUrls) {
