@@ -556,6 +556,7 @@ async function scrapeWebsite(url) {
       registrationNumber,
       registeredAddress,
       ownerNames,
+      emails, // CRITICAL: Return the emails array so they can be exported to Lemlist
       scrapedAt: new Date().toISOString()
     };
 
@@ -582,6 +583,7 @@ async function scrapeWebsite(url) {
       registrationNumber: null,
       registeredAddress: null,
       ownerNames: [],
+      emails: [],
       error: error.message,
       scrapedAt: new Date().toISOString()
     };
