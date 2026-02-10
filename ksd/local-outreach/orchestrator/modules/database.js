@@ -106,7 +106,7 @@ function generateBusinessId(business) {
  */
 function checkDuplicate(business) {
   const database = initDatabase();
-  const byName = database.prepare(`SELECT id FROM businesses WHERE name = ? AND postcode = ? ORDER BY created_at DESC LIMIT 1`).get(business.name || business.businessName || "Unknown Business" || "Unknown Business", business.postcode || "");
+  const byName = database.prepare(`SELECT id FROM businesses WHERE name = ? AND postcode = ? ORDER BY created_at DESC LIMIT 1`).get(business.name || business.businessName || "Unknown Business", business.postcode || "");
   if (byName) return byName.id;
   if (business.website) {
     try {

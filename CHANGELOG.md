@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Code Review Issues (API Timeouts, Security, Code Quality)
+
+**Date:** 2026-02-10
+
+**Critical Fixes:**
+
+1. **API Request Timeouts** - Added missing timeouts to prevent hanging requests
+   - `gpt-linkedin-generator.js:165` - Added 30s timeout to OpenAI API call
+   - `prosp-client.js:22` - Added 30s timeout to Prosp API calls
+   - `icypeas-enricher.js:84` - Added 30s timeout to Icypeas API calls
+
+2. **Timeout Ordering Fix** - Moved timeouts before `req.write()` to ensure they take effect
+   - `revenue-estimator.js:89-93` - Timeout was inside response handler, moved to correct position
+
+3. **SQL Query Fix** - Removed duplicate fallback string
+   - `database.js:109` - Fixed `"Unknown Business" || "Unknown Business"` duplicate
+
+4. **Path Security** - Fixed hardcoded relative paths
+   - `migrate-to-db.js:10-11` - Changed `data/businesses` to `../data/businesses`
+   - Added directory existence check before reading
+
+---
+
 ### Added - Website & Social Media Email Extraction System
 
 **Date:** 2026-02-10

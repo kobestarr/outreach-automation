@@ -7,8 +7,8 @@ const fs = require("fs");
 const path = require("path");
 const { saveBusiness, initDatabase } = require("../modules/database");
 
-const JSON_DIR = path.join(__dirname, "data/businesses");
-const ARCHIVE_DIR = path.join(__dirname, "data/archive");
+const JSON_DIR = path.join(__dirname, "../data/businesses");
+const ARCHIVE_DIR = path.join(__dirname, "../data/archive");
 
 async function migrate() {
   console.log("🚀 Starting migration from JSON to Database...");
@@ -16,7 +16,13 @@ async function migrate() {
   // Initialize database
   initDatabase();
   
-  // Ensure archive directory exists
+  // Ensure directories exist
+  if (!fs.existsSync(JSON_DIR)) {
+    console.log(`✅ JSON directory does not exist: ${JSON_DIR}`);
+    console.log("No migration needed - starting fresh with database.");
+    return;
+  }
+  
   if (!fs.existsSync(ARCHIVE_DIR)) {
     fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
   }

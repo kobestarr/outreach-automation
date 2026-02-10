@@ -84,6 +84,12 @@ async function findLinkedInProfile({ firstName, lastName, companyName, location 
     req.on("error", (error) => {
       reject(new Error(`Icypeas API error: ${error.message}`));
     });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Icypeas API request timed out after 30s'));
+    });
     
     req.write(postData);
     req.end();

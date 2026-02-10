@@ -218,6 +218,11 @@ function callGPT4(prompt, apiKey) {
       reject(new Error(`OpenAI API request error: ${error.message}`));
     });
     
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('OpenAI API request timed out after 30s'));
+    });
+    
     req.write(postData);
     req.end();
   });

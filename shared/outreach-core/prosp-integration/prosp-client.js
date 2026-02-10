@@ -79,6 +79,11 @@ function prospRequest(method, path, data = null) {
       reject(new Error(`Prosp API request failed: ${error.message}`));
     });
 
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Prosp API request timed out after 30s'));
+    });
+
     req.write(postData);
     req.end();
   });

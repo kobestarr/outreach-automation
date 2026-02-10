@@ -86,12 +86,6 @@ Output as JSON only:
         data += chunk;
       });
 
-      // Set request timeout
-      req.setTimeout(30000, () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
-
       res.on("end", () => {
         try {
           const result = JSON.parse(data);
@@ -129,6 +123,12 @@ Output as JSON only:
 
     req.on("error", (error) => {
       reject(new Error(`Anthropic API request error: ${error.message}`));
+    });
+
+    // Set request timeout (must be before write/end)
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Anthropic API request timed out after 30s'));
     });
     
     req.write(postData);
