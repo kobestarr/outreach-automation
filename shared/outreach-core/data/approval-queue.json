@@ -36,5 +36,33 @@
     "createdAt": "2026-02-10T04:51:56.692Z",
     "approvedAt": null,
     "approvedBy": null
+  },
+  "restaurant": {
+    "business": {
+      "name": "Amici",
+      "category": "Restaurant",
+      "location": "The Bramhall Centre, Bramhall, Stockport SK7 1AW, United Kingdom",
+      "ownerFirstName": "Thomas",
+      "owners": [
+        {
+          "firstName": "Thomas",
+          "lastName": "Co",
+          "fullName": "Thomas Co",
+          "title": "Owner",
+          "source": "website-scraping",
+          "email": "thomas.co@amicibramhall.com",
+          "emailSource": "pattern_verified",
+          "emailVerified": true
+        }
+      ]
+    },
+    "email": {
+      "subject": "noticed you're not on social yet",
+      "body": "Subject: noticed you're not on social yet\n\nHi Thomas,\n\nI noticed Amici doesn't have much of a social presence yet - which is a shame with 180 reviews at 4.9 stars.\n\nI work with restaurants around here (I'm just down the road in Poynton) and I've found the ones that post regularly fill more tables, especially midweek.\n\nI can help you get set up with a simple system that takes about 10 minutes a week. It's worked well for keeping tables full without relying on walk-ins.\n\nFrom just £97 to get started if you want to test it out.\n\nWorth a quick chat? Here's my calendar: [link]\n\nSent from my iPhone"
+    },
+    "status": "pending",
+    "createdAt": "2026-02-10T14:53:25.862Z",
+    "approvedAt": null,
+    "approvedBy": null
   }
 }

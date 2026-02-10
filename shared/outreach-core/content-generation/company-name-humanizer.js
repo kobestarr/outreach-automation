@@ -259,6 +259,109 @@ function humanizeCompanyName(companyName) {
 }
 
 /**
+ * Get short name for "Team" fallback greeting
+ * Extracts first 1-2 significant words for concise team addressing
+ *
+ * Examples:
+ * - "Montgomery's Artisan Butchers" → "Montgomery's"
+ * - "Paul Granelli Jewellers" → "Paul Granelli"
+ * - "Glo Tanning Bramhall" → "Glo Tanning"
+ * - "The Coffee Shop" → "Coffee Shop" (skip article)
+ *
+ * @param {string} companyName - Company name (can be raw or already humanized)
+ * @returns {string} Short name (1-2 words)
+ */
+function getShortNameForTeam(companyName) {
+  if (!companyName || typeof companyName !== 'string') {
+    return 'Team';
+  }
+
+  // First humanize to remove location, legal suffixes, etc.
+  const { humanized } = humanizeCompanyName(companyName);
+
+  // Split into words
+  const words = humanized.split(/\s+/).filter(w => w.length > 0);
+
+  if (words.length === 0) {
+    return 'Team';
+  }
+
+  // Skip leading articles (The, A, An)
+  const articles = ['the', 'a', 'an'];
+  let startIndex = 0;
+  if (words.length > 1 && articles.includes(words[0].toLowerCase())) {
+    startIndex = 1;
+  }
+
+  // Business type keywords that should be kept as second word
+  const businessTypes = [
+    'cafe', 'coffee', 'restaurant', 'bar', 'pub', 'bistro', 'grill', 'kitchen',
+    'gym', 'fitness', 'yoga', 'pilates', 'wellness', 'health', 'spa',
+    'dental', 'dentist', 'clinic', 'surgery', 'medical', 'pharmacy',
+    'salon', 'barber', 'hair', 'beauty', 'nails', 'spa',
+    'bakery', 'patisserie', 'deli', 'butcher', 'grocers', 'market',
+    'hotel', 'inn', 'lodge', 'motel', 'hostel',
+    'studio', 'gallery', 'theatre', 'cinema',
+    'shop', 'store', 'boutique', 'emporium',
+    'garage', 'motors', 'automotive', 'tyres',
+    'plumbing', 'plumber', 'electrician', 'builder', 'joiner', 'decorator',
+    'accountancy', 'accounting', 'legal', 'solicitors', 'law',
+    'estate', 'property', 'lettings', 'rentals',
+    'insurance', 'financial', 'mortgage', 'investments'
+  ];
+
+  // Generic descriptors that should be stripped
+  const genericDescriptors = [
+    'artisan', 'boutique', 'premium', 'luxury', 'elite', 'premier',
+    'professional', 'specialists', 'expert', 'masters',
+    'company', 'group', 'services', 'solutions', 'systems',
+    'jewellers', 'jeweller', 'jewelry', 'jewellery' // Specific to examples
+  ];
+
+  // Take first 1-2 words after article
+  const relevantWords = words.slice(startIndex);
+
+  if (relevantWords.length === 1) {
+    // Single word company name
+    return relevantWords[0];
+  }
+
+  // Check if first word is possessive (ends with 's or ')
+  const firstWord = relevantWords[0];
+  const isPossessive = firstWord.endsWith("'s") || firstWord.endsWith("'");
+
+  if (isPossessive) {
+    // "Montgomery's Artisan Butchers" → "Montgomery's"
+    // "Paul's Cafe" → "Paul's"
+    return firstWord;
+  }
+
+  // Check if second word is a business type keyword
+  if (relevantWords.length >= 2) {
+    const secondWord = relevantWords[1].toLowerCase();
+    if (businessTypes.includes(secondWord)) {
+      // "Glo Tanning" → "Glo Tanning"
+      // "Main Street Cafe" → "Main Street Cafe"
+      return `${relevantWords[0]} ${relevantWords[1]}`;
+    }
+  }
+
+  // Check if second word is a generic descriptor
+  if (relevantWords.length >= 2) {
+    const secondWord = relevantWords[1].toLowerCase();
+    if (genericDescriptors.includes(secondWord)) {
+      // "Paul Granelli Jewellers" → "Paul Granelli"
+      // "Elite Fitness" → "Elite" (no, Elite is not possessive)
+      return relevantWords[0];
+    }
+  }
+
+  // Default: Take first 2 words
+  // "Paul Granelli Jewellers" → "Paul Granelli"
+  return relevantWords.slice(0, 2).join(' ');
+}
+
+/**
  * Test the humanizer with known examples
  * @returns {Object} Test results
  */
@@ -307,5 +410,6 @@ function runTests() {
 
 module.exports = {
   humanizeCompanyName,
+  getShortNameForTeam,
   runTests
 };

@@ -19,7 +19,7 @@ hi {{firstName}} quick thought for {{companyName}}
 ```
 Hi {{firstName}},
 
-{{multiOwnerNote}}{{localIntro}} I noticed {{companyName}} and {{observationSignal}}.
+{{noNameNote}}{{multiOwnerNote}}{{localIntro}} I noticed {{companyName}} and {{observationSignal}}.
 
 I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
 
@@ -127,6 +127,7 @@ These variables are **automatically populated** by the export script based on bu
 | `{{meetingOption}}` | **Meeting offer** | "meet in person if that's easier" | "have a chat" |
 | `{{microOfferPrice}}` | **Tiered pricing** | "£97" (tier5) or "£291" (tier2) | "$635" (tier1, US business) |
 | `{{multiOwnerNote}}` | **Multi-owner acknowledgment** | "" (blank if single owner) | "Quick note – I'm also reaching out to Sarah and John since I wasn't sure who handles this at Elite Fitness. " |
+| `{{noNameNote}}` | **No-name acknowledgment** | "" (blank if owner name found) | "I couldn't find your names anywhere! " (when using "{{CompanyName}} Team" fallback) |
 
 ---
 
@@ -303,6 +304,15 @@ The script will:
 > I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
 >
 > From just £485 to get started – happy to have a chat or I can share links to my work and we can have a chat on the phone.
+
+**No Owner Name Found (SK7 Bramhall cafe, tier4, fallback to generic email):**
+> Hi Village Cafe Team,
+>
+> I couldn't find your names anywhere! I'm Kobi, a digital marketing consultant based in Poynton, so pretty close to you! I noticed Village Cafe and saw you could improve your online presence.
+>
+> I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
+>
+> From just £145 to get started – happy to meet in person if that's easier or I can share links to my work and we can have a chat on the phone.
 
 ---
 

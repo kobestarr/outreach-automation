@@ -194,6 +194,22 @@ function getMultiOwnerNote(business) {
 }
 
 /**
+ * Get no-name acknowledgment text
+ * Shows when we couldn't find owner names and are using "{{CompanyName}} Team" fallback
+ * @param {Object} business - Business data with usedFallbackName flag
+ * @returns {string} Acknowledgment text or empty string
+ */
+function getNoNameNote(business) {
+  // Only show note if we used fallback name (no owner names found)
+  if (!business.usedFallbackName) {
+    return ""; // Real owner name found
+  }
+
+  // Note: trailing space ensures natural flow into {{localIntro}}
+  return "I couldn't find your names anywhere! ";
+}
+
+/**
  * Generate all merge variables for a business
  * @param {Object} business - Business data
  * @returns {Object} All merge variables for email template
@@ -215,6 +231,7 @@ function getAllMergeVariables(business) {
     meetingOption: getMeetingOption(postcode),
     microOfferPrice: getMicroOfferPrice(business),
     multiOwnerNote: getMultiOwnerNote(business),
+    noNameNote: getNoNameNote(business),
 
     // Additional context
     isNearby: isNearby(postcode),
@@ -261,6 +278,7 @@ module.exports = {
   getMeetingOption,
   getMicroOfferPrice,
   getMultiOwnerNote,
+  getNoNameNote,
 
   // Helper functions
   isNearby,
