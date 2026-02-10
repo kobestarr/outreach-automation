@@ -12,6 +12,7 @@ const logger = require("../logger");
 const { getCategoryGroup, getCategoryEmailAngles } = require("./category-mapper");
 const { computeObservationSignals, selectPrimarySignal, getSignalHook } = require("./observation-signals");
 const { getCurrencyForLocation } = require("./currency-localization");
+const { humanizeCompanyName } = require("./company-name-humanizer");
 
 const OPENAI_BASE_URL = "api.openai.com";
 const REQUEST_TIMEOUT_MS = 60000; // OpenAI can be slow, 60 seconds
@@ -72,8 +73,18 @@ async function generateEmailContent(params) {
 
   const apiKey = getCredential("openai", "apiKey");
 
+  // Humanize company name for natural tone
+  const { humanized: humanizedBusinessName, original: originalBusinessName } = humanizeCompanyName(businessName);
+
+  // Build prompt with humanized company name
+  const paramsWithHumanizedName = {
+    ...params,
+    businessName: humanizedBusinessName,
+    originalBusinessName: originalBusinessName
+  };
+
   // Build prompt (use custom prompt if provided for backward compatibility, otherwise use micro-offer system)
-  const prompt = customPrompt || buildEmailPrompt(params);
+  const prompt = customPrompt || buildEmailPrompt(paramsWithHumanizedName);
   
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify({
