@@ -11,6 +11,7 @@
 
 const { computeObservationSignals, selectPrimarySignal } = require('./observation-signals');
 const { getCurrencyForLocation } = require('./currency-localization');
+const { getBusinessType } = require('./business-type-helper');
 const logger = require('../logger');
 
 /**
@@ -176,6 +177,7 @@ function getAllMergeVariables(business) {
     lastName: business.ownerLastName || '',
     companyName: business.businessName || business.name,
     location: business.location || '',
+    businessType: getBusinessType(business.category),
 
     // Dynamic variables
     localIntro: getLocalIntro(postcode),

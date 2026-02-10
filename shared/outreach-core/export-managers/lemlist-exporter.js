@@ -7,6 +7,7 @@ const https = require("https");
 const crypto = require("crypto");
 const { getCredential } = require("../credentials-loader");
 const { getAllMergeVariables } = require("../content-generation/email-merge-variables");
+const { getBusinessType } = require("../content-generation/business-type-helper");
 const logger = require("../logger");
 
 // Configuration
@@ -317,7 +318,7 @@ async function exportToLemlist(business, campaignId, emailSequence) {
         meetingOption: mergeVars.meetingOption,
         microOfferPrice: mergeVars.microOfferPrice,
         location: mergeVars.location,
-        businessType: business.category || 'local business'
+        businessType: getBusinessType(business.category)
       };
 
       try {
@@ -429,7 +430,7 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     meetingOption: mergeVars.meetingOption,
     microOfferPrice: mergeVars.microOfferPrice,
     location: mergeVars.location,
-    businessType: business.category || 'local business'
+    businessType: getBusinessType(business.category)
   };
 
   return withRetry(
