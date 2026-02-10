@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Code Review Improvements
+
+**Date:** 2026-02-10
+
+**Changes:**
+
+1. **Chain Filter Caching** (`chain-filter.js`)
+   - Added module-level cache for chain config with 5-minute TTL
+   - Prevents reading config file on every `isChain()` call
+   - Added `clearCache()` function for testing/config reloads
+
+2. **Database Schema Formatting** (`database.js`)
+   - Reformatted SQL schema as array of statements for readability
+   - Each CREATE TABLE and CREATE INDEX on separate lines
+   - Easier to maintain and review
+
+3. **Logger Standardization** (`resume-approval.js`)
+   - Replaced all `console.log` with centralized logger
+   - Added CLI helper for consistent output formatting
+   - Uses `logger.cli()` for user-facing messages
+
+4. **Missing Logger Imports**
+   - Added logger import to `prosp-exporter.js`
+   - Added logger import to `icypeas-enricher.js`
+
+5. **Credentials File Security** (`credentials-loader.js`)
+   - Added `validateCredentialsFilePermissions()` function
+   - Checks if credentials file is world-readable/writable
+   - Auto-fixes permissions to 0o600 if insecure
+   - Logs warnings for permission issues
+
+---
+
 ### Fixed - Generic Email Copy with businessType Merge Variable
 
 **Date:** 2026-02-10

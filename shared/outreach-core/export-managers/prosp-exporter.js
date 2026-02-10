@@ -5,6 +5,7 @@
 
 const https = require("https");
 const { getCredential } = require("../credentials-loader");
+const logger = require("../logger");
 
 const PROSP_BASE_URL = "api.prosp.ai";
 

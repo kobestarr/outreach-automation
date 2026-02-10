@@ -22,6 +22,53 @@ if (!fs.existsSync(DB_DIR)) {
 
 let db = null;
 
+// SQL Schema - defined as array for readability
+const SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS businesses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    location TEXT,
+    postcode TEXT,
+    address TEXT,
+    website TEXT,
+    phone TEXT,
+    category TEXT,
+    rating REAL,
+    review_count INTEGER,
+    owner_first_name TEXT,
+    owner_last_name TEXT,
+    owner_email TEXT,
+    email_source TEXT,
+    email_verified INTEGER DEFAULT 0,
+    linkedin_url TEXT,
+    estimated_revenue REAL,
+    revenue_band TEXT,
+    revenue_confidence INTEGER,
+    assigned_tier INTEGER,
+    setup_fee REAL,
+    monthly_price REAL,
+    ghl_offer TEXT,
+    lead_magnet TEXT,
+    barter_opportunity TEXT,
+    status TEXT DEFAULT "scraped",
+    scraped_at TEXT,
+    enriched_at TEXT,
+    exported_to TEXT,
+    exported_at TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    business_data TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_location_postcode ON businesses(location, postcode)`,
+  `CREATE INDEX IF NOT EXISTS idx_status ON businesses(status)`,
+  `CREATE INDEX IF NOT EXISTS idx_tier ON businesses(assigned_tier)`,
+  `CREATE INDEX IF NOT EXISTS idx_email ON businesses(owner_email)`,
+  `CREATE INDEX IF NOT EXISTS idx_exported_at ON businesses(exported_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_created_at ON businesses(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_name_postcode ON businesses(name, postcode)`,
+  `CREATE INDEX IF NOT EXISTS idx_website ON businesses(website)`
+];
+
 /**
  * Initialize the SQLite database with WAL mode and required schema
  * @returns {Database} The initialized better-sqlite3 database instance
@@ -30,7 +77,12 @@ function initDatabase() {
   if (db) return db;
   db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
-  db.exec(`CREATE TABLE IF NOT EXISTS businesses (id TEXT PRIMARY KEY, name TEXT NOT NULL, location TEXT, postcode TEXT, address TEXT, website TEXT, phone TEXT, category TEXT, rating REAL, review_count INTEGER, owner_first_name TEXT, owner_last_name TEXT, owner_email TEXT, email_source TEXT, email_verified INTEGER DEFAULT 0, linkedin_url TEXT, estimated_revenue REAL, revenue_band TEXT, revenue_confidence INTEGER, assigned_tier INTEGER, setup_fee REAL, monthly_price REAL, ghl_offer TEXT, lead_magnet TEXT, barter_opportunity TEXT, status TEXT DEFAULT "scraped", scraped_at TEXT, enriched_at TEXT, exported_to TEXT, exported_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, business_data TEXT); CREATE INDEX IF NOT EXISTS idx_location_postcode ON businesses(location, postcode); CREATE INDEX IF NOT EXISTS idx_status ON businesses(status); CREATE INDEX IF NOT EXISTS idx_tier ON businesses(assigned_tier); CREATE INDEX IF NOT EXISTS idx_email ON businesses(owner_email); CREATE INDEX IF NOT EXISTS idx_exported_at ON businesses(exported_at); CREATE INDEX IF NOT EXISTS idx_created_at ON businesses(created_at); CREATE INDEX IF NOT EXISTS idx_name_postcode ON businesses(name, postcode); CREATE INDEX IF NOT EXISTS idx_website ON businesses(website);`);
+  
+  // Execute schema statements
+  for (const statement of SCHEMA_STATEMENTS) {
+    db.exec(statement);
+  }
+  
   return db;
 }
 

@@ -19,6 +19,48 @@ const USAGE_TRACKER_PATH = process.env.OUTREACH_USAGE_TRACKER_PATH ||
   path.join(process.env.CREDENTIALS_DIR || DEFAULT_CREDENTIALS_DIR, 'usage-tracker.json');
 
 /**
+ * Check and validate credentials file permissions
+ * Ensures file is not world-readable
+ * @param {string} filePath - Path to credentials file
+ * @throws {Error} If file permissions are insecure
+ */
+function validateCredentialsFilePermissions(filePath) {
+  try {
+    const stats = fs.statSync(filePath);
+    const mode = stats.mode;
+    
+    // Check if file is world-readable (others have read permission)
+    const isWorldReadable = (mode & 0o004) !== 0;
+    const isWorldWritable = (mode & 0o002) !== 0;
+    
+    if (isWorldReadable || isWorldWritable) {
+      logger.warn('credentials-loader', 'Credentials file has insecure permissions', {
+        path: filePath,
+        mode: mode.toString(8),
+        isWorldReadable,
+        isWorldWritable
+      });
+      
+      // Attempt to fix permissions
+      try {
+        fs.chmodSync(filePath, 0o600);
+        logger.info('credentials-loader', 'Fixed credentials file permissions to 0o600');
+      } catch (chmodError) {
+        logger.error('credentials-loader', 'Failed to fix credentials file permissions', {
+          error: chmodError.message
+        });
+      }
+    }
+  } catch (error) {
+    // File doesn't exist or can't be accessed - will be handled by loadCredentials
+    logger.debug('credentials-loader', 'Could not check credentials file permissions', {
+      path: filePath,
+      error: error.message
+    });
+  }
+}
+
+/**
  * Load all credentials from the api-keys.json file
  * @returns {Object} The credentials object containing all service configurations
  * @throws {Error} If the credentials file cannot be read or parsed
@@ -29,6 +71,10 @@ function loadCredentials() {
       throw new Error(`Credentials file not found at ${CREDENTIALS_PATH}. ` +
         `Set OUTREACH_CREDENTIALS_PATH or CREDENTIALS_DIR environment variable.`);
     }
+    
+    // Validate file permissions before reading
+    validateCredentialsFilePermissions(CREDENTIALS_PATH);
+    
     const data = fs.readFileSync(CREDENTIALS_PATH, 'utf8');
     return JSON.parse(data);
   } catch (error) {

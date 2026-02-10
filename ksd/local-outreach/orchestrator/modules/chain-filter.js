@@ -9,18 +9,70 @@ const logger = require("../../../../shared/outreach-core/logger");
 
 const CHAINS_CONFIG_PATH = path.join(__dirname, "../config/uk-chains.json");
 
+// Module-level cache for chain config
+let cachedChains = null;
+let cachedSignals = null;
+let cacheTimestamp = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Load chain brands list
+ * Load chain brands list with caching
  */
 function loadChainBrands() {
+  // Return cached data if valid
+  if (cachedChains && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_TTL_MS)) {
+    return cachedChains;
+  }
+
   try {
     const data = fs.readFileSync(CHAINS_CONFIG_PATH, "utf8");
     const config = JSON.parse(data);
-    return config.chains || [];
+    
+    // Update cache
+    cachedChains = config.chains || [];
+    cachedSignals = config.signals || {};
+    cacheTimestamp = Date.now();
+    
+    return cachedChains;
   } catch (error) {
     logger.warn('chain-filter', 'Failed to load chain brands config', { error: error.message });
     return [];
   }
+}
+
+/**
+ * Load chain signals with caching
+ */
+function loadChainSignals() {
+  // Return cached data if valid
+  if (cachedSignals && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_TTL_MS)) {
+    return cachedSignals;
+  }
+
+  try {
+    const data = fs.readFileSync(CHAINS_CONFIG_PATH, "utf8");
+    const config = JSON.parse(data);
+    
+    // Update cache
+    cachedChains = config.chains || [];
+    cachedSignals = config.signals || {};
+    cacheTimestamp = Date.now();
+    
+    return cachedSignals;
+  } catch (error) {
+    logger.warn('chain-filter', 'Failed to load chain signals config', { error: error.message });
+    return {};
+  }
+}
+
+/**
+ * Clear the cache (useful for testing or config reloads)
+ */
+function clearCache() {
+  cachedChains = null;
+  cachedSignals = null;
+  cacheTimestamp = null;
+  logger.debug('chain-filter', 'Cache cleared');
 }
 
 /**
@@ -36,8 +88,7 @@ function isChain(business) {
   // Check Google Maps signals
   const reviewCount = business.reviewCount || 0;
   const locationCount = business.locationCount || 1;
-  const config = JSON.parse(fs.readFileSync(CHAINS_CONFIG_PATH, "utf8"));
-  const signals = config.signals || {};
+  const signals = loadChainSignals();
   
   const hasChainSignals = 
     reviewCount >= (signals.minReviewCount || 1000) ||
@@ -87,5 +138,6 @@ module.exports = {
   isChain,
   filterChains,
   loadChainBrands,
-  isPub
+  isPub,
+  clearCache
 };

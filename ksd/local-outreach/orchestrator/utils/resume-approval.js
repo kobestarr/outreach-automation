@@ -10,6 +10,14 @@ const { generateOutreachContent } = require("../../../../shared/outreach-core/co
 const { exportToLemlist } = require("../../../../shared/outreach-core/export-managers/lemlist-exporter");
 const logger = require("../../../../shared/outreach-core/logger");
 
+// Helper for CLI-friendly output (uses logger for consistency)
+const cli = {
+  log: (message) => logger.cli(message),
+  info: (message, meta) => logger.info('resume-approval', message, meta),
+  error: (message, meta) => logger.error('resume-approval', message, meta),
+  warn: (message, meta) => logger.warn('resume-approval', message, meta)
+};
+
 // Create readline interface for prompts
 const rl = readline.createInterface({
   input: process.stdin,
@@ -34,21 +42,21 @@ function prompt(question) {
  * @param {Array} records - Business records to export
  */
 function displayExportSummary(records) {
-  console.log(`${'─'.repeat(68)}`);
-  console.log(`EXPORT SUMMARY`);
-  console.log(`${'─'.repeat(68)}\n`);
-  console.log(`Will export ${records.length} businesses:\n`);
+  cli.log(`${'─'.repeat(68)}`);
+  cli.log(`EXPORT SUMMARY`);
+  cli.log(`${'─'.repeat(68)}\n`);
+  cli.log(`Will export ${records.length} businesses:\n`);
 
   records.slice(0, 10).forEach((record, i) => {
     const business = record.business;
-    console.log(`  ${i + 1}. ${business.name} (${business.category}) - ${business.ownerEmail || 'no email'}`);
+    cli.log(`  ${i + 1}. ${business.name} (${business.category}) - ${business.ownerEmail || 'no email'}`);
   });
 
   if (records.length > 10) {
-    console.log(`  ... and ${records.length - 10} more`);
+    cli.log(`  ... and ${records.length - 10} more`);
   }
 
-  console.log(`\nExport to Lemlist campaign: ${process.env.LEMLIST_CAMPAIGN_ID || 'NOT SET'}`);
+  cli.log(`\nExport to Lemlist campaign: ${process.env.LEMLIST_CAMPAIGN_ID || 'NOT SET'}`);
 }
 
 /**
@@ -57,20 +65,20 @@ function displayExportSummary(records) {
  * @param {string} postcode - Postcode prefix (e.g., "SK7")
  */
 async function resumeApproval(location, postcode) {
-  console.log(`\n=== RESUME APPROVAL EXPORT ===\n`);
-  console.log(`Location: ${location} (${postcode})`);
+  cli.log(`\n=== RESUME APPROVAL EXPORT ===\n`);
+  cli.log(`Location: ${location} (${postcode})`);
 
   // Load approved templates
   const approvedTemplates = loadApprovedTemplates();
   const approvedCategories = Object.keys(approvedTemplates);
 
   if (approvedCategories.length === 0) {
-    console.log(`\n✗ No approved categories found. Run approve-cli first.\n`);
+    cli.log(`\n✗ No approved categories found. Run approve-cli first.\n`);
     rl.close();
     process.exit(1);
   }
 
-  console.log(`Approved categories: ${approvedCategories.join(', ')}\n`);
+  cli.log(`Approved categories: ${approvedCategories.join(', ')}\n`);
 
   // Load businesses with status="enriched" (not yet exported)
   const records = loadBusinesses({
@@ -79,7 +87,7 @@ async function resumeApproval(location, postcode) {
     postcode: postcode
   });
 
-  console.log(`Found ${records.length} enriched businesses\n`);
+  cli.log(`Found ${records.length} enriched businesses\n`);
 
   // Filter to approved categories only
   const toExport = records.filter(record => {
@@ -88,12 +96,12 @@ async function resumeApproval(location, postcode) {
   });
 
   if (toExport.length === 0) {
-    console.log(`\n✗ No businesses with approved categories found.\n`);
+    cli.log(`\n✗ No businesses with approved categories found.\n`);
     rl.close();
     process.exit(0);
   }
 
-  console.log(`Businesses to export: ${toExport.length}\n`);
+  cli.log(`Businesses to export: ${toExport.length}\n`);
   displayExportSummary(toExport);
 
   // Confirm export
@@ -113,7 +121,7 @@ async function resumeApproval(location, postcode) {
 
       // Skip if no email
       if (!business.ownerEmail) {
-        console.log(`[SKIP] ${business.name} - no email address`);
+        cli.log(`[SKIP] ${business.name} - no email address`);
         continue;
       }
 
@@ -138,7 +146,7 @@ async function resumeApproval(location, postcode) {
         });
 
         logger.info('resume-approval', `Exported ${business.name} to lemlist`);
-        console.log(`[${new Date().toISOString()}] [INFO] Exported ${business.name} to lemlist`);
+        cli.log(`[${new Date().toISOString()}] [INFO] Exported ${business.name} to lemlist`);
         results.success++;
       }
     } catch (error) {
@@ -146,26 +154,26 @@ async function resumeApproval(location, postcode) {
         business: record.business.name,
         error: error.message
       });
-      console.error(`[ERROR] Failed to export ${record.business.name}: ${error.message}`);
+      cli.error(`Failed to export ${record.business.name}`, { error: error.message });
       results.failed++;
       results.errors.push({ business: record.business.name, error: error.message });
     }
   }
 
   // Display results
-  console.log(`\n✓ Successfully exported ${results.success} businesses`);
+  cli.log(`\n✓ Successfully exported ${results.success} businesses`);
   if (results.failed > 0) {
-    console.log(`✗ Failed: ${results.failed}`);
-    console.log(`\nErrors:`);
+    cli.log(`✗ Failed: ${results.failed}`);
+    cli.log(`\nErrors:`);
     results.errors.forEach(err => {
-      console.log(`  - ${err.business}: ${err.error}`);
+      cli.log(`  - ${err.business}: ${err.error}`);
     });
   }
 
-  console.log(`\nNext steps:`);
-  console.log(`  1. Check Lemlist campaign: ${process.env.LEMLIST_CAMPAIGN_ID}`);
-  console.log(`  2. Verify email sequences in Lemlist UI`);
-  console.log(`  3. Launch campaign when ready\n`);
+  cli.log(`\nNext steps:`);
+  cli.log(`  1. Check Lemlist campaign: ${process.env.LEMLIST_CAMPAIGN_ID}`);
+  cli.log(`  2. Verify email sequences in Lemlist UI`);
+  cli.log(`  3. Launch campaign when ready\n`);
 
   rl.close();
 }
@@ -174,12 +182,12 @@ async function resumeApproval(location, postcode) {
  * Print usage information
  */
 function printUsage() {
-  console.log(`\nUsage: node resume-approval.js <location> <postcode>`);
-  console.log(`Example: node resume-approval.js Bramhall SK7\n`);
-  console.log(`Environment variables required:`);
-  console.log(`  LEMLIST_CAMPAIGN_ID  - Lemlist campaign ID (e.g., cam_9NsHPnykWESTncCW8)`);
-  console.log(`  LEMLIST_API_KEY      - Lemlist API key`);
-  console.log(`  CONTENT_PROVIDER     - claude or openai (optional, defaults to claude)\n`);
+  cli.log(`\nUsage: node resume-approval.js <location> <postcode>`);
+  cli.log(`Example: node resume-approval.js Bramhall SK7\n`);
+  cli.log(`Environment variables required:`);
+  cli.log(`  LEMLIST_CAMPAIGN_ID  - Lemlist campaign ID (e.g., cam_9NsHPnykWESTncCW8)`);
+  cli.log(`  LEMLIST_API_KEY      - Lemlist API key`);
+  cli.log(`  CONTENT_PROVIDER     - claude or openai (optional, defaults to claude)\n`);
 }
 
 // CLI entry point
@@ -193,19 +201,19 @@ if (require.main === module) {
   }
 
   if (!process.env.LEMLIST_CAMPAIGN_ID) {
-    console.error(`\n✗ LEMLIST_CAMPAIGN_ID not set in environment\n`);
-    console.error(`Set it with: export LEMLIST_CAMPAIGN_ID=cam_YOUR_CAMPAIGN_ID\n`);
+    cli.error(`LEMLIST_CAMPAIGN_ID not set in environment`);
+    cli.log(`Set it with: export LEMLIST_CAMPAIGN_ID=cam_YOUR_CAMPAIGN_ID\n`);
     process.exit(1);
   }
 
   if (!process.env.LEMLIST_API_KEY) {
-    console.error(`\n✗ LEMLIST_API_KEY not set in environment\n`);
-    console.error(`Set it with: export LEMLIST_API_KEY=lem_YOUR_API_KEY\n`);
+    cli.error(`LEMLIST_API_KEY not set in environment`);
+    cli.log(`Set it with: export LEMLIST_API_KEY=lem_YOUR_API_KEY\n`);
     process.exit(1);
   }
 
   resumeApproval(location, postcode).catch(err => {
-    console.error(`\n✗ Error: ${err.message}\n`);
+    cli.error(`Error: ${err.message}`);
     rl.close();
     process.exit(1);
   });

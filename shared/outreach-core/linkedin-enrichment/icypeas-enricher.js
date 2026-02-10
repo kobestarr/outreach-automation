@@ -5,6 +5,7 @@
 
 const https = require("https");
 const { getCredential, checkDailyLimit, recordUsage } = require("../credentials-loader");
+const logger = require("../logger");
 
 const ICYPEAS_BASE_URL = "app.icypeas.com";
 
