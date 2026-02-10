@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Company Name Humanizer
+
+**Problem:** Emails referenced scraped company names with locations and legal suffixes (e.g., "KissDental Bramhall", "Kobestarr Digital Limited") which sounds robotic and reveals the content is scraped from Google Maps.
+
+**Solution:** Built a company name humanizer that converts scraped names to natural human-written format.
+
+**Examples:**
+- "KissDental Bramhall" → "KissDental"
+- "Kobestarr Digital Limited" → "Kobestarr Digital"
+- "Apple Inc." → "Apple"
+- "Shell plc" → "Shell"
+- "Samsung Electronics Co., Ltd." → "Samsung"
+
+**Features:**
+1. **Location Stripping** - Removes 300+ UK cities/towns, postcodes, area descriptors
+2. **Legal Suffix Stripping** - Removes Ltd, Inc, plc, LLC, Corp, Company, etc.
+3. **Generic Descriptor Stripping** - Removes Electronics, Holdings, Enterprises, etc.
+4. **Brand-Core Preservation** - Keeps meaningful descriptors like Digital, Solutions, Coffee, Pizza
+
+**Integration:**
+- Integrated into both Claude and GPT email generators
+- Company names automatically humanized before email generation
+- Emails now sound like they were written by a human, not scraped from a database
+
+**Testing:**
+- 100% pass rate on all test cases (13/13)
+- Verified with KissDental Bramhall example
+- Email body uses "KissDental" instead of "KissDental Bramhall"
+
+**Files Added:**
+- `shared/outreach-core/content-generation/company-name-humanizer.js`
+
+**Files Modified:**
+- `shared/outreach-core/content-generation/claude-email-generator.js`
+- `shared/outreach-core/content-generation/gpt-email-generator.js`
+
+---
+
 ### Fixed - Lemlist Integration Testing & Bug Fixes
 
 #### Multi-Owner Lemlist Export - Production Testing
