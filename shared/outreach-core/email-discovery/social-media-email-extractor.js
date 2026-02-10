@@ -1,210 +1,107 @@
 /**
- * Social Media Email Extractor
- * Extracts email addresses from business social media profiles
- * Checks Instagram, Facebook, LinkedIn in order of success rate
+ * Social Media Email Extractor (DEPRECATED)
+ *
+ * ⚠️  WARNING: FUNCTIONALITY DISABLED ⚠️
+ *
+ * Direct scraping of social media platforms violates their Terms of Service
+ * and poses significant legal and operational risks:
+ *
+ * - Instagram: Explicitly prohibits automated scraping (Instagram ToS Section 3.3)
+ * - Facebook: Prohibits unauthorized data collection (Facebook ToS Section 3.2)
+ * - LinkedIn: Prohibits scraping (LinkedIn v. hiQ Labs, 2022)
+ *
+ * LEGAL RISKS:
+ * - Account suspension/IP bans
+ * - Legal action from platforms (cease & desist, lawsuits)
+ * - CFAA violations (Computer Fraud and Abuse Act)
+ * - GDPR/CCPA compliance issues
+ *
+ * RECOMMENDED ALTERNATIVES:
+ * 1. Use official APIs with proper permissions:
+ *    - Instagram Graph API (business accounts)
+ *    - Facebook Graph API (pages)
+ *    - LinkedIn Official API
+ *
+ * 2. Use authorized third-party services:
+ *    - Hunter.io
+ *    - Clearbit
+ *    - RocketReach
+ *    - Apollo.io
+ *
+ * 3. Focus on website-based extraction (legitimate public content)
+ *
+ * This module has been deprecated and all functions return empty arrays.
+ * To re-enable, implement proper OAuth flows with official APIs.
+ *
+ * @module social-media-email-extractor
+ * @deprecated Since 2026-02-10 - ToS violations
  */
 
 const logger = require('../logger');
-const { fetchWebsiteHtml } = require('./website-email-extractor');
 
 /**
- * Extract emails from business social media profiles
- * Checks Instagram, Facebook, LinkedIn in order of success rate
+ * Extract emails from business social media profiles (DEPRECATED)
  *
  * @param {Object} business - Business data with social media URLs
- * @returns {Promise<string[]>} Array of discovered email addresses
+ * @returns {Promise<string[]>} Always returns empty array
+ * @deprecated Use official APIs instead
  */
 async function extractEmailsFromSocialMedia(business) {
-  const emails = new Set();
-
-  try {
-    logger.info('social-media-email-extractor', 'Starting social media extraction', {
+  logger.warn('social-media-email-extractor',
+    'Social media scraping is deprecated due to Terms of Service violations. Use official APIs instead.',
+    {
       business: business.name,
       hasInstagram: !!business.instagramUrl,
       hasFacebook: !!business.facebookUrl,
       hasLinkedIn: !!business.linkedInUrl
-    });
-
-    // Instagram (highest success rate for small businesses)
-    if (business.instagramUrl) {
-      const igEmails = await extractEmailsFromInstagram(business.instagramUrl);
-      igEmails.forEach(email => emails.add(email));
-
-      if (emails.size > 0) {
-        logger.info('social-media-email-extractor', 'Found emails on Instagram', {
-          url: business.instagramUrl,
-          count: emails.size
-        });
-        return Array.from(emails);
-      }
     }
-
-    // Facebook (medium success rate)
-    if (business.facebookUrl) {
-      const fbEmails = await extractEmailsFromFacebook(business.facebookUrl);
-      fbEmails.forEach(email => emails.add(email));
-
-      if (emails.size > 0) {
-        logger.info('social-media-email-extractor', 'Found emails on Facebook', {
-          url: business.facebookUrl,
-          count: emails.size
-        });
-        return Array.from(emails);
-      }
-    }
-
-    // LinkedIn (lower success rate but more professional)
-    if (business.linkedInUrl) {
-      const liEmails = await extractEmailsFromLinkedIn(business.linkedInUrl);
-      liEmails.forEach(email => emails.add(email));
-
-      if (emails.size > 0) {
-        logger.info('social-media-email-extractor', 'Found emails on LinkedIn', {
-          url: business.linkedInUrl,
-          count: emails.size
-        });
-        return Array.from(emails);
-      }
-    }
-
-    logger.info('social-media-email-extractor', 'Social media extraction complete', {
-      business: business.name,
-      emails: Array.from(emails)
-    });
-
-    return Array.from(emails);
-
-  } catch (error) {
-    logger.error('social-media-email-extractor', 'Social media extraction failed', {
-      business: business.name,
-      error: error.message
-    });
-    return [];
-  }
+  );
+  return [];
 }
 
 /**
- * Extract email from Instagram bio
- * Uses public Instagram page (no API key required)
+ * Extract email from Instagram bio (DEPRECATED)
  *
  * @param {string} instagramUrl - Instagram profile URL
- * @returns {Promise<string[]>} Array of email addresses
+ * @returns {Promise<string[]>} Always returns empty array
+ * @deprecated Violates Instagram Terms of Service - Use Instagram Graph API instead
  */
 async function extractEmailsFromInstagram(instagramUrl) {
-  try {
-    logger.debug('social-media-email-extractor', 'Fetching Instagram profile', { url: instagramUrl });
-
-    // Fetch Instagram profile HTML (public page)
-    const html = await fetchWebsiteHtml(instagramUrl, 10000);
-
-    // Instagram embeds data in <script> tags with JSON
-    // Look for biography field containing email
-    const bioMatch = html.match(/"biography":"([^"]+)"/);
-
-    if (!bioMatch) {
-      logger.debug('social-media-email-extractor', 'No Instagram bio found', { url: instagramUrl });
-      return [];
-    }
-
-    const biography = bioMatch[1];
-
-    // Extract emails from bio
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const emails = biography.match(emailRegex) || [];
-
-    logger.debug('social-media-email-extractor', 'Instagram extraction result', {
-      url: instagramUrl,
-      found: emails.length
-    });
-
-    return emails.map(e => e.toLowerCase());
-
-  } catch (error) {
-    logger.error('social-media-email-extractor', 'Instagram extraction failed', {
-      url: instagramUrl,
-      error: error.message
-    });
-    return [];
-  }
+  logger.warn('social-media-email-extractor',
+    'Instagram scraping is deprecated. Use Instagram Graph API with proper OAuth permissions instead.',
+    { url: instagramUrl }
+  );
+  return [];
 }
 
 /**
- * Extract email from Facebook business page
- * Uses public Facebook page (no API key required)
+ * Extract email from Facebook business page (DEPRECATED)
  *
  * @param {string} facebookUrl - Facebook page URL
- * @returns {Promise<string[]>} Array of email addresses
+ * @returns {Promise<string[]>} Always returns empty array
+ * @deprecated Violates Facebook Terms of Service - Use Facebook Graph API instead
  */
 async function extractEmailsFromFacebook(facebookUrl) {
-  try {
-    logger.debug('social-media-email-extractor', 'Fetching Facebook page', { url: facebookUrl });
-
-    // Fetch Facebook page HTML
-    const html = await fetchWebsiteHtml(facebookUrl, 10000);
-
-    // Facebook pages often have email in "About" section
-    // Look for email patterns in HTML
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const emails = html.match(emailRegex) || [];
-
-    // Filter out Facebook-specific emails
-    const filtered = emails
-      .map(e => e.toLowerCase())
-      .filter(e => !e.includes('@facebook.com') && !e.includes('@fb.com'));
-
-    logger.debug('social-media-email-extractor', 'Facebook extraction result', {
-      url: facebookUrl,
-      found: filtered.length
-    });
-
-    return filtered;
-
-  } catch (error) {
-    logger.error('social-media-email-extractor', 'Facebook extraction failed', {
-      url: facebookUrl,
-      error: error.message
-    });
-    return [];
-  }
+  logger.warn('social-media-email-extractor',
+    'Facebook scraping is deprecated. Use Facebook Graph API with proper page permissions instead.',
+    { url: facebookUrl }
+  );
+  return [];
 }
 
 /**
- * Extract email from LinkedIn company page
- * Uses public LinkedIn page (no API key required)
+ * Extract email from LinkedIn company page (DEPRECATED)
  *
  * @param {string} linkedInUrl - LinkedIn company page URL
- * @returns {Promise<string[]>} Array of email addresses
+ * @returns {Promise<string[]>} Always returns empty array
+ * @deprecated Violates LinkedIn Terms of Service - Use LinkedIn Official API instead
  */
 async function extractEmailsFromLinkedIn(linkedInUrl) {
-  try {
-    logger.debug('social-media-email-extractor', 'Fetching LinkedIn page', { url: linkedInUrl });
-
-    // Fetch LinkedIn company page HTML
-    const html = await fetchWebsiteHtml(linkedInUrl, 10000);
-
-    // LinkedIn company pages sometimes include email in "Overview" section
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const emails = html.match(emailRegex) || [];
-
-    // Filter out LinkedIn-specific emails
-    const filtered = emails
-      .map(e => e.toLowerCase())
-      .filter(e => !e.includes('@linkedin.com'));
-
-    logger.debug('social-media-email-extractor', 'LinkedIn extraction result', {
-      url: linkedInUrl,
-      found: filtered.length
-    });
-
-    return filtered;
-
-  } catch (error) {
-    logger.error('social-media-email-extractor', 'LinkedIn extraction failed', {
-      url: linkedInUrl,
-      error: error.message
-    });
-    return [];
-  }
+  logger.warn('social-media-email-extractor',
+    'LinkedIn scraping is deprecated. Use LinkedIn Official API with proper company permissions instead.',
+    { url: linkedInUrl }
+  );
+  return [];
 }
 
 module.exports = {

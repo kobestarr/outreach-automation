@@ -172,16 +172,17 @@ async function enrichBusiness(business) {
     }
   }
 
-  // Step 2: Extract from social media (if no website emails found)
+  // Step 2: Extract from social media (DEPRECATED - ToS violations)
   if (discoveredEmails.length === 0 && (business.instagramUrl || business.facebookUrl || business.linkedInUrl)) {
     try {
-      const socialEmails = await extractEmailsFromSocialMedia(business);
-      discoveredEmails.push(...socialEmails);
+      // DEPRECATED: Social media scraping disabled due to ToS violations
+      // const socialEmails = await extractEmailsFromSocialMedia(business);
+      // discoveredEmails.push(...socialEmails);
+      const socialEmails = [];
 
-      logger.info('main', 'Social media email extraction complete', {
+      logger.info('main', 'Skipping social media extraction (deprecated - ToS violations)', {
         business: business.name,
-        count: socialEmails.length,
-        emails: socialEmails
+        reason: 'Instagram/Facebook/LinkedIn scraping violates Terms of Service'
       });
     } catch (error) {
       logger.error('main', 'Social media email extraction failed', {

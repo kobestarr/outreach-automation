@@ -7,6 +7,7 @@
 const https = require('https');
 const http = require('http');
 const logger = require('../logger');
+const { validateUrl } = require('../security/url-validator');
 
 /**
  * Extract emails from business website
@@ -81,12 +82,27 @@ async function extractEmailsFromWebsite(websiteUrl) {
 
 /**
  * Fetch website HTML using native Node.js https/http
+ * With SSRF protection and redirect limiting
  *
  * @param {string} url - Website URL
  * @param {number} timeout - Request timeout (default 10000ms)
+ * @param {number} redirectCount - Current redirect depth (internal)
  * @returns {Promise<string>} HTML content
  */
-function fetchWebsiteHtml(url, timeout = 10000) {
+async function fetchWebsiteHtml(url, timeout = 10000, redirectCount = 0) {
+  const MAX_REDIRECTS = 5;
+
+  // Check redirect limit
+  if (redirectCount > MAX_REDIRECTS) {
+    throw new Error(`Too many redirects (max ${MAX_REDIRECTS})`);
+  }
+
+  // SSRF Protection: Validate URL before making request
+  const validation = await validateUrl(url);
+  if (!validation.safe) {
+    throw new Error(`URL validation failed: ${validation.reason}`);
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const parsedUrl = new URL(url);
@@ -106,14 +122,23 @@ function fetchWebsiteHtml(url, timeout = 10000) {
       };
 
       const req = protocol.request(options, (res) => {
-        // Handle redirects
+        // Handle redirects with depth tracking
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           const redirectUrl = new URL(res.headers.location, url).href;
+
+          // Clean up current request before following redirect
+          req.destroy();
+          res.destroy();
+
           logger.debug('website-email-extractor', 'Following redirect', {
             from: url,
-            to: redirectUrl
+            to: redirectUrl,
+            depth: redirectCount + 1
           });
-          return fetchWebsiteHtml(redirectUrl, timeout).then(resolve).catch(reject);
+
+          return fetchWebsiteHtml(redirectUrl, timeout, redirectCount + 1)
+            .then(resolve)
+            .catch(reject);
         }
 
         if (res.statusCode !== 200) {

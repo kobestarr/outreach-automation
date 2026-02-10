@@ -7,6 +7,8 @@
 const dns = require('dns').promises;
 const net = require('net');
 const logger = require('../logger');
+const { isPrivateIp } = require('../security/url-validator');
+const smtpRateLimiter = require('../security/smtp-rate-limiter');
 
 /**
  * Generate common business email patterns from domain
@@ -42,6 +44,12 @@ function generateEmailPatterns(domain) {
 async function verifyEmailExists(email, smtpCheck = false) {
   try {
     const domain = email.split('@')[1];
+
+    // Validate domain before DNS lookup (prevent DNS abuse)
+    if (!isValidDomain(domain)) {
+      logger.debug('email-pattern-matcher', 'Invalid domain blocked', { email, domain });
+      return false;
+    }
 
     // Step 1: Check DNS MX records
     const mxRecords = await dns.resolveMx(domain);
@@ -91,11 +99,22 @@ async function verifyEmailExists(email, smtpCheck = false) {
  * @returns {Promise<boolean>} True if mailbox exists
  */
 async function checkSmtpMailbox(email, mxHost) {
+  // Rate limit check to prevent SMTP abuse
+  if (!smtpRateLimiter.canAttempt(mxHost)) {
+    logger.debug('email-pattern-matcher', 'SMTP rate limit exceeded, skipping check', {
+      email,
+      mxHost
+    });
+    return false;
+  }
+
   return new Promise((resolve) => {
     const socket = net.createConnection(25, mxHost);
 
     let step = 0;
-    const fromEmail = 'verify@example.com';
+    // Use configurable sender email instead of hardcoded example.com
+    const fromDomain = process.env.SMTP_VERIFY_DOMAIN || 'verification-tool.local';
+    const fromEmail = `verify@${fromDomain}`;
 
     socket.setTimeout(5000);
 
@@ -104,7 +123,7 @@ async function checkSmtpMailbox(email, mxHost) {
 
       if (step === 0 && response.startsWith('220')) {
         // Server ready
-        socket.write(`HELO example.com\r\n`);
+        socket.write(`HELO ${fromDomain}\r\n`);
         step = 1;
       } else if (step === 1 && response.startsWith('250')) {
         // HELO accepted
@@ -142,6 +161,41 @@ async function checkSmtpMailbox(email, mxHost) {
       resolve(false);
     });
   });
+}
+
+/**
+ * Validate domain format and block reserved/private domains
+ * @param {string} domain - Domain to validate
+ * @returns {boolean} True if domain is valid and safe
+ */
+function isValidDomain(domain) {
+  if (!domain || typeof domain !== 'string') return false;
+
+  // Block private/reserved domains
+  const blockedDomains = [
+    'localhost',
+    'example.com',
+    'example.org',
+    'example.net',
+    'test',
+    'invalid',
+    'local'
+  ];
+
+  if (blockedDomains.includes(domain.toLowerCase())) {
+    return false;
+  }
+
+  // Check if domain is an IP address
+  if (require('net').isIP(domain)) {
+    if (isPrivateIp(domain)) {
+      return false; // Block private IPs
+    }
+  }
+
+  // Validate domain format (basic)
+  const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+  return domainRegex.test(domain);
 }
 
 module.exports = {
