@@ -14,6 +14,7 @@ const logger = require("../logger");
 const { getCategoryGroup, getCategoryEmailAngles } = require("./category-mapper");
 const { computeObservationSignals, selectPrimarySignal, getSignalHook } = require("./observation-signals");
 const { getCurrencyForLocation } = require("./currency-localization");
+const { generateMultiOwnerEmailBody } = require("./multi-owner-templates");
 
 const ANTHROPIC_BASE_URL = "api.anthropic.com";
 const REQUEST_TIMEOUT_MS = 60000;
@@ -148,9 +149,24 @@ async function generateEmailContent(params) {
           // Get metadata from params if available (set by buildEmailPrompt)
           const metadata = params._metadata || {};
 
+          // Multi-owner support: Apply multi-owner template if owners array exists
+          let finalBody = parsed.body;
+          let multiOwner = false;
+
+          if (params.owners && params.owners.length > 1) {
+            // Use multi-owner template generator
+            finalBody = generateMultiOwnerEmailBody(parsed.body, params.owners);
+            multiOwner = true;
+            logger.info('claude-email-generator', 'Applied multi-owner template', {
+              businessName: params.businessName,
+              ownerCount: params.owners.length,
+              owners: params.owners.map(o => o.fullName)
+            });
+          }
+
           resolve({
             subject: parsed.subject,
-            body: parsed.body,
+            body: finalBody,
             fullContent: content,
             metadata: {
               primaryHook: metadata.primarySignal || null,
@@ -160,6 +176,8 @@ async function generateEmailContent(params) {
               observationSignals: metadata.signals || [],
               microOfferPrice: metadata.microOfferPrice || null,
               fullOfferPrice: metadata.fullOfferPrice || null,
+              multiOwner: multiOwner,
+              ownerCount: params.owners?.length || 1,
               model: model,
               temperature: 0.7,
               generatedAt: new Date().toISOString()
@@ -304,25 +322,40 @@ Body: [email body]`;
 function parseEmailContent(content) {
   const lines = content.split("\n");
   let subject = "";
-  let body = "";
+  let bodyLines = [];
   let inBody = false;
+  let foundSubject = false;
 
   for (const line of lines) {
     if (line.toLowerCase().startsWith("subject:")) {
       subject = line.replace(/^subject:\s*/i, "").trim();
+      foundSubject = true;
+      continue; // Skip adding this line to body
     } else if (line.toLowerCase().startsWith("body:")) {
       inBody = true;
-      body = line.replace(/^body:\s*/i, "").trim();
+      const bodyStart = line.replace(/^body:\s*/i, "").trim();
+      if (bodyStart) {
+        bodyLines.push(bodyStart);
+      }
+      continue;
     } else if (inBody) {
-      body += "\n" + line.trim();
+      bodyLines.push(line);
+    } else if (!foundSubject && !line.trim()) {
+      // Skip empty lines before we've found the subject
+      continue;
     }
   }
+
+  const body = bodyLines.join("\n").trim();
 
   // Fallback: if no subject/body markers, use first line as subject, rest as body
   if (!subject && !body) {
     const parts = content.split("\n\n");
     subject = parts[0] || "";
-    body = parts.slice(1).join("\n\n") || content;
+    return {
+      subject: subject || "Quick question about your business",
+      body: parts.slice(1).join("\n\n") || content
+    };
   }
 
   return {

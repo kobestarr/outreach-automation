@@ -1,7 +1,7 @@
 const { scrapeGoogleMaps } = require("./modules/google-maps-scraper");
 const { scrapeGoogleMapsOutscraper } = require("./modules/google-maps-scraper-outscraper");
 const { filterChains } = require("./modules/chain-filter");
-const { getOwnerName } = require("./modules/companies-house");
+const { getOwnerName, getAllOwnersByRegistrationNumber, getAllOwnersByName } = require("./modules/companies-house");
 const { discoverEmail } = require("../../../shared/outreach-core/email-discovery");
 const { enrichLinkedIn } = require("../../../shared/outreach-core/linkedin-enrichment");
 const { estimateRevenue } = require("./modules/revenue-estimator");
@@ -13,51 +13,186 @@ const { exportToLemlist } = require("../../../shared/outreach-core/export-manage
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 const logger = require("../../../shared/outreach-core/logger");
+const { scrapeWebsite, parseName } = require("../../../shared/outreach-core/enrichment/website-scraper");
+const { getOwnerByRegistrationNumber } = require("./modules/companies-house");
 
 /**
- * Main enrichment function
+ * Main enrichment function - now supports multiple owners
  */
 async function enrichBusiness(business) {
   const enriched = { ...business };
-  
-  // Step 1: Get owner name from Companies House
-  if (!enriched.ownerFirstName) {
-    const owner = await getOwnerName(business.name, business.postcode);
-    if (owner) {
-      enriched.ownerFirstName = owner.firstName;
-      enriched.ownerLastName = owner.lastName;
-      enriched.ownerFullName = owner.fullName;
+  const MAX_OWNERS = 5;
+
+  // Step 0: Scrape website for company registration number and owner names
+  let websiteData = null;
+  if (business.website) {
+    try {
+      websiteData = await scrapeWebsite(business.website);
+
+      // Store scraped data for debugging
+      if (websiteData.registrationNumber) {
+        enriched.companyRegistrationNumber = websiteData.registrationNumber;
+      }
+      if (websiteData.registeredAddress) {
+        enriched.registeredAddress = websiteData.registeredAddress;
+      }
+    } catch (error) {
+      logger.error('main', 'Website scraping failed', {
+        business: business.name,
+        error: error.message
+      });
     }
   }
-  
-  // Step 2: Discover email
-  if (!enriched.ownerEmail && enriched.ownerFirstName) {
-    const extractDomainSafely = (website) => {
-      if (!website || typeof website !== 'string') return null;
-      try {
-        return new URL(website).hostname.replace(/^www\./, '');
-      } catch {
-        return null;
-      }
-    };
-    
+
+  // Step 1: Collect ALL owners (up to 5) from all sources
+  let allOwners = [];
+
+  // Step 1a: Registration number → Companies House (get ALL officers)
+  if (websiteData && websiteData.registrationNumber) {
+    logger.info('main', 'Using registration number for Companies House lookup (multi-owner)', {
+      business: business.name,
+      registrationNumber: websiteData.registrationNumber
+    });
+
+    const owners = await getAllOwnersByRegistrationNumber(websiteData.registrationNumber, MAX_OWNERS);
+    if (owners && owners.length > 0) {
+      allOwners = owners;
+      logger.info('main', 'Found owners via registration number', {
+        business: business.name,
+        count: owners.length,
+        owners: owners.map(o => o.fullName)
+      });
+    }
+  }
+
+  // Step 1b: If no owners from registration number, try website scraping
+  if (allOwners.length === 0 && websiteData && websiteData.ownerNames && websiteData.ownerNames.length > 0) {
+    const websiteOwners = websiteData.ownerNames.slice(0, MAX_OWNERS).map(ownerData => {
+      const { firstName, lastName } = parseName(ownerData.name);
+      return {
+        firstName: firstName,
+        lastName: lastName,
+        fullName: ownerData.name,
+        title: ownerData.title,
+        source: 'website-scraping'
+      };
+    }).filter(owner => owner.firstName); // Only keep owners with firstName
+
+    if (websiteOwners.length > 0) {
+      allOwners = websiteOwners;
+      logger.info('main', 'Found owners via website scraping', {
+        business: business.name,
+        count: websiteOwners.length,
+        owners: websiteOwners.map(o => o.fullName)
+      });
+    }
+  }
+
+  // Step 1c: Fall back to Companies House name search (get ALL officers)
+  if (allOwners.length === 0) {
+    const owners = await getAllOwnersByName(business.name, business.postcode, MAX_OWNERS);
+    if (owners && owners.length > 0) {
+      allOwners = owners;
+      logger.info('main', 'Found owners via Companies House name search', {
+        business: business.name,
+        count: owners.length,
+        owners: owners.map(o => o.fullName)
+      });
+    }
+  }
+
+  // If still no owners, skip this business
+  if (allOwners.length === 0 || !allOwners[0].firstName) {
+    logger.warn('main', 'No owner firstName found - skipping business', {
+      business: business.name,
+      website: business.website
+    });
+    return null; // Signal to skip this business
+  }
+
+  // Step 2: Set backward-compatible single-owner fields (first owner)
+  const firstOwner = allOwners[0];
+  enriched.ownerFirstName = firstOwner.firstName;
+  enriched.ownerLastName = firstOwner.lastName;
+  enriched.ownerFullName = firstOwner.fullName;
+  enriched.ownerTitle = firstOwner.title;
+  enriched.ownerSource = firstOwner.source;
+
+  // Step 3: Discover emails for ALL owners (Icypeas for first 2, pattern-match for rest)
+  const extractDomainSafely = (website) => {
+    if (!website || typeof website !== 'string') return null;
+    try {
+      return new URL(website).hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  };
+
+  const domain = extractDomainSafely(business.website);
+  const enrichedOwners = [];
+
+  for (let i = 0; i < allOwners.length; i++) {
+    const owner = allOwners[i];
+    const useIcypeas = i < 2; // Only use Icypeas for first 2 owners
+
+    logger.info('main', 'Discovering email for owner', {
+      business: business.name,
+      owner: owner.fullName,
+      ownerIndex: i + 1,
+      useIcypeas: useIcypeas
+    });
+
     const emailResult = await discoverEmail({
-      firstName: enriched.ownerFirstName,
-      lastName: enriched.ownerLastName,
-      domain: extractDomainSafely(business.website),
+      firstName: owner.firstName,
+      lastName: owner.lastName,
+      domain: domain,
       website: business.website,
       emailsFromWebsite: business.emailsFromWebsite || [],
-      useIcypeas: true
+      useIcypeas: useIcypeas
     });
-    
+
+    const enrichedOwner = {
+      ...owner,
+      email: emailResult.email || null,
+      emailSource: emailResult.source || null,
+      emailVerified: emailResult.verified || false
+    };
+
+    enrichedOwners.push(enrichedOwner);
+
+    // Log result
     if (emailResult.email) {
-      enriched.ownerEmail = emailResult.email;
-      enriched.emailSource = emailResult.source;
-      enriched.emailVerified = emailResult.verified;
+      logger.info('main', 'Found email for owner', {
+        business: business.name,
+        owner: owner.fullName,
+        email: emailResult.email,
+        source: emailResult.source
+      });
+    } else {
+      logger.warn('main', 'No email found for owner', {
+        business: business.name,
+        owner: owner.fullName
+      });
+    }
+
+    // Small delay between email discoveries
+    if (i < allOwners.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
-  
-  // Step 3: LinkedIn enrichment (conditional)
+
+  // Step 4: Store all owners in enriched business
+  enriched.owners = enrichedOwners;
+
+  // Step 5: Set primary email (first owner's email for backward compatibility)
+  const firstOwnerWithEmail = enrichedOwners.find(o => o.email);
+  if (firstOwnerWithEmail) {
+    enriched.ownerEmail = firstOwnerWithEmail.email;
+    enriched.emailSource = firstOwnerWithEmail.emailSource;
+    enriched.emailVerified = firstOwnerWithEmail.emailVerified;
+  }
+
+  // Step 6: LinkedIn enrichment (conditional - for first owner only)
   if (enriched.ownerFirstName) {
     const linkedInResult = await enrichLinkedIn(enriched);
     if (linkedInResult.enriched) {
@@ -65,25 +200,25 @@ async function enrichBusiness(business) {
       enriched.linkedInData = linkedInResult.linkedInData;
     }
   }
-  
-  // Step 4: Revenue estimation (using Claude/Anthropic)
+
+  // Step 7: Revenue estimation (using Claude/Anthropic)
   const revenueEstimate = await estimateRevenue(enriched);
   enriched.estimatedRevenue = revenueEstimate.estimatedRevenue;
   enriched.revenueBand = revenueEstimate.revenueBand;
   enriched.revenueConfidence = revenueEstimate.confidence;
-  
-  // Step 5: Tier assignment
+
+  // Step 8: Tier assignment
   const tier = assignTier(enriched.estimatedRevenue);
   enriched.assignedOfferTier = tier.tierId;
   enriched.setupFee = tier.setupFee;
   enriched.monthlyPrice = tier.monthlyPrice;
   enriched.ghlOffer = tier.ghlOffer;
   enriched.leadMagnet = tier.leadMagnet;
-  
-  // Step 6: Barter detection
+
+  // Step 9: Barter detection
   const barter = detectBarterOpportunity(enriched);
   enriched.barterOpportunity = barter;
-  
+
   return enriched;
 }
 
@@ -151,12 +286,23 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
   
   // Step 3: Enrich each business
   const enrichedBusinesses = [];
-  
+  let skippedCount = 0;
+
   for (const business of filteredBusinesses) {
     try {
       const enriched = await enrichBusiness(business);
+
+      // Skip if enrichBusiness returned null (no firstName found)
+      if (!enriched) {
+        logger.warn('main', 'Skipping business - no firstName found', {
+          business: business.name
+        });
+        skippedCount++;
+        continue;
+      }
+
       enrichedBusinesses.push(enriched);
-      
+
       // Save enriched business to storage
       try {
         saveBusiness(enriched, {
@@ -167,20 +313,26 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
           status: "enriched"
         });
       } catch (saveError) {
-        logger.error('main', 'Error saving business', { 
+        logger.error('main', 'Error saving business', {
           businessName: enriched.name || enriched.businessName,
-          error: saveError.message 
+          error: saveError.message
         });
         // Continue processing even if save fails
       }
-      
+
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       logger.error('main', 'Error enriching business', { businessName: business.name, error: error.message });
     }
   }
-  
+
+  logger.info('main', 'Enrichment complete', {
+    total: filteredBusinesses.length,
+    enriched: enrichedBusinesses.length,
+    skipped: skippedCount
+  });
+
   return enrichedBusinesses;
 }
 

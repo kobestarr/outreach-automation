@@ -177,12 +177,101 @@ async function getOrCreateCampaign(campaignName) {
 
 /**
  * Export business to Lemlist
+ * Supports multi-owner: creates one lead per owner if business.owners array exists
  * @param {Object} business - Business object
  * @param {string} campaignId - Campaign ID (optional, will search by name if not provided)
  * @param {Array} emailSequence - Email sequence (optional, for icebreaker)
- * @returns {Promise<Object>} Created lead object
+ * @returns {Promise<Object|Array>} Created lead object(s)
  */
 async function exportToLemlist(business, campaignId, emailSequence) {
+  if (!campaignId) {
+    // Try to get or create campaign
+    const campaign = await getOrCreateCampaign(
+      `${business.category} Outreach`
+    );
+
+    if (campaign.needsCreation) {
+      throw new Error(campaign.message);
+    }
+
+    campaignId = campaign.campaignId;
+  }
+
+  // Multi-owner support: Create one lead per owner
+  if (business.owners && business.owners.length > 0) {
+    const ownersWithEmails = business.owners.filter(owner => owner.email);
+
+    if (ownersWithEmails.length === 0) {
+      throw new Error('No owner emails found for multi-owner export');
+    }
+
+    logger.info('lemlist-exporter', 'Exporting multi-owner business', {
+      businessName: business.businessName || business.name,
+      ownerCount: ownersWithEmails.length,
+      owners: ownersWithEmails.map(o => `${o.fullName} <${o.email}>`)
+    });
+
+    const leads = [];
+    const errors = [];
+
+    for (let i = 0; i < ownersWithEmails.length; i++) {
+      const owner = ownersWithEmails[i];
+
+      const leadData = {
+        email: owner.email,
+        firstName: owner.firstName,
+        lastName: owner.lastName,
+        companyName: business.businessName || business.name,
+        jobTitle: owner.title || business.linkedInData?.title,
+        linkedinUrl: business.linkedInUrl, // Use business LinkedIn (first owner's)
+        phone: business.phone,
+        website: business.website,
+        companyDomain: extractDomainSafely(business.website),
+        icebreaker: emailSequence && emailSequence[0] ? emailSequence[0].body.substring(0, 200) : null,
+        timezone: "Europe/London"
+      };
+
+      try {
+        const lead = await addLeadToCampaign(campaignId, leadData);
+        leads.push(lead);
+        logger.info('lemlist-exporter', 'Created lead for owner', {
+          owner: owner.fullName,
+          email: owner.email,
+          leadId: lead._id
+        });
+
+        // Small delay between lead creations to avoid rate limits
+        if (i < ownersWithEmails.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        logger.error('lemlist-exporter', 'Failed to create lead for owner', {
+          owner: owner.fullName,
+          email: owner.email,
+          error: error.message
+        });
+        errors.push({
+          owner: owner.fullName,
+          email: owner.email,
+          error: error.message
+        });
+      }
+    }
+
+    if (errors.length > 0 && leads.length === 0) {
+      throw new Error(`Failed to create any leads. Errors: ${errors.map(e => e.error).join(', ')}`);
+    }
+
+    return {
+      multiOwner: true,
+      leads: leads,
+      errors: errors,
+      successCount: leads.length,
+      failureCount: errors.length
+    };
+  }
+
+  // Single-owner flow (backward compatibility)
   const leadData = {
     email: business.ownerEmail,
     firstName: business.ownerFirstName,
@@ -196,20 +285,7 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     icebreaker: emailSequence && emailSequence[0] ? emailSequence[0].body.substring(0, 200) : null,
     timezone: "Europe/London"
   };
-  
-  if (!campaignId) {
-    // Try to get or create campaign
-    const campaign = await getOrCreateCampaign(
-      `${business.category} Outreach`
-    );
-    
-    if (campaign.needsCreation) {
-      throw new Error(campaign.message);
-    }
-    
-    campaignId = campaign.campaignId;
-  }
-  
+
   return addLeadToCampaign(campaignId, leadData);
 }
 

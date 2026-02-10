@@ -116,38 +116,145 @@ async function getCompanyOfficers(companyNumber) {
 }
 
 /**
+ * Get owner name directly from company registration number
+ * More reliable than searching by business name
+ * @param {string} registrationNumber - 8-digit company registration number
+ * @returns {Promise<Object|null>} Owner information
+ */
+async function getOwnerByRegistrationNumber(registrationNumber) {
+  try {
+    if (!registrationNumber || !/^\d{8}$/.test(registrationNumber)) {
+      logger.warn('companies-house', 'Invalid registration number format', { registrationNumber });
+      return null;
+    }
+
+    logger.info('companies-house', 'Looking up company by registration number', { registrationNumber });
+
+    // Get officers directly using registration number
+    const officers = await getCompanyOfficers(registrationNumber);
+
+    if (officers.length === 0) {
+      logger.info('companies-house', 'No officers found for registration number', { registrationNumber });
+      return null;
+    }
+
+    // Return first active director/officer
+    const owner = officers[0];
+    const nameParts = owner.name.split(" ");
+
+    const result = {
+      firstName: nameParts[0] || "",
+      lastName: nameParts.slice(1).join(" ") || "",
+      fullName: owner.name,
+      title: owner.officer_role,
+      companyNumber: registrationNumber,
+      source: 'companies-house-registration-number'
+    };
+
+    logger.info('companies-house', 'Found owner via registration number', {
+      registrationNumber,
+      ownerName: result.fullName,
+      title: result.title
+    });
+
+    return result;
+  } catch (error) {
+    logger.error('companies-house', 'Registration number lookup error', {
+      registrationNumber,
+      error: error.message
+    });
+    return null;
+  }
+}
+
+/**
+ * Get ALL owners directly from company registration number
+ * Returns up to maxOwners (default 5)
+ * @param {string} registrationNumber - 8-digit company registration number
+ * @param {number} maxOwners - Maximum number of owners to return (default 5)
+ * @returns {Promise<Array>} Array of owner information objects
+ */
+async function getAllOwnersByRegistrationNumber(registrationNumber, maxOwners = 5) {
+  try {
+    if (!registrationNumber || !/^\d{8}$/.test(registrationNumber)) {
+      logger.warn('companies-house', 'Invalid registration number format', { registrationNumber });
+      return [];
+    }
+
+    logger.info('companies-house', 'Looking up all owners by registration number', { registrationNumber, maxOwners });
+
+    // Get officers directly using registration number
+    const officers = await getCompanyOfficers(registrationNumber);
+
+    if (officers.length === 0) {
+      logger.info('companies-house', 'No officers found for registration number', { registrationNumber });
+      return [];
+    }
+
+    // Convert all officers to owner format (up to maxOwners)
+    const owners = officers.slice(0, maxOwners).map(officer => {
+      const nameParts = officer.name.split(" ");
+      return {
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+        fullName: officer.name,
+        title: officer.officer_role,
+        companyNumber: registrationNumber,
+        source: 'companies-house-registration-number'
+      };
+    });
+
+    logger.info('companies-house', 'Found owners via registration number', {
+      registrationNumber,
+      count: owners.length,
+      owners: owners.map(o => o.fullName)
+    });
+
+    return owners;
+  } catch (error) {
+    logger.error('companies-house', 'Registration number lookup error', {
+      registrationNumber,
+      error: error.message
+    });
+    return [];
+  }
+}
+
+/**
  * Get owner name from business name and location
+ * Falls back to name search if registration number not available
  */
 async function getOwnerName(businessName, postcode) {
   try {
     // Search for company
     const companies = await searchCompany(businessName, postcode);
-    
+
     if (companies.length === 0) {
       return null;
     }
-    
+
     // Try first match (most likely)
     const company = companies[0];
-    
+
     // Get officers
     const officers = await getCompanyOfficers(company.company_number);
-    
+
     if (officers.length === 0) {
       return null;
     }
-    
+
     // Return first active director/officer
     const owner = officers[0];
     const nameParts = owner.name.split(" ");
-    
+
     return {
       firstName: nameParts[0] || "",
       lastName: nameParts.slice(1).join(" ") || "",
       fullName: owner.name,
       title: owner.officer_role,
       companyNumber: company.company_number,
-      companyName: company.title
+      companyName: company.title,
+      source: 'companies-house-name-search'
     };
   } catch (error) {
     logger.error('companies-house', 'Companies House lookup error', { error: error.message });
@@ -155,8 +262,65 @@ async function getOwnerName(businessName, postcode) {
   }
 }
 
+/**
+ * Get ALL owners from business name and location
+ * Returns up to maxOwners (default 5)
+ * @param {string} businessName - Business name
+ * @param {string} postcode - Postcode
+ * @param {number} maxOwners - Maximum number of owners to return (default 5)
+ * @returns {Promise<Array>} Array of owner information objects
+ */
+async function getAllOwnersByName(businessName, postcode, maxOwners = 5) {
+  try {
+    // Search for company
+    const companies = await searchCompany(businessName, postcode);
+
+    if (companies.length === 0) {
+      return [];
+    }
+
+    // Try first match (most likely)
+    const company = companies[0];
+
+    // Get officers
+    const officers = await getCompanyOfficers(company.company_number);
+
+    if (officers.length === 0) {
+      return [];
+    }
+
+    // Convert all officers to owner format (up to maxOwners)
+    const owners = officers.slice(0, maxOwners).map(officer => {
+      const nameParts = officer.name.split(" ");
+      return {
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+        fullName: officer.name,
+        title: officer.officer_role,
+        companyNumber: company.company_number,
+        companyName: company.title,
+        source: 'companies-house-name-search'
+      };
+    });
+
+    logger.info('companies-house', 'Found owners via name search', {
+      businessName,
+      count: owners.length,
+      owners: owners.map(o => o.fullName)
+    });
+
+    return owners;
+  } catch (error) {
+    logger.error('companies-house', 'Companies House lookup error', { error: error.message });
+    return [];
+  }
+}
+
 module.exports = {
   searchCompany,
   getCompanyOfficers,
-  getOwnerName
+  getOwnerName,
+  getOwnerByRegistrationNumber,
+  getAllOwnersByRegistrationNumber,
+  getAllOwnersByName
 };
