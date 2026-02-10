@@ -6,7 +6,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const ENRICHMENT_STATS_PATH = "/root/outreach-automation/shared/outreach-core/data/enrichment-stats.json";
+const ENRICHMENT_STATS_PATH = path.join(__dirname, "../data/enrichment-stats.json");
 
 /**
  * Load enrichment statistics

@@ -4,6 +4,7 @@
  */
 
 const https = require("https");
+const crypto = require("crypto");
 const { getCredential } = require("../credentials-loader");
 const logger = require("../logger");
 
@@ -20,6 +21,16 @@ function extractDomainSafely(website) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Generate unique business ID for linking multi-owner leads
+ * @param {Object} business - Business object
+ * @returns {string} Unique business ID
+ */
+function generateBusinessId(business) {
+  const identifier = `${business.businessName || business.name}-${business.location || business.address}`;
+  return crypto.createHash("md5").update(identifier).digest("hex").substring(0, 12);
 }
 
 const LEMLIST_BASE_URL = "api.lemlist.com";
@@ -213,6 +224,7 @@ async function exportToLemlist(business, campaignId, emailSequence) {
 
     const leads = [];
     const errors = [];
+    const businessId = generateBusinessId(business);
 
     for (let i = 0; i < ownersWithEmails.length; i++) {
       const owner = ownersWithEmails[i];
@@ -228,7 +240,12 @@ async function exportToLemlist(business, campaignId, emailSequence) {
         website: business.website,
         companyDomain: extractDomainSafely(business.website),
         icebreaker: emailSequence && emailSequence[0] ? emailSequence[0].body.substring(0, 200) : null,
-        timezone: "Europe/London"
+        timezone: "Europe/London",
+        // Multi-owner linking fields for reply detection
+        businessId: businessId,
+        multiOwnerGroup: true,
+        ownerCount: ownersWithEmails.length,
+        ownerIndex: i + 1
       };
 
       try {
@@ -272,6 +289,8 @@ async function exportToLemlist(business, campaignId, emailSequence) {
   }
 
   // Single-owner flow (backward compatibility)
+  const businessId = generateBusinessId(business);
+
   const leadData = {
     email: business.ownerEmail,
     firstName: business.ownerFirstName,
@@ -283,15 +302,121 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     website: business.website,
     companyDomain: extractDomainSafely(business.website),
     icebreaker: emailSequence && emailSequence[0] ? emailSequence[0].body.substring(0, 200) : null,
-    timezone: "Europe/London"
+    timezone: "Europe/London",
+    businessId: businessId,
+    multiOwnerGroup: false,
+    ownerCount: 1,
+    ownerIndex: 1
   };
 
   return addLeadToCampaign(campaignId, leadData);
+}
+
+/**
+ * Get all leads from a campaign
+ * @param {string} campaignId - Campaign ID
+ * @returns {Promise<Array>} List of leads
+ */
+async function getLeadsFromCampaign(campaignId) {
+  const apiKey = getCredential("lemlist", "apiKey");
+  const authString = Buffer.from(":" + apiKey).toString("base64");
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: LEMLIST_BASE_URL,
+      path: `/api/campaigns/${campaignId}/leads`,
+      method: "GET",
+      headers: {
+        "Authorization": `Basic ${authString}`,
+        "Accept": "application/json"
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        try {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const result = JSON.parse(data);
+            resolve(result);
+          } else {
+            reject(new Error(`Lemlist API error (${res.statusCode}): ${data}`));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse Lemlist response: ${error.message}`));
+        }
+      });
+    });
+
+    req.on("error", (error) => {
+      reject(new Error(`Lemlist API request error: ${error.message}`));
+    });
+
+    req.end();
+  });
+}
+
+/**
+ * Unsubscribe a lead from a campaign (stops their sequence)
+ * @param {string} campaignId - Campaign ID
+ * @param {string} email - Lead email address
+ * @returns {Promise<Object>} Result
+ */
+async function unsubscribeLead(campaignId, email) {
+  const apiKey = getCredential("lemlist", "apiKey");
+  const authString = Buffer.from(":" + apiKey).toString("base64");
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: LEMLIST_BASE_URL,
+      path: `/api/campaigns/${campaignId}/leads/${encodeURIComponent(email)}/unsubscribe`,
+      method: "DELETE",
+      headers: {
+        "Authorization": `Basic ${authString}`,
+        "Accept": "application/json"
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        try {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const result = data ? JSON.parse(data) : { success: true };
+            resolve(result);
+          } else {
+            reject(new Error(`Lemlist API error (${res.statusCode}): ${data}`));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse Lemlist response: ${error.message}`));
+        }
+      });
+    });
+
+    req.on("error", (error) => {
+      reject(new Error(`Lemlist API request error: ${error.message}`));
+    });
+
+    req.end();
+  });
 }
 
 module.exports = {
   exportToLemlist,
   addLeadToCampaign,
   getOrCreateCampaign,
-  getCampaigns
+  getCampaigns,
+  getLeadsFromCampaign,
+  unsubscribeLead,
+  generateBusinessId
 };

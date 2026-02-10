@@ -32,7 +32,8 @@ function addToApprovalQueue(business, emailContent) {
         name: business.businessName || business.name,
         category: business.category,
         location: business.location || business.address,
-        ownerFirstName: business.ownerFirstName
+        ownerFirstName: business.ownerFirstName,
+        owners: business.owners || [] // Multi-owner support for Lemlist export
       },
       email: {
         subject: emailContent.subject,
