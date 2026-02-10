@@ -6,6 +6,7 @@
 const https = require("https");
 const crypto = require("crypto");
 const { getCredential } = require("../credentials-loader");
+const { getAllMergeVariables } = require("../content-generation/email-merge-variables");
 const logger = require("../logger");
 
 // Configuration
@@ -287,6 +288,9 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     const errors = [];
     const businessId = generateBusinessId(business);
 
+    // Get dynamic merge variables (proximity, observation, pricing)
+    const mergeVars = getAllMergeVariables(business);
+
     for (let i = 0; i < ownersWithEmails.length; i++) {
       const owner = ownersWithEmails[i];
 
@@ -306,7 +310,14 @@ async function exportToLemlist(business, campaignId, emailSequence) {
         businessId: businessId,
         multiOwnerGroup: true,
         ownerCount: ownersWithEmails.length,
-        ownerIndex: i + 1
+        ownerIndex: i + 1,
+        // Dynamic merge variables for email personalization
+        localIntro: mergeVars.localIntro,
+        observationSignal: mergeVars.observationSignal,
+        meetingOption: mergeVars.meetingOption,
+        microOfferPrice: mergeVars.microOfferPrice,
+        location: mergeVars.location,
+        businessType: business.category || 'local business'
       };
 
       try {
@@ -393,6 +404,9 @@ async function exportToLemlist(business, campaignId, emailSequence) {
   // Single-owner flow (backward compatibility)
   const businessId = generateBusinessId(business);
 
+  // Get dynamic merge variables (proximity, observation, pricing)
+  const mergeVars = getAllMergeVariables(business);
+
   const leadData = {
     email: business.ownerEmail,
     firstName: business.ownerFirstName,
@@ -408,7 +422,14 @@ async function exportToLemlist(business, campaignId, emailSequence) {
     businessId: businessId,
     multiOwnerGroup: false,
     ownerCount: 1,
-    ownerIndex: 1
+    ownerIndex: 1,
+    // Dynamic merge variables for email personalization
+    localIntro: mergeVars.localIntro,
+    observationSignal: mergeVars.observationSignal,
+    meetingOption: mergeVars.meetingOption,
+    microOfferPrice: mergeVars.microOfferPrice,
+    location: mergeVars.location,
+    businessType: business.category || 'local business'
   };
 
   return withRetry(

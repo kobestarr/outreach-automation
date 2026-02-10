@@ -9,6 +9,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Proximity-Based Email Personalization & Tiered Pricing
+
+**Date:** 2026-02-10
+
+**Problem:** Generic email templates didn't leverage local proximity for in-person meetings, lacked social proof (Twiggy), and used fixed pricing instead of revenue-based tiering.
+
+**Solution:** Built dynamic merge variable system that personalizes emails based on business proximity (45min radius from Poynton), observation signals, and calculated tiered pricing (tier1-tier5).
+
+**Files Added:**
+- `shared/outreach-core/content-generation/email-merge-variables.js` - Dynamic merge variable generator (270 lines)
+- `LEMLIST_SEQUENCE_READY.md` - Production-ready email sequence with setup instructions
+
+**Files Modified:**
+- `shared/outreach-core/export-managers/lemlist-exporter.js` - Added merge variable population
+
+**Key Features:**
+
+1. **Proximity Detection** - 23 postcodes within 45min of Poynton SK12
+   - Coverage: Stockport (SK1-4, SK6-9), Macclesfield (SK10), Buxton (SK17), New Mills/Hayfield (SK22), Whaley Bridge (SK23), South Manchester (M13-14, M19-23), Cheshire (WA14-16)
+   - Nearby: "I'm Kobi, a digital marketing consultant based in Poynton, so pretty close to you!"
+   - Far: "I'm Kobi, a digital marketing consultant working with local businesses across the UK."
+   - Meeting options: "meet in person" (nearby) vs "have a chat" (far)
+
+2. **Tiered Pricing** - Revenue-based pricing (tier1-tier5)
+   - tier1 (£500K+): £485 UK / $635 US (5× multiplier)
+   - tier2 (£250K-500K): £291 UK / $381 US (3× multiplier)
+   - tier3 (£100K-250K): £194 UK / $254 US (2× multiplier)
+   - tier4 (£50K-100K): £145 UK / $190 US (1.5× multiplier)
+   - tier5 (<£50K): £97 UK / $127 US (1× base)
+
+3. **Personal Branding**
+   - "I'm Kobi" introduction
+   - Twiggy social proof for all businesses
+   - "without agency overheads" value proposition
+   - "Sent from my iPhone" signature
+
+4. **Dynamic Merge Variables** (8 total)
+   - `{{localIntro}}` - Proximity-based intro
+   - `{{observationSignal}}` - Business-specific hook
+   - `{{meetingOption}}` - Meeting offer
+   - `{{microOfferPrice}}` - Tiered pricing
+   - `{{firstName}}`, `{{companyName}}`, `{{location}}`, `{{businessType}}`
+
+**Status:** ✅ Production ready - Lemlist template with dynamic personalization
+
+---
+
+## [1.4.1] - 2026-02-10
+
 ### Fixed - Code Review Improvements
 
 **Date:** 2026-02-10
