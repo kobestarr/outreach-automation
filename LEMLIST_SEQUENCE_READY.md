@@ -19,7 +19,7 @@ hi {{firstName}} quick thought for {{companyName}}
 ```
 Hi {{firstName}},
 
-{{localIntro}} I noticed {{companyName}} and {{observationSignal}}.
+{{multiOwnerNote}}{{localIntro}} I noticed {{companyName}} and {{observationSignal}}.
 
 I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
 
@@ -126,6 +126,7 @@ These variables are **automatically populated** by the export script based on bu
 | `{{observationSignal}}` | **Business-specific hook** | "saw you've built up a solid reputation online" | "noticed you don't have a website yet" |
 | `{{meetingOption}}` | **Meeting offer** | "meet in person if that's easier" | "have a chat" |
 | `{{microOfferPrice}}` | **Tiered pricing** | "£97" (tier5) or "£291" (tier2) | "$635" (tier1, US business) |
+| `{{multiOwnerNote}}` | **Multi-owner acknowledgment** | "" (blank if single owner) | "Quick note – I'm also reaching out to Sarah and John since I wasn't sure who handles this at Elite Fitness. " |
 
 ---
 
@@ -276,10 +277,19 @@ The script will:
 
 ### Email 1 Examples
 
-**Nearby Business (SK7 Bramhall dentist, tier2):**
+**Nearby Business (SK7 Bramhall dentist, tier2, single owner):**
 > Hi Sarah,
 >
 > I'm Kobi, a digital marketing consultant based in Poynton, so pretty close to you! I noticed KissDental and saw you've built up a solid reputation online.
+>
+> I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
+>
+> From just £291 to get started – happy to meet in person if that's easier or I can share links to my work and we can have a chat on the phone.
+
+**Nearby Business (SK7 Bramhall dentist, tier2, multiple owners):**
+> Hi Sarah,
+>
+> Quick note – I'm also reaching out to John and Emma since I wasn't sure who handles this at KissDental. I'm Kobi, a digital marketing consultant based in Poynton, so pretty close to you! I noticed KissDental and saw you've built up a solid reputation online.
 >
 > I help with things like keeping clients coming back, managing bookings, and getting your online presence sorted. I've worked with some interesting clients over the years (including Twiggy, yes the 60s fashion icon!), but I keep my prices pretty reasonable because I don't have the agency overheads.
 >

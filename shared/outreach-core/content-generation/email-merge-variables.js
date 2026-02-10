@@ -7,6 +7,7 @@
  * - Observation signals (business-specific hooks)
  * - Meeting options (in-person vs phone)
  * - Tiered pricing (tier1-tier5 with multipliers)
+ * - Multi-owner acknowledgment (when contacting multiple people at same business)
  */
 
 const { computeObservationSignals, selectPrimarySignal } = require('./observation-signals');
@@ -164,6 +165,35 @@ function getMicroOfferPrice(business) {
 }
 
 /**
+ * Get multi-owner acknowledgment text
+ * Shows when business has multiple owners being contacted
+ * @param {Object} business - Business data with owners array
+ * @returns {string} Acknowledgment text or empty string
+ */
+function getMultiOwnerNote(business) {
+  // Check if business has multiple owners
+  if (!business.owners || business.owners.length <= 1) {
+    return ""; // Single owner or no owner data
+  }
+
+  // Get names of other owners (excluding first one we're addressing)
+  const otherOwners = business.owners
+    .slice(1) // Skip first owner (they're in {{firstName}})
+    .map(o => o.firstName)
+    .filter(name => name && name.trim()) // Remove empty/null names
+    .join(' and '); // "Sarah and John" or just "Sarah"
+
+  if (!otherOwners) {
+    return ""; // No valid other names found
+  }
+
+  const companyName = business.businessName || business.name;
+
+  // Note: trailing space ensures natural flow into {{localIntro}}
+  return `Quick note – I'm also reaching out to ${otherOwners} since I wasn't sure who handles this at ${companyName}. `;
+}
+
+/**
  * Generate all merge variables for a business
  * @param {Object} business - Business data
  * @returns {Object} All merge variables for email template
@@ -184,6 +214,7 @@ function getAllMergeVariables(business) {
     observationSignal: getObservationSignal(business),
     meetingOption: getMeetingOption(postcode),
     microOfferPrice: getMicroOfferPrice(business),
+    multiOwnerNote: getMultiOwnerNote(business),
 
     // Additional context
     isNearby: isNearby(postcode),
@@ -229,6 +260,7 @@ module.exports = {
   getObservationSignal,
   getMeetingOption,
   getMicroOfferPrice,
+  getMultiOwnerNote,
 
   // Helper functions
   isNearby,

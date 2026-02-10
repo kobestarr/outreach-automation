@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Multi-Owner Email Acknowledgment
+
+**Date:** 2026-02-10
+
+**Problem:** When sending the same email to multiple owners of a business (e.g., Sarah, John, Emma at KissDental), each recipient received an email that looked like a one-to-one conversation, with no acknowledgment of others receiving it. This could feel deceptive if they discovered it internally.
+
+**Solution:** Added `{{multiOwnerNote}}` merge variable that professionally acknowledges when multiple people are being contacted, but only shows when there ARE multiple owners (blank for single-owner businesses).
+
+**Files Modified:**
+- `shared/outreach-core/content-generation/email-merge-variables.js` - Added `getMultiOwnerNote()` function
+- `LEMLIST_SEQUENCE_READY.md` - Updated Email 1 template and merge variables table
+- `test-multi-owner.js` - Test coverage for multi-owner scenarios
+
+**Key Features:**
+
+1. **Conditional Acknowledgment** - Only shows when business has multiple owners
+   - Single owner: `""` (blank - no note shown)
+   - Multiple owners: `"Quick note – I'm also reaching out to {{otherNames}} since I wasn't sure who handles this at {{companyName}}. "`
+
+2. **Professional Framing** - No apology, confident tone
+   - ✅ "I wasn't sure who handles this" (practical)
+   - ❌ "I apologise for all the messages" (weak)
+
+3. **Natural Flow** - Trailing space ensures smooth transition to `{{localIntro}}`
+   ```
+   Hi {{firstName}},
+
+   {{multiOwnerNote}}{{localIntro}} I noticed {{companyName}}...
+   ```
+
+4. **Examples:**
+   - 2 owners: "Quick note – I'm also reaching out to John since I wasn't sure who handles this at KissDental. "
+   - 3 owners: "Quick note – I'm also reaching out to James and Lucy since I wasn't sure who handles this at Main Street Cafe. "
+
+**Status:** ✅ Tested and production ready
+
+---
+
 ### Added - Proximity-Based Email Personalization & Tiered Pricing
 
 **Date:** 2026-02-10
@@ -45,11 +83,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - "without agency overheads" value proposition
    - "Sent from my iPhone" signature
 
-4. **Dynamic Merge Variables** (8 total)
+4. **Dynamic Merge Variables** (9 total)
    - `{{localIntro}}` - Proximity-based intro
    - `{{observationSignal}}` - Business-specific hook
    - `{{meetingOption}}` - Meeting offer
    - `{{microOfferPrice}}` - Tiered pricing
+   - `{{multiOwnerNote}}` - Multi-owner acknowledgment
    - `{{firstName}}`, `{{companyName}}`, `{{location}}`, `{{businessType}}`
 
 **Status:** ✅ Production ready - Lemlist template with dynamic personalization
