@@ -56,6 +56,12 @@ async function searchCompany(companyName, postcode) {
     req.on("error", (error) => {
       reject(new Error(`Companies House API error: ${error.message}`));
     });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
     
     req.end();
   });
@@ -109,6 +115,12 @@ async function getCompanyOfficers(companyNumber) {
     
     req.on("error", (error) => {
       reject(new Error(`Companies House API error: ${error.message}`));
+    });
+
+    // Set request timeout
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
     });
     
     req.end();

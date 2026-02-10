@@ -1,7 +1,7 @@
 const { scrapeGoogleMaps } = require("./modules/google-maps-scraper");
 const { scrapeGoogleMapsOutscraper } = require("./modules/google-maps-scraper-outscraper");
 const { filterChains } = require("./modules/chain-filter");
-const { getOwnerName, getAllOwnersByRegistrationNumber, getAllOwnersByName } = require("./modules/companies-house");
+const { getOwnerName, getAllOwnersByRegistrationNumber, getAllOwnersByName, getOwnerByRegistrationNumber } = require("./modules/companies-house");
 const { discoverEmail } = require("../../../shared/outreach-core/email-discovery");
 const { enrichLinkedIn } = require("../../../shared/outreach-core/linkedin-enrichment");
 const { estimateRevenue } = require("./modules/revenue-estimator");
@@ -14,7 +14,6 @@ const { exportToProsp } = require("../../../shared/outreach-core/export-managers
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 const logger = require("../../../shared/outreach-core/logger");
 const { scrapeWebsite, parseName } = require("../../../shared/outreach-core/enrichment/website-scraper");
-const { getOwnerByRegistrationNumber } = require("./modules/companies-house");
 
 /**
  * Main enrichment function - now supports multiple owners
