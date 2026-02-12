@@ -5,6 +5,7 @@
 
 const https = require('https');
 const http = require('http');
+const { isValidPersonName } = require('../validation/data-quality');
 const logger = require('../logger');
 
 /**
@@ -617,16 +618,48 @@ function parseName(fullName) {
     return { firstName: '', lastName: '' };
   }
 
-  const parts = fullName.trim().split(/\s+/);
+  const trimmed = fullName.trim();
 
-  if (parts.length === 1) {
-    return { firstName: parts[0], lastName: '' };
+  // CRITICAL FIX: Validate BEFORE parsing (blocks "Senior Specialist", "Web Pixels", etc.)
+  if (!isValidPersonName(trimmed)) {
+    logger.warn('website-scraper', 'Invalid name rejected by parseName', {
+      input: trimmed,
+      reason: 'Failed validation (likely job title or common word)'
+    });
+    return { firstName: '', lastName: '' };
   }
 
-  return {
-    firstName: parts[0],
-    lastName: parts.slice(1).join(' ')
-  };
+  const parts = trimmed.split(/\s+/);
+
+  if (parts.length === 1) {
+    const firstName = parts[0];
+
+    // Validate single-word names
+    if (!isValidPersonName(firstName)) {
+      logger.warn('website-scraper', 'Single-word name failed validation', {
+        input: firstName
+      });
+      return { firstName: '', lastName: '' };
+    }
+
+    return { firstName, lastName: '' };
+  }
+
+  const firstName = parts[0];
+  const lastName = parts.slice(1).join(' ');
+
+  // CRITICAL FIX: Validate parsed firstName (extra safety layer)
+  // This catches cases where first word is valid but is actually a job title
+  if (!isValidPersonName(firstName)) {
+    logger.warn('website-scraper', 'Invalid firstName rejected by parseName', {
+      input: trimmed,
+      firstName: firstName,
+      reason: 'firstName failed validation'
+    });
+    return { firstName: '', lastName: '' };
+  }
+
+  return { firstName, lastName };
 }
 
 module.exports = {

@@ -13,6 +13,7 @@
 const { computeObservationSignals, selectPrimarySignal } = require('./observation-signals');
 const { getCurrencyForLocation } = require('./currency-localization');
 const { getBusinessType } = require('./business-type-helper');
+const { isValidPersonName, extractNameFromEmail } = require('../validation/data-quality');
 const logger = require('../logger');
 
 /**
@@ -222,6 +223,51 @@ function getNoNameNote(business) {
 }
 
 /**
+ * Get valid firstName with intelligent fallback
+ * CRITICAL FIX: Extract name from email before falling back to "there"
+ *
+ * Fallback chain:
+ *   1. Use business.ownerFirstName if valid
+ *   2. Extract from email if present (andrew@... → Andrew)
+ *   3. Fall back to "there" as last resort
+ *
+ * @param {Object} business - Business data
+ * @returns {string} Valid first name
+ */
+function getValidFirstName(business) {
+  // Option 1: Use existing firstName if valid
+  if (business.ownerFirstName && isValidPersonName(business.ownerFirstName)) {
+    return business.ownerFirstName;
+  }
+
+  // Option 2: Extract from email (CRITICAL FIX for "andrew@themountingstone.co.uk" → "Andrew")
+  if (business.ownerEmail && business.ownerEmail.includes('@')) {
+    const extractedName = extractNameFromEmail(business.ownerEmail);
+    if (extractedName) {
+      const firstName = extractedName.split(' ')[0];
+
+      logger.info('email-merge-variables', 'Extracted firstName from email', {
+        business: business.name || business.businessName,
+        email: business.ownerEmail,
+        extractedFirstName: firstName,
+        originalFirstName: business.ownerFirstName
+      });
+
+      return firstName;
+    }
+  }
+
+  // Option 3: Final fallback
+  logger.warn('email-merge-variables', 'Using fallback firstName "there"', {
+    business: business.name || business.businessName,
+    ownerFirstName: business.ownerFirstName,
+    ownerEmail: business.ownerEmail
+  });
+
+  return 'there';
+}
+
+/**
  * Generate all merge variables for a business
  * @param {Object} business - Business data
  * @returns {Object} All merge variables for email template
@@ -231,7 +277,7 @@ function getAllMergeVariables(business) {
 
   const mergeVariables = {
     // Core business data
-    firstName: business.ownerFirstName || 'there',
+    firstName: getValidFirstName(business),  // CHANGED: Now uses intelligent fallback
     lastName: business.ownerLastName || '',
     companyName: business.businessName || business.name,
     location: business.location || '',

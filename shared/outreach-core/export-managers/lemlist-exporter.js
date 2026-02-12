@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const { getCredential } = require("../credentials-loader");
 const { getAllMergeVariables } = require("../content-generation/email-merge-variables");
 const { getBusinessType } = require("../content-generation/business-type-helper");
+const { validateLeadForExport, calculateLeadConfidence } = require("../validation/data-quality");
 const logger = require("../logger");
 
 // Configuration
@@ -267,6 +268,33 @@ async function getOrCreateCampaign(campaignName) {
  * @returns {Promise<Object|Array>} Created lead object(s)
  */
 async function exportToLemlist(business, campaignId, emailSequence) {
+  // CRITICAL FIX: Validate lead quality BEFORE processing (final safety gate)
+  // This blocks image files, job titles, unverified emails, and invalid data
+  const validation = validateLeadForExport(business);
+
+  if (!validation.valid) {
+    const confidence = calculateLeadConfidence(business);
+    logger.error('lemlist-exporter', 'Lead failed pre-export validation', {
+      business: business.businessName || business.name,
+      errors: validation.errors,
+      confidence: confidence,
+      ownerFirstName: business.ownerFirstName,
+      ownerEmail: business.ownerEmail,
+      emailVerified: business.emailVerified
+    });
+    throw new Error(`Lead quality validation failed: ${validation.errors.join(', ')}`);
+  }
+
+  // Log confidence score for successful leads
+  const confidence = calculateLeadConfidence(business);
+  logger.info('lemlist-exporter', 'Lead passed validation', {
+    business: business.businessName || business.name,
+    confidence: confidence,
+    emailSource: business.emailSource || 'unknown',
+    firstName: business.ownerFirstName,
+    email: business.ownerEmail
+  });
+
   if (!campaignId) {
     // Try to get or create campaign
     const campaign = await getOrCreateCampaign(

@@ -17,6 +17,7 @@ const { scrapeWebsite, parseName } = require("../../../shared/outreach-core/enri
 const { extractEmailsFromWebsite } = require('../../../shared/outreach-core/email-discovery/website-email-extractor');
 const { extractEmailsFromSocialMedia } = require('../../../shared/outreach-core/email-discovery/social-media-email-extractor');
 const { generateEmailPatterns, verifyEmailExists } = require('../../../shared/outreach-core/email-discovery/email-pattern-matcher');
+const { isValidPersonName } = require('../../../shared/outreach-core/validation/data-quality');
 
 /**
  * Main enrichment function - now supports multiple owners
@@ -330,6 +331,38 @@ async function enrichBusiness(business) {
     };
 
     enrichedOwners.push(enrichedOwner);
+
+    // CRITICAL FIX: Update business.ownerFirstName with Icypeas data if needed
+    // This fixes the "there" fallback issue when Icypeas has the real name
+    if (i === 0 && emailResult.icypeasFirstName) {
+      // Only update for first owner (backward compatibility)
+
+      // Check if current name is invalid or empty
+      const currentNameInvalid = !enriched.ownerFirstName ||
+                                 !isValidPersonName(enriched.ownerFirstName);
+
+      if (currentNameInvalid) {
+        const oldFirstName = enriched.ownerFirstName;
+        enriched.ownerFirstName = emailResult.icypeasFirstName;
+        enriched.ownerLastName = emailResult.icypeasLastName || '';
+        enriched.ownerFullName = emailResult.icypeasFullName ||
+                                `${emailResult.icypeasFirstName} ${emailResult.icypeasLastName || ''}`.trim();
+
+        logger.info('main', 'Updated business names from Icypeas', {
+          business: business.name,
+          oldFirstName: oldFirstName,
+          newFirstName: enriched.ownerFirstName,
+          newLastName: enriched.ownerLastName,
+          source: 'icypeas'
+        });
+      } else {
+        logger.debug('main', 'Keeping existing valid name over Icypeas name', {
+          business: business.name,
+          existingName: enriched.ownerFirstName,
+          icypeasName: emailResult.icypeasFirstName
+        });
+      }
+    }
 
     // Log result
     if (emailResult.email) {

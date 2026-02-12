@@ -79,6 +79,19 @@ async function discoverEmail(params) {
               result.certainty = bestEmail.certainty || 'medium';
               result.verified = true;
               result.verificationStatus = verification.status;
+
+              // CRITICAL FIX: Capture Icypeas names (they were being discarded!)
+              result.icypeasFirstName = icypeasResult.firstName;
+              result.icypeasLastName = icypeasResult.lastName;
+              result.icypeasFullName = icypeasResult.fullName;
+
+              logger.info('email-discovery', 'Captured Icypeas names', {
+                email: result.email,
+                firstName: result.icypeasFirstName,
+                lastName: result.icypeasLastName,
+                fullName: result.icypeasFullName
+              });
+
               return result;
             }
           } catch (error) {
@@ -87,9 +100,19 @@ async function discoverEmail(params) {
             result.source = 'icypeas_unverified';
             result.certainty = bestEmail.certainty || 'medium';
             result.verified = false;
-            logger.debug('email-discovery', 'Icypeas email verification failed', { 
-              email: bestEmail.email, 
-              error: error.message 
+
+            // CRITICAL FIX: Capture Icypeas names even if verification fails
+            result.icypeasFirstName = icypeasResult.firstName;
+            result.icypeasLastName = icypeasResult.lastName;
+            result.icypeasFullName = icypeasResult.fullName;
+
+            logger.debug('email-discovery', 'Icypeas email verification failed', {
+              email: bestEmail.email,
+              error: error.message,
+              capturedNames: {
+                firstName: result.icypeasFirstName,
+                lastName: result.icypeasLastName
+              }
             });
           }
         }
