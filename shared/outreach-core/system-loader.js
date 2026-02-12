@@ -155,39 +155,39 @@ function getNearbyPostcodes() {
 function logSystemContextSummary() {
   const context = getSystemContext();
 
-  console.log('\n╔════════════════════════════════════════════════════════════════════╗');
-  console.log('║                    SYSTEM CONTEXT LOADED                           ║');
-  console.log('╚════════════════════════════════════════════════════════════════════╝\n');
+  logger.info('system-loader', '\n╔════════════════════════════════════════════════════════════════════╗');
+  logger.info('system-loader', '║                    SYSTEM CONTEXT LOADED                           ║');
+  logger.info('system-loader', '╚════════════════════════════════════════════════════════════════════╝\n');
 
-  console.log(`System: ${context.systemName} (v${context.version})`);
-  console.log(`Description: ${context.description}`);
-  console.log(`Last Updated: ${context.lastUpdated}\n`);
+  logger.info('system-loader', `System: ${context.systemName} (v${context.version})`);
+  logger.info('system-loader', `Description: ${context.description}`);
+  logger.info('system-loader', `Last Updated: ${context.lastUpdated}\n`);
 
-  console.log('Modules Loaded:');
+  logger.info('system-loader', 'Modules Loaded:');
   for (const [category, modules] of Object.entries(context.modules)) {
-    console.log(`  ${category}:`);
+    logger.info('system-loader', `  ${category}:`);
     for (const [moduleName, moduleDoc] of Object.entries(modules)) {
       const status = moduleDoc.status ? ` [${moduleDoc.status}]` : '';
-      console.log(`    - ${moduleName}${status}`);
+      logger.info('system-loader', `    - ${moduleName}${status}`);
     }
   }
 
-  console.log('\nProcess Flow:');
+  logger.info('system-loader', '\nProcess Flow:');
   for (const [phaseName, phase] of Object.entries(context.processFlow)) {
-    console.log(`  Step ${phase.step}: ${phase.action}`);
+    logger.info('system-loader', `  Step ${phase.step}: ${phase.action}`);
     if (phase.subSteps) {
       phase.subSteps.forEach(subStep => {
-        console.log(`    → ${subStep}`);
+        logger.info('system-loader', `    → ${subStep}`);
       });
     }
   }
 
-  console.log('\nEmail Matching:');
-  console.log(`  Personal Patterns: ${context.emailMatchingRules.personalPatterns.patterns.length} patterns`);
-  console.log(`  Role-Based Patterns: ${Object.keys(context.emailMatchingRules.roleBasedPatterns.mappings).length} role types`);
-  console.log(`  Duplicate Handling: ${context.emailMatchingRules.duplicateHandling.rule}`);
+  logger.info('system-loader', '\nEmail Matching:');
+  logger.info('system-loader', `  Personal Patterns: ${context.emailMatchingRules.personalPatterns.patterns.length} patterns`);
+  logger.info('system-loader', `  Role-Based Patterns: ${Object.keys(context.emailMatchingRules.roleBasedPatterns.mappings).length} role types`);
+  logger.info('system-loader', `  Duplicate Handling: ${context.emailMatchingRules.duplicateHandling.rule}`);
 
-  console.log('\n═══════════════════════════════════════════════════════════════════\n');
+  logger.info('system-loader', '\n═══════════════════════════════════════════════════════════════════\n');
 }
 
 module.exports = {

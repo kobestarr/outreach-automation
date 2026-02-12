@@ -69,12 +69,18 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
     };
     
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       // Check for HTTP errors
       if (res.statusCode >= 400) {
-        res.on("data", (chunk) => { data += chunk; });
+        res.on("data", (chunk) => { 
+          chunks.push(chunk);
+          totalLength += chunk.length;
+        });
         res.on("end", () => {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           logger.error('google-maps-scraper', 'HasData HTTP error', { statusCode: res.statusCode, preview: data.substring(0, 200) });
           try {
             const errorData = JSON.parse(data);
@@ -87,11 +93,13 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
       }
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           const result = JSON.parse(data);
 
           // Check for error status in response
@@ -118,6 +126,7 @@ async function scrapeGoogleMaps(location, postcode, businessTypes = [], extractE
             reject(new Error("Unexpected HasData response format"));
           }
         } catch (error) {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           logger.error('google-maps-scraper', 'Failed to parse response', { error: error.message, preview: data.substring(0, 200) });
           reject(new Error(`Failed to parse HasData response: ${error.message}`));
         }
@@ -164,18 +173,23 @@ function fetchHasDataJson(jsonUrl, postcode, businessTypes = []) {
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           const businesses = JSON.parse(data);
           const parsed = parseBusinesses(Array.isArray(businesses) ? businesses : [businesses], businessTypes);
           resolve(filterByPostcode(parsed, postcode));
         } catch (error) {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           logger.error('google-maps-scraper', 'Failed to parse JSON results', { error: error.message, preview: data.substring(0, 200) });
           reject(new Error(`Failed to parse HasData JSON results: ${error.message}`));
         }
@@ -223,14 +237,18 @@ function pollHasDataJob(jobId, apiKey, postcode, businessTypes = []) {
       };
 
       const req = https.request(options, (res) => {
-        let data = "";
+        // Use Buffer pattern to prevent memory leak from string concatenation
+        const chunks = [];
+        let totalLength = 0;
 
         res.on("data", (chunk) => {
-          data += chunk;
+          chunks.push(chunk);
+          totalLength += chunk.length;
         });
 
         res.on("end", () => {
           try {
+            const data = Buffer.concat(chunks, totalLength).toString('utf8');
             const result = JSON.parse(data);
 
             if ((result.status === "finished" || result.status === "completed") && result.data) {
@@ -263,6 +281,7 @@ function pollHasDataJob(jobId, apiKey, postcode, businessTypes = []) {
               reject(new Error(`HasData job failed with unknown status: ${result.status}`));
             }
           } catch (error) {
+            const data = Buffer.concat(chunks, totalLength).toString('utf8');
             logger.error('google-maps-scraper', 'Failed to parse poll response', { error: error.message, preview: data.substring(0, 200) });
             reject(new Error(`Failed to parse HasData poll response: ${error.message}`));
           }

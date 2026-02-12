@@ -133,14 +133,18 @@ async function addLeadToCampaign(campaignId, leadData) {
     };
     
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
       
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
       
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             const result = JSON.parse(data);
             resolve(result);
@@ -197,14 +201,18 @@ async function getCampaigns() {
     };
     
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
       
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
       
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             const result = JSON.parse(data);
             resolve(result);
@@ -497,14 +505,18 @@ async function getLeadsFromCampaign(campaignId) {
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             // Handle empty response (Lemlist returns content-length: 0 for empty campaigns)
             if (!data || data.trim().length === 0) {
@@ -552,14 +564,18 @@ async function unsubscribeLead(campaignId, email) {
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             const result = data ? JSON.parse(data) : { success: true };
             resolve(result);
@@ -637,14 +653,18 @@ async function configureCampaignSequence(campaignId, emailSequence) {
     };
 
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
 
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
 
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             // Parse response (optional - campaign update returns campaign object)
             if (data) {

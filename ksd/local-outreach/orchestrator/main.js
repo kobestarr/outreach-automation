@@ -160,7 +160,13 @@ async function enrichBusiness(business) {
       });
       // Skip email extraction but continue with owner discovery
       enriched.extractedEmails = [];
-      return enriched; // Return early with partial enrichment
+      enriched._quotaError = {
+        code: 'INSUFFICIENT_QUOTA',
+        service: 'reoon',
+        quotaRemaining,
+        minRequired: MIN_REQUIRED_QUOTA
+      };
+      // Continue with enrichment instead of returning early - other steps may still succeed
     }
 
     logger.debug('main', 'Quota check passed', {

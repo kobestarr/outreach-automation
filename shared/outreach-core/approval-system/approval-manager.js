@@ -108,6 +108,8 @@ function loadApprovalQueue() {
     }
     return {};
   } catch (error) {
+    // Log error for debugging but return empty queue to allow system to continue
+    console.error('[approval-manager] Failed to load approval queue:', error.message);
     return {};
   }
 }
@@ -134,6 +136,8 @@ function loadApprovedTemplates() {
     }
     return {};
   } catch (error) {
+    // Log error for debugging but return empty templates to allow system to continue
+    console.error('[approval-manager] Failed to load approved templates:', error.message);
     return {};
   }
 }

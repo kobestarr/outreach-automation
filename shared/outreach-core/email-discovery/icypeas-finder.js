@@ -111,7 +111,12 @@ async function findEmail({ firstName, lastName, domainOrCompany }) {
 
     // Set request timeout
     req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy();
+      // Use abort() for broader Node.js version compatibility, fallback to destroy()
+      if (typeof req.abort === 'function') {
+        req.abort();
+      } else {
+        req.destroy();
+      }
       reject(new Error(`Icypeas API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
     });
 
@@ -236,7 +241,12 @@ function pollIcypeasResult(searchId, apiKey) {
 
       // Set request timeout
       req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-        req.destroy();
+        // Use abort() for broader Node.js version compatibility, fallback to destroy()
+        if (typeof req.abort === 'function') {
+          req.abort();
+        } else {
+          req.destroy();
+        }
         reject(new Error(`Icypeas poll request timeout after ${REQUEST_TIMEOUT_MS}ms`));
       });
 

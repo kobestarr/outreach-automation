@@ -46,12 +46,23 @@ function validateCredentialsFilePermissions(filePath) {
         fs.chmodSync(filePath, 0o600);
         logger.info('credentials-loader', 'Fixed credentials file permissions to 0o600');
       } catch (chmodError) {
-        logger.error('credentials-loader', 'Failed to fix credentials file permissions', {
+        // Log error and throw to prevent loading credentials with insecure permissions
+        logger.error('credentials-loader', 'Failed to fix credentials file permissions - manual intervention required', {
+          path: filePath,
+          mode: mode.toString(8),
           error: chmodError.message
         });
+        throw new Error(
+          `Credentials file has insecure permissions (${mode.toString(8)}) and automatic fix failed. ` +
+          `Please run: chmod 600 "${filePath}"`
+        );
       }
     }
   } catch (error) {
+    // Re-throw permission errors, but ignore file not found (handled by loadCredentials)
+    if (error.message && error.message.includes('insecure permissions')) {
+      throw error;
+    }
     // File doesn't exist or can't be accessed - will be handled by loadCredentials
     logger.debug('credentials-loader', 'Could not check credentials file permissions', {
       path: filePath,

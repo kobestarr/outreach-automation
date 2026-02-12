@@ -37,14 +37,18 @@ async function verifyEmail(email, mode = "power") {
     };
     
     const req = https.request(options, (res) => {
-      let data = "";
+      // Use Buffer pattern to prevent memory leak from string concatenation
+      const chunks = [];
+      let totalLength = 0;
       
       res.on("data", (chunk) => {
-        data += chunk;
+        chunks.push(chunk);
+        totalLength += chunk.length;
       });
       
       res.on("end", () => {
         try {
+          const data = Buffer.concat(chunks, totalLength).toString('utf8');
           const result = JSON.parse(data);
           
           // Record usage (1 verification = 1 credit)
