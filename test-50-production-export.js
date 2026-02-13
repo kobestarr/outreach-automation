@@ -77,29 +77,44 @@ async function exportToLemlist() {
 
       // Scrape website for owner names AND emails
       let email = null;
+      let businessEntries = []; // Will hold one or more entries for this business
+
       if (business.website) {
         try {
           const websiteData = await scrapeWebsite(business.website);
 
-          // Extract owner names
-          if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
-            const owner = websiteData.ownerNames[0];
-            const { firstName, lastName } = parseName(owner.name);
+          // Check if there are people with email matches
+          const peopleWithEmails = websiteData.ownerNames?.filter(owner =>
+            owner.matchedEmail && owner.hasEmailMatch
+          ) || [];
 
-            // Only use name if validation passed
-            if (firstName) {
-              business.ownerFirstName = firstName;
-              business.ownerLastName = lastName;
-              console.log(`   ✅ Owner: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
-              namesFound++;
-            } else {
-              console.log(`   ⚠️  Name rejected: "${owner.name}" (likely job title/business type)`);
-              namesRejected++;
+          if (peopleWithEmails.length > 0) {
+            // MULTI-CONTACT: Create separate entry for each person with an email match
+            console.log(`   ✉️  Found ${peopleWithEmails.length} people with email matches:`);
+
+            for (const owner of peopleWithEmails) {
+              const { firstName, lastName } = parseName(owner.name);
+
+              if (firstName) {
+                console.log(`   ✅ ${owner.name} → ${logger.sanitizeData(owner.matchedEmail)}`);
+
+                // Create a separate business entry for this person
+                businessEntries.push({
+                  ...business,
+                  ownerFirstName: firstName,
+                  ownerLastName: lastName,
+                  email: owner.matchedEmail,
+                  usedFallbackName: false
+                });
+
+                namesFound++;
+                emailsFound++;
+              }
             }
 
-            // Populate owners array for multi-owner note
+            // Populate owners array for multi-owner note (all people, not just those with emails)
             if (websiteData.ownerNames.length > 1) {
-              business.owners = websiteData.ownerNames.map(o => {
+              const allOwners = websiteData.ownerNames.map(o => {
                 const parsed = parseName(o.name);
                 return {
                   firstName: parsed.firstName,
@@ -109,36 +124,92 @@ async function exportToLemlist() {
                 };
               }).filter(o => o.firstName);
 
-              console.log(`   👥 Found ${business.owners.length} validated people total`);
+              // Add owners to each entry
+              businessEntries.forEach(entry => {
+                entry.owners = allOwners;
+              });
+
+              console.log(`   👥 Found ${allOwners.length} validated people total`);
             }
           } else {
-            console.log(`   ℹ️  No owner names found on website`);
-          }
+            // SINGLE-CONTACT: Fall back to original logic (first owner + first email)
+            if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
+              const owner = websiteData.ownerNames[0];
+              const { firstName, lastName } = parseName(owner.name);
 
-          // Extract email from scrapeWebsite results (includes Gmail addresses)
-          if (websiteData.emails && websiteData.emails.length > 0) {
-            email = websiteData.emails[0];
-            console.log(`   ✅ Email: ${logger.sanitizeData(email)}`);
-            emailsFound++;
-          } else {
-            console.log(`   ℹ️  No email found on website`);
+              // Only use name if validation passed
+              if (firstName) {
+                business.ownerFirstName = firstName;
+                business.ownerLastName = lastName;
+                console.log(`   ✅ Owner: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
+                namesFound++;
+              } else {
+                console.log(`   ⚠️  Name rejected: "${owner.name}" (likely job title/business type)`);
+                namesRejected++;
+              }
+
+              // Populate owners array for multi-owner note
+              if (websiteData.ownerNames.length > 1) {
+                business.owners = websiteData.ownerNames.map(o => {
+                  const parsed = parseName(o.name);
+                  return {
+                    firstName: parsed.firstName,
+                    lastName: parsed.lastName,
+                    fullName: o.name,
+                    title: o.title
+                  };
+                }).filter(o => o.firstName);
+
+                console.log(`   👥 Found ${business.owners.length} validated people total`);
+              }
+            } else {
+              console.log(`   ℹ️  No owner names found on website`);
+            }
+
+            // Extract email from scrapeWebsite results (includes Gmail addresses)
+            if (websiteData.emails && websiteData.emails.length > 0) {
+              email = websiteData.emails[0];
+              console.log(`   ✅ Email: ${logger.sanitizeData(email)}`);
+              emailsFound++;
+            } else {
+              console.log(`   ℹ️  No email found on website`);
+            }
+
+            // Set fallback flag if no valid owner name was found
+            if (!business.ownerFirstName) {
+              business.usedFallbackName = true;
+            }
+
+            businessEntries.push({
+              ...business,
+              email: email
+            });
           }
         } catch (error) {
           console.log(`   ⚠️  Website scraping failed: ${error.message}`);
+
+          // Set fallback flag
+          business.usedFallbackName = true;
+
+          businessEntries.push({
+            ...business,
+            email: null
+          });
         }
       } else {
         console.log(`   ℹ️  No website available`);
-      }
 
-      // Set fallback flag if no valid owner name was found
-      if (!business.ownerFirstName) {
+        // Set fallback flag
         business.usedFallbackName = true;
+
+        businessEntries.push({
+          ...business,
+          email: null
+        });
       }
 
-      enrichedBusinesses.push({
-        ...business,
-        email: email
-      });
+      // Add all entries for this business (could be multiple people)
+      enrichedBusinesses.push(...businessEntries);
     }
 
     console.log(`\n✅ Enrichment complete:`);
