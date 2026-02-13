@@ -1,8 +1,7 @@
 /**
- * PRODUCTION TEST: Full Export with Revenue Estimation & Tier Assignment
- * Tests the complete pipeline: scraping → enrichment → revenue estimation → tier assignment → Lemlist export
- *
- * This is what actually runs in production!
+ * PRODUCTION TEST: 50 Business Export
+ * Full pipeline test: Revenue estimation + Tier assignment + Lemlist export
+ * 50 businesses across 3 categories (salons, dentists, cafes)
  */
 
 const { scrapeGoogleMapsOutscraper } = require('./ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
@@ -15,32 +14,34 @@ const { assignTier } = require('./ksd/local-outreach/orchestrator/modules/tier-a
 const logger = require('./shared/outreach-core/logger');
 
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
-const BUSINESSES_PER_CATEGORY = 5;
+const BUSINESSES_PER_CATEGORY = 17; // ~50 total (17+17+16)
 const CATEGORIES = ['salons', 'dentists', 'cafes'];
 
 async function exportToLemlist() {
   console.log('\n╔════════════════════════════════════════════════════════════════════╗');
-  console.log('║    FULL PRODUCTION EXPORT: Revenue Estimation + Tier Assignment   ║');
-  console.log('║                   15 Businesses (3 Categories × 5)                 ║');
+  console.log('║    FULL PRODUCTION EXPORT: 50 Businesses Across 3 Categories      ║');
+  console.log('║          Revenue Estimation + Dynamic Pricing + Lemlist           ║');
   console.log('╚════════════════════════════════════════════════════════════════════╝\n');
 
   console.log(`📤 Campaign ID: ${CAMPAIGN_ID}`);
   console.log(`📊 Categories: ${CATEGORIES.join(', ')}`);
-  console.log(`📈 Target: ${BUSINESSES_PER_CATEGORY} businesses per category`);
+  console.log(`📈 Target: ~${BUSINESSES_PER_CATEGORY} businesses per category (~50 total)`);
   console.log(`💰 Full Pipeline: Revenue Estimation → Tier Assignment → Dynamic Pricing\n`);
+
+  const startTime = Date.now();
 
   try {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 1: SCRAPE BUSINESSES
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('STEP 1: SCRAPING BUSINESSES');
+    console.log('STEP 1: SCRAPING BUSINESSES FROM GOOGLE MAPS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     let allBusinesses = [];
 
     for (const category of CATEGORIES) {
-      console.log(`🗺️  Scraping ${category} in Bramhall SK7...\n`);
+      console.log(`🗺️  Scraping ${category} in Bramhall SK7...`);
 
       const businesses = await scrapeGoogleMapsOutscraper(
         'Bramhall',
@@ -95,7 +96,7 @@ async function exportToLemlist() {
               namesRejected++;
             }
 
-            // Populate owners array for multi-owner note (if multiple people found)
+            // Populate owners array for multi-owner note
             if (websiteData.ownerNames.length > 1) {
               business.owners = websiteData.ownerNames.map(o => {
                 const parsed = parseName(o.name);
@@ -105,7 +106,7 @@ async function exportToLemlist() {
                   fullName: o.name,
                   title: o.title
                 };
-              }).filter(o => o.firstName); // Remove invalid names
+              }).filter(o => o.firstName);
 
               console.log(`   👥 Found ${business.owners.length} validated people total`);
             }
@@ -146,10 +147,10 @@ async function exportToLemlist() {
     console.log(`   Total enriched: ${enrichedBusinesses.length}\n`);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // STEP 3: REVENUE ESTIMATION & TIER ASSIGNMENT (NEW!)
+    // STEP 3: REVENUE ESTIMATION & TIER ASSIGNMENT
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('STEP 3: REVENUE ESTIMATION & TIER ASSIGNMENT 🚀');
+    console.log('STEP 3: REVENUE ESTIMATION & TIER ASSIGNMENT 🤖');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     for (let i = 0; i < enrichedBusinesses.length; i++) {
@@ -158,7 +159,7 @@ async function exportToLemlist() {
 
       try {
         // Estimate revenue using Claude API
-        console.log(`   🤖 Estimating revenue with Claude...`);
+        console.log(`   🤖 Estimating revenue...`);
         const revenueEstimate = await estimateRevenue(business);
 
         business.estimatedRevenue = revenueEstimate.estimatedRevenue;
@@ -166,8 +167,6 @@ async function exportToLemlist() {
         business.revenueConfidence = revenueEstimate.confidence;
 
         console.log(`   💰 Estimated Revenue: ${business.estimatedRevenue.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}`);
-        console.log(`   📊 Revenue Band: ${business.revenueBand}`);
-        console.log(`   🎯 Confidence: ${business.revenueConfidence}`);
 
         // Assign tier based on revenue
         const tier = assignTier(business.estimatedRevenue);
@@ -175,33 +174,24 @@ async function exportToLemlist() {
         business.setupFee = tier.setupFee;
         business.monthlyPrice = tier.monthlyPrice;
 
-        console.log(`   🎟️  Assigned Tier: ${tier.tierId}`);
-        console.log(`   💵 Setup Fee: ${tier.setupFee}`);
-        console.log(`   💳 Monthly Price: ${tier.monthlyPrice}`);
+        console.log(`   🎟️  Tier: ${tier.tierId}`);
 
       } catch (error) {
         console.log(`   ⚠️  Revenue estimation failed: ${error.message}`);
-        console.log(`   ℹ️  Defaulting to tier5 (£97)`);
+        console.log(`   ℹ️  Defaulting to tier1 (£97)`);
 
-        // Default to tier5 if estimation fails
-        business.assignedOfferTier = 'tier5';
-        business.estimatedRevenue = 50000; // Default low estimate
-        business.revenueBand = 'under-100k';
+        business.assignedOfferTier = 'tier1';
+        business.estimatedRevenue = 80000;
+        business.revenueBand = 'under-150k';
         business.revenueConfidence = 'low';
       }
 
-      // Generate merge variables (NOW includes dynamic pricing!)
+      // Generate merge variables
       const mergeVariables = getAllMergeVariables(business);
       business.mergeVariables = mergeVariables;
 
-      console.log(`   🏷️  Dynamic Price: ${mergeVariables.microOfferPrice}`);
-      console.log(`   📧 Email greeting: "Hi ${mergeVariables.firstName},"`);
-      if (mergeVariables.noNameNote) {
-        console.log(`   💬 Disclaimer: "${mergeVariables.noNameNote}"`);
-      }
-      if (mergeVariables.multiOwnerNote) {
-        console.log(`   👥 Multi-owner: "${mergeVariables.multiOwnerNote.substring(0, 60)}..."`);
-      }
+      console.log(`   🏷️  Price: ${mergeVariables.microOfferPrice}`);
+      console.log(`   📧 Greeting: "Hi ${mergeVariables.firstName},"`);
       console.log();
     }
 
@@ -233,7 +223,6 @@ async function exportToLemlist() {
       }
 
       try {
-        // ✅ FIX: Pass complete leadData object, not just email string
         const leadData = {
           email: business.email,
           firstName: business.mergeVariables.firstName,
@@ -241,7 +230,6 @@ async function exportToLemlist() {
           companyName: business.mergeVariables.companyName,
           businessType: business.mergeVariables.businessType,
           location: business.mergeVariables.location,
-          // Custom merge variables
           localIntro: business.mergeVariables.localIntro,
           observationSignal: business.mergeVariables.observationSignal,
           meetingOption: business.mergeVariables.meetingOption,
@@ -255,33 +243,40 @@ async function exportToLemlist() {
         console.log(`✅ Exported: ${business.name} (${business.assignedOfferTier} - ${business.mergeVariables.microOfferPrice})`);
         existingEmails.add(business.email);
         exported++;
+
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.log(`❌ Error exporting ${business.name}: ${error.message}`);
         errors++;
       }
     }
 
+    const endTime = Date.now();
+    const duration = Math.round((endTime - startTime) / 1000);
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SUMMARY
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('EXPORT SUMMARY');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     console.log(`✅ Successfully exported: ${exported}`);
     console.log(`⏭️  Skipped (no email/duplicate): ${skipped}`);
     console.log(`❌ Errors: ${errors}`);
-    console.log(`📊 Total processed: ${enrichedBusinesses.length}\n`);
+    console.log(`📊 Total processed: ${enrichedBusinesses.length}`);
+    console.log(`⏱️  Duration: ${duration} seconds\n`);
 
     // Tier distribution
     const tierCounts = {};
     const pricingExamples = [];
 
     enrichedBusinesses.forEach(b => {
-      const tier = b.assignedOfferTier || 'tier5';
+      const tier = b.assignedOfferTier || 'tier1';
       tierCounts[tier] = (tierCounts[tier] || 0) + 1;
 
-      if (b.mergeVariables && pricingExamples.length < 5) {
+      if (b.mergeVariables && b.email) {
         pricingExamples.push({
           name: b.name,
           category: b.category,
@@ -298,23 +293,30 @@ async function exportToLemlist() {
     });
     console.log();
 
-    console.log('💰 PRICING EXAMPLES:');
-    pricingExamples.forEach(ex => {
+    console.log('💰 PRICING SAMPLE (First 10 exported):');
+    pricingExamples.slice(0, 10).forEach(ex => {
       const revenue = ex.revenue ? ex.revenue.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'unknown';
       console.log(`   ${ex.name} (${ex.category})`);
       console.log(`      Revenue: ${revenue} → ${ex.tier} → ${ex.price}`);
     });
     console.log();
 
+    // Data quality stats
+    console.log('📊 DATA QUALITY:');
+    console.log(`   Names found: ${namesFound}/${enrichedBusinesses.length} (${Math.round(namesFound/enrichedBusinesses.length*100)}%)`);
+    console.log(`   Names rejected: ${namesRejected}/${enrichedBusinesses.length} (${Math.round(namesRejected/enrichedBusinesses.length*100)}%)`);
+    console.log(`   Emails found: ${emailsFound}/${enrichedBusinesses.length} (${Math.round(emailsFound/enrichedBusinesses.length*100)}%)`);
+    console.log(`   Export success rate: ${exported}/${emailsFound} (${Math.round(exported/emailsFound*100)}%)\n`);
+
     if (exported > 0) {
       console.log('╔════════════════════════════════════════════════════════════════════╗');
-      console.log('║              ✅ FULL PRODUCTION PIPELINE COMPLETE! ✅              ║');
+      console.log('║            ✅ FULL PRODUCTION PIPELINE COMPLETE! ✅                ║');
       console.log('║                                                                    ║');
+      console.log(`║  ${exported} businesses exported to Lemlist with:                        ║`);
       console.log('║  • Revenue estimation via Claude API ✓                            ║');
       console.log('║  • Dynamic tier assignment (tier1-tier5) ✓                        ║');
       console.log('║  • Variable pricing (£97-£485) ✓                                  ║');
       console.log('║  • Merge variables (noNameNote, multiOwnerNote) ✓                 ║');
-      console.log('║  • Exported to Lemlist ✓                                          ║');
       console.log('╚════════════════════════════════════════════════════════════════════╝\n');
     } else {
       console.log('⚠️  No businesses were exported. Check errors above.\n');

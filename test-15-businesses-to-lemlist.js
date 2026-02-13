@@ -64,11 +64,13 @@ async function exportToLemlist() {
       const business = allBusinesses[i];
       console.log(`[${i + 1}/${allBusinesses.length}] ${business.name}`);
 
-      // Scrape website for owner names
+      // Scrape website for owner names AND emails
+      let email = null;
       if (business.website) {
         try {
           const websiteData = await scrapeWebsite(business.website);
 
+          // Extract owner names
           if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
             const owner = websiteData.ownerNames[0];
             const { firstName, lastName } = parseName(owner.name);
@@ -101,28 +103,20 @@ async function exportToLemlist() {
           } else {
             console.log(`   ℹ️  No owner names found on website`);
           }
-        } catch (error) {
-          console.log(`   ⚠️  Website scraping failed: ${error.message}`);
-        }
-      } else {
-        console.log(`   ℹ️  No website available`);
-      }
 
-      // Extract email if website available
-      let email = null;
-      if (business.website) {
-        try {
-          const emails = await extractEmailsFromWebsite(business.website);
-          if (emails.length > 0) {
-            email = emails[0];
+          // Extract email from scrapeWebsite results (includes Gmail addresses)
+          if (websiteData.emails && websiteData.emails.length > 0) {
+            email = websiteData.emails[0];
             console.log(`   ✅ Email: ${logger.sanitizeData(email)}`);
             emailsFound++;
           } else {
             console.log(`   ℹ️  No email found on website`);
           }
         } catch (error) {
-          console.log(`   ⚠️  Email extraction failed: ${error.message}`);
+          console.log(`   ⚠️  Website scraping failed: ${error.message}`);
         }
+      } else {
+        console.log(`   ℹ️  No website available`);
       }
 
       // Set fallback flag if no valid owner name was found
