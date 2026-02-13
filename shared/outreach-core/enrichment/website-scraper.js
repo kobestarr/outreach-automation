@@ -169,6 +169,9 @@ function extractEmails(html) {
   // Files: .js, .css, .pdf, .zip, etc.
   const fileExtensions = /\.(jpg|jpeg|png|gif|svg|webp|ico|bmp|tiff|js|css|pdf|zip|rar|doc|docx|xls|xlsx|mp4|mov|avi|mp3|wav)$/i;
 
+  // Placeholder emails used in demos/templates
+  const placeholderEmails = /^(mymail|user|yourname|example|test|email|name)@(mailservice|domain|example|test)\.(com|net|org)$/i;
+
   return [...new Set(emails)].filter(email => {
     // Filter out generic emails
     if (genericEmails.test(email)) return false;
@@ -179,8 +182,77 @@ function extractEmails(html) {
     // Filter out emails with numbers in domain that look like image dimensions (e.g., "@2x", "@3x")
     if (/@\d+x\./i.test(email)) return false;
 
+    // Filter out placeholder/demo emails
+    if (placeholderEmails.test(email)) return false;
+
     return true;
   });
+}
+
+/**
+ * Fetch and parse sitemap.xml to discover team/about/contact pages
+ * @param {string} baseUrl - Base website URL
+ * @returns {Promise<Array<string>>} Array of relevant page URLs sorted by priority
+ */
+async function fetchSitemapUrls(baseUrl) {
+  try {
+    const parsedUrl = new URL(baseUrl);
+    const sitemapUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}/sitemap.xml`;
+
+    logger.debug('website-scraper', 'Fetching sitemap', { url: sitemapUrl });
+    const xml = await fetchWebsite(sitemapUrl, 5000);
+
+    // Remove CDATA wrappers if present
+    const cleanedXml = xml.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
+
+    // Extract all <loc> URLs from sitemap
+    const urlMatches = cleanedXml.match(/<loc>(.*?)<\/loc>/g) || [];
+    let urls = urlMatches.map(match => match.replace(/<\/?loc>/g, '').trim());
+
+    // Check if this is a sitemap index (contains links to other sitemaps)
+    const isSitemapIndex = urls.some(url => url.endsWith('.xml') || url.includes('sitemap'));
+    if (isSitemapIndex) {
+      logger.debug('website-scraper', 'Detected sitemap index, skipping sub-sitemaps');
+      // Don't recursively fetch sub-sitemaps - too expensive
+      return [];
+    }
+
+    // Filter and prioritize relevant pages
+    const relevantUrls = urls.filter(url => {
+      const path = url.toLowerCase();
+      return path.includes('team') ||
+             path.includes('about') ||
+             path.includes('contact') ||
+             path.includes('staff') ||
+             path.includes('people') ||
+             path.includes('directors') ||
+             path.includes('meet');
+    });
+
+    // Sort by priority: contact > team > about > other
+    relevantUrls.sort((a, b) => {
+      const getPriority = (url) => {
+        const path = url.toLowerCase();
+        if (path.includes('contact')) return 1;
+        if (path.includes('team') || path.includes('meet')) return 2;
+        if (path.includes('about')) return 3;
+        return 4;
+      };
+      return getPriority(a) - getPriority(b);
+    });
+
+    logger.info('website-scraper', 'Found relevant pages in sitemap', {
+      count: relevantUrls.length,
+      urls: relevantUrls.slice(0, 5)
+    });
+
+    return relevantUrls;
+  } catch (error) {
+    logger.debug('website-scraper', 'No sitemap found or parse failed', {
+      error: error.message
+    });
+    return [];
+  }
 }
 
 /**
@@ -264,9 +336,10 @@ function extractOwnerNames(html, emails = []) {
   const text = html.replace(/<[^>]+>/g, '\n').replace(/\s+/g, ' ');
   const names = [];
 
-  // Pattern 1: Names with professional qualifications (BDS, MSc, PhD, etc.)
-  // e.g., "Christopher Needham BDS", "Laura Gill BDS MJDF RCS Eng", "Michael Clark BDS MSc (Endo)"
-  const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d)(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/gi;
+  // Pattern 1: Names with professional qualifications (BDS, MSc, PhD, ACCA, ACA, etc.)
+  // e.g., "Christopher Needham BDS", "Andy Vause | BSc FCA", "Laura Gill BDS MJDF RCS Eng"
+  // Handles pipe separators (|, –, —) between name and qualification
+  const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[|\u2013\u2014]?\s*(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d|ACCA|ACA|FCA|FCCA|ATT|CTA|CIMA|CIPFA)(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/gi;
   let match;
   while ((match = qualificationPattern.exec(text)) !== null) {
     const name = match[1].trim();
@@ -315,7 +388,7 @@ function extractOwnerNames(html, emails = []) {
   // Helper function to validate if a string looks like a real person's name
   const isValidPersonName = (name) => {
     // Reject common non-name words that get capitalized in sentences
-    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc)\b/i;
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|connor|moore|rachubka)\b/i;
 
     const firstWord = name.split(' ')[0].toLowerCase();
     if (nonNameWords.test(firstWord)) {
@@ -324,12 +397,12 @@ function extractOwnerNames(html, emails = []) {
 
     // Reject if second word is a qualification (BDS, MSc, etc.)
     const secondWord = name.split(' ')[1];
-    if (secondWord && /^(BDS|MBBS|MBChB|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Eng)$/i.test(secondWord)) {
+    if (secondWord && /^(BDS|MBBS|MBChB|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Eng|ACCA|ACA|FCA|FCCA|ATT|CTA)$/i.test(secondWord)) {
       return false;
     }
 
     // Reject names ending with job-related words, qualifications, or country codes
-    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co)$/i)) {
+    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co|Executive|Officer|Manager|Sales|Operations|Marketing|Development|Change|Solutions|Professional|Client|Media|Linkedin|Managing)$/i)) {
       return false;
     }
 
@@ -350,7 +423,34 @@ function extractOwnerNames(html, emails = []) {
   };
 
   // 4a: Name immediately followed by job indicator (most reliable)
-  // e.g., "Amanda Lynam Practice Manager", "Natasha Lallement Receptionist"
+  // e.g., "Amanda Lynam Practice Manager", "Paul Brown Tax Director"
+
+  // First try extended pattern for 3-word names with compound titles (handles "Paul Brown Tax Director")
+  const extendedPattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\s+([A-Z][a-z]+)\s+(Director|Manager|Accountant|Partner|Officer)\b/gi;
+
+  while ((match = extendedPattern.exec(text)) !== null) {
+    const firstName = match[1].trim();
+    const middleWord = match[2].trim();
+    const lastWord = match[3].trim();
+
+    // Check if middle word is part of job title (Tax, Operations, Sales, etc.) or part of name
+    const jobTitlePrefixes = ['Tax', 'Operations', 'Sales', 'Marketing', 'Managing', 'Senior', 'Junior', 'Chief', 'Executive', 'Finance', 'Technical', 'Practice', 'Office', 'Business', 'Client', 'Accounts', 'Payroll'];
+
+    if (jobTitlePrefixes.includes(middleWord)) {
+      // Middle word is job title prefix, so name is first two words
+      if (isValidPersonName(firstName)) {
+        names.push({ name: firstName, title: `${middleWord} ${lastWord}` });
+      }
+    } else {
+      // Middle word is likely part of name (three-word name)
+      const fullName = `${firstName} ${middleWord}`;
+      if (isValidPersonName(fullName)) {
+        names.push({ name: fullName, title: lastWord });
+      }
+    }
+  }
+
+  // Then standard 2-word name pattern
   const directPattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(Practice\s+Manager|Office\s+Manager|Lead\s+Nurse|Senior\s+Nurse|Dental\s+Nurse|Dental\s+Hygienist|Dental\s+Therapist|Dental\s+Surgeon|Receptionist|Manager|Director|Owner|Founder|Partner|Associate|Hygienist|Therapist|Nurse|Dentist|Surgeon|Administrator|Accountant|Consultant|Engineer|Plumber|Electrician|Chef|Stylist|Barber|Technician|Specialist|Coordinator|Officer)\b/gi;
 
   while ((match = directPattern.exec(text)) !== null) {
@@ -485,25 +585,44 @@ async function scrapeWebsite(url) {
       }
     }
 
-    // Try to fetch team/about/contact/blog pages for additional owner info
-    // For small local business websites, checking all common pages increases name discovery
-    const teamPageUrls = [
-      '/about', '/about-us', '/about-me', '/aboutus',
-      '/team', '/meet-the-team', '/our-team', '/meet-the-team-subtitle', '/team-members',
-      '/staff', '/people', '/directors',
-      '/contact', '/contact-us', '/contactus',
-      '/blog', '/insights', '/news'
-    ];
+    // INTELLIGENT SCRAPING: Try sitemap.xml first, then fall back to hardcoded paths
+    // This discovers pages like /resources/news/in-team/ that we'd otherwise miss
+    let pagesToCheck = await fetchSitemapUrls(url);
 
-    for (const path of teamPageUrls) {
+    // If no sitemap or no relevant pages found, use hardcoded paths
+    if (pagesToCheck.length === 0) {
+      logger.debug('website-scraper', 'No sitemap found, using hardcoded paths');
+      const baseParsedUrl = new URL(url);
+      const hardcodedPaths = [
+        '/contact', '/contact-us', '/contactus',  // Contact pages first (usually have email + names)
+        '/team', '/meet-the-team', '/our-team', '/meet-the-team-subtitle', '/team-members',
+        '/staff', '/people', '/directors',
+        '/about', '/about-us', '/about-me', '/aboutus', '/about-us/meet-the-team',
+        '/blog', '/insights', '/news'
+      ];
+      pagesToCheck = hardcodedPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
+    }
+
+    // EARLY EXIT OPTIMIZATION: Stop scraping once we have email + name
+    // This saves tokens and reduces scraping time
+    let allEmails = [...emails];
+
+    for (const pageUrl of pagesToCheck) {
       try {
-        const teamUrl = new URL(url);
-        teamUrl.pathname = path;
-        const teamHtml = await fetchWebsite(teamUrl.toString(), 5000);
+        // EARLY EXIT: If we already have email + name, stop scraping
+        if (allEmails.length > 0 && ownerNames.length > 0) {
+          logger.info('website-scraper', 'Early exit: already have email + name', {
+            emails: allEmails.length,
+            names: ownerNames.length
+          });
+          break;
+        }
+
+        const teamHtml = await fetchWebsite(pageUrl, 5000);
 
         // Extract emails from team page (may have additional staff emails)
         const teamEmails = extractEmails(teamHtml);
-        const allEmails = [...new Set([...emails, ...teamEmails])]; // Combine and dedupe
+        allEmails = [...new Set([...allEmails, ...teamEmails])]; // Combine and dedupe
 
         // Extract from team page meta description first
         const teamMetaDescription = teamHtml.match(/<meta\s+(?:name|property)=["'](?:description|og:description)["']\s+content=["']([^"']+)["']/i);
@@ -520,7 +639,7 @@ async function scrapeWebsite(url) {
                 hasEmailMatch: false, // Will be validated later with email claiming
                 matchedEmail: null
               });
-              logger.info('website-scraper', `Found name in ${path} meta description`, { name });
+              logger.info('website-scraper', `Found name in meta description`, { name, url: pageUrl });
             }
           }
         }
@@ -533,13 +652,17 @@ async function scrapeWebsite(url) {
           }
         }
         if (teamNames.length > 0) {
-          logger.info('website-scraper', `Found names on ${path}`, { count: teamNames.length });
+          const pagePath = new URL(pageUrl).pathname;
+          logger.info('website-scraper', `Found names on page`, { path: pagePath, count: teamNames.length });
         }
       } catch (error) {
         // Team page fetch failed - not critical, try next one
-        logger.debug('website-scraper', `Could not fetch ${path} page`, { error: error.message });
+        logger.debug('website-scraper', `Could not fetch page`, { url: pageUrl, error: error.message });
       }
     }
+
+    // Update emails array with all discovered emails
+    emails.push(...allEmails.filter(e => !emails.includes(e)));
 
     // Final email claiming pass on ALL merged names
     // This ensures only one person claims each email, even if they come from different sources
