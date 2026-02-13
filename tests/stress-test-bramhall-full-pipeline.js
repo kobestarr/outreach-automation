@@ -14,7 +14,7 @@
  */
 
 const { scrapeGoogleMapsOutscraper } = require('../ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
-const { scrapeWebsite } = require('../shared/outreach-core/enrichment/website-scraper');
+const { scrapeWebsite, parseName } = require('../shared/outreach-core/enrichment/website-scraper');
 const { enrichLinkedIn } = require('../shared/outreach-core/linkedin-enrichment');
 const { getAllMergeVariables } = require('../shared/outreach-core/content-generation/email-merge-variables');
 const { addLeadToCampaign: addToLemlist } = require('../shared/outreach-core/export-managers/lemlist-exporter');
@@ -125,22 +125,27 @@ async function stressTest() {
       const websiteData = await scrapeWebsite(business.website);
 
       if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
-        business.owners = websiteData.ownerNames.map(owner => ({
-          firstName: owner.name.split(' ')[0],
-          lastName: owner.name.split(' ').slice(1).join(' '),
-          fullName: owner.name,
-          title: owner.title,
-          hasEmailMatch: owner.hasEmailMatch,
-          matchedEmail: owner.matchedEmail
-        }));
+        business.owners = websiteData.ownerNames.map(owner => {
+          const { firstName, lastName } = parseName(owner.name);
+          return {
+            firstName: firstName,
+            lastName: lastName,
+            fullName: owner.name,
+            title: owner.title,
+            hasEmailMatch: owner.hasEmailMatch,
+            matchedEmail: owner.matchedEmail
+          };
+        }).filter(owner => owner.firstName); // Remove invalid names that failed validation
 
-        // Set primary owner
-        const primaryOwner = business.owners[0];
-        business.ownerFirstName = primaryOwner.firstName;
-        business.ownerLastName = primaryOwner.lastName;
+        if (business.owners.length > 0) {
+          // Set primary owner
+          const primaryOwner = business.owners[0];
+          business.ownerFirstName = primaryOwner.firstName;
+          business.ownerLastName = primaryOwner.lastName;
 
-        businessResult.data.ownerNames = business.owners.map(o => o.fullName);
-        RESULTS.namesFound++;
+          businessResult.data.ownerNames = business.owners.map(o => o.fullName);
+          RESULTS.namesFound++;
+        }
       }
 
       if (websiteData.emails && websiteData.emails.length > 0) {

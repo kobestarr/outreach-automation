@@ -3,7 +3,7 @@
  * Shows the improved extraction finding Christopher Needham, Michael Clark, and Rebecca Sherlock
  */
 
-const { scrapeWebsite } = require('../shared/outreach-core/enrichment/website-scraper');
+const { scrapeWebsite, parseName } = require('../shared/outreach-core/enrichment/website-scraper');
 const { getAllMergeVariables } = require('../shared/outreach-core/content-generation/email-merge-variables');
 
 async function demo() {
@@ -40,14 +40,17 @@ async function demo() {
 
       // Enrich business with first owner
       const primaryOwner = websiteData.ownerNames[0];
-      const nameParts = primaryOwner.name.split(' ');
-      testBusiness.ownerFirstName = nameParts[0];
-      testBusiness.ownerLastName = nameParts.slice(1).join(' ');
-      testBusiness.owners = websiteData.ownerNames.map(o => ({
-        firstName: o.name.split(' ')[0],
-        fullName: o.name,
-        title: o.title
-      }));
+      const { firstName, lastName } = parseName(primaryOwner.name);
+      testBusiness.ownerFirstName = firstName;
+      testBusiness.ownerLastName = lastName;
+      testBusiness.owners = websiteData.ownerNames.map(o => {
+        const { firstName } = parseName(o.name);
+        return {
+          firstName: firstName,
+          fullName: o.name,
+          title: o.title
+        };
+      }).filter(o => o.firstName);
 
       console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('MERGE VARIABLES FOR EMAIL');

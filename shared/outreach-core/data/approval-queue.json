@@ -32,10 +32,10 @@
       "subject": "quick question about kiss dental's social media",
       "body": "Hi Kailesh and Callum,\n\nI noticed Kiss Dental Bramhall doesn't seem to have much of a social presence yet.\n\nWith 83 five-star reviews, you've clearly got happy patients - but if someone's searching for a dentist on Instagram or Facebook, they might not find you.\n\nI help practices get set up properly online so new patients can actually find you and understand what you offer. I've worked with everyone from local salons to Twiggy, and I'm just down the road in Poynton.\n\nFrom just £97 I can get your basics sorted - profile setup, key info visible, that kind of thing.\n\nWorth a quick chat? Book 15 mins here: [calendar link]\n\nI wasn't sure which of you would be the best person to speak with about this, so I'm reaching out to everyone. Hope that's okay!\n\nPlease let me know which one of you is the best to chat with regarding this.\n\nSent from my iPhone"
     },
-    "status": "pending",
+    "status": "approved",
     "createdAt": "2026-02-10T04:51:56.692Z",
-    "approvedAt": null,
-    "approvedBy": null
+    "approvedAt": "2026-02-10T23:54:39.884Z",
+    "approvedBy": "test-automation"
   },
   "restaurant": {
     "business": {
@@ -60,9 +60,37 @@
       "subject": "noticed you're not on social yet",
       "body": "Subject: noticed you're not on social yet\n\nHi Thomas,\n\nI noticed Amici doesn't have much of a social presence yet - which is a shame with 180 reviews at 4.9 stars.\n\nI work with restaurants around here (I'm just down the road in Poynton) and I've found the ones that post regularly fill more tables, especially midweek.\n\nI can help you get set up with a simple system that takes about 10 minutes a week. It's worked well for keeping tables full without relying on walk-ins.\n\nFrom just £97 to get started if you want to test it out.\n\nWorth a quick chat? Here's my calendar: [link]\n\nSent from my iPhone"
     },
-    "status": "pending",
+    "status": "approved",
     "createdAt": "2026-02-10T14:53:25.862Z",
-    "approvedAt": null,
-    "approvedBy": null
+    "approvedAt": "2026-02-10T23:54:39.886Z",
+    "approvedBy": "test-automation"
+  },
+  "dental clinic": {
+    "business": {
+      "name": "Bramcote Dental Practice",
+      "category": "Dental clinic",
+      "location": "Bramcote Dental Practice, 3 Syddal Rd, Bramhall, Stockport SK7 1AB, United Kingdom",
+      "ownerFirstName": "To",
+      "owners": [
+        {
+          "firstName": "To",
+          "lastName": "Our",
+          "fullName": "To Our",
+          "title": "Hygienist",
+          "source": "website-scraping",
+          "email": "to.our@smiledoc.co.uk",
+          "emailSource": "pattern_verified",
+          "emailVerified": true
+        }
+      ]
+    },
+    "email": {
+      "subject": "building a social presence for smiledoc",
+      "body": "Subject: building a social presence for smiledoc\n\nHi To,\n\nI noticed Smiledoc doesn't have much of a social presence yet, which is a shame given you've got 111 five-star reviews.\n\nMost new patients check Instagram or Facebook before they book, so even a basic setup helps them feel confident choosing you over other dental practices.\n\nI've built simple social presences for local businesses (including one for Twiggy, the 60s model, which was a fun project). Nothing fancy, just enough so people can find you and see what you're about.\n\nFrom just £97 I can get you started with the basics - profile setup, a few posts, and a simple content plan you can follow.\n\nI'm just down the road in Poynton if you'd like to chat over coffee.\n\nWorth a quick call?\n\nSent from my iPhone"
+    },
+    "status": "approved",
+    "createdAt": "2026-02-10T23:47:38.904Z",
+    "approvedAt": "2026-02-10T23:54:39.886Z",
+    "approvedBy": "test-automation"
   }
 }

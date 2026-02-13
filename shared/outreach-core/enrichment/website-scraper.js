@@ -161,7 +161,7 @@ function extractEmails(html) {
   const emailPattern = /\b[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const emails = html.match(emailPattern) || [];
 
-  // Deduplicate and filter out common generic emails
+  // Identify generic emails (we'll keep them but de-prioritize)
   const genericEmails = /^(info|contact|hello|support|admin|enquiries|mail)@/i;
 
   // CRITICAL: Filter out image files and other non-email patterns
@@ -172,10 +172,8 @@ function extractEmails(html) {
   // Placeholder emails used in demos/templates
   const placeholderEmails = /^(mymail|user|yourname|example|test|email|name)@(mailservice|domain|example|test)\.(com|net|org)$/i;
 
-  return [...new Set(emails)].filter(email => {
-    // Filter out generic emails
-    if (genericEmails.test(email)) return false;
-
+  // Filter out junk, but KEEP generic emails (info@, contact@, enquiries@)
+  const validEmails = [...new Set(emails)].filter(email => {
     // CRITICAL: Filter out file paths that match email pattern (e.g., "image@2x.jpg")
     if (fileExtensions.test(email)) return false;
 
@@ -186,6 +184,20 @@ function extractEmails(html) {
     if (placeholderEmails.test(email)) return false;
 
     return true;
+  });
+
+  // Sort emails: personal emails first, generic emails last
+  // This ensures emails[0] is always the best available email
+  return validEmails.sort((a, b) => {
+    const aIsGeneric = genericEmails.test(a);
+    const bIsGeneric = genericEmails.test(b);
+
+    // Personal emails come first (lower sort value)
+    if (!aIsGeneric && bIsGeneric) return -1;
+    if (aIsGeneric && !bIsGeneric) return 1;
+
+    // Otherwise maintain original order
+    return 0;
   });
 }
 

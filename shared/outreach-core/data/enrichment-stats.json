@@ -1,7 +1,22 @@
 {
   "linkedInSuccessRate": {
     "dentist": {
-      "attempts": 19,
+      "attempts": 28,
+      "successes": 0,
+      "rate": 0
+    },
+    "accountant": {
+      "attempts": 8,
+      "successes": 0,
+      "rate": 0
+    },
+    "certified public accountant": {
+      "attempts": 1,
+      "successes": 0,
+      "rate": 0
+    },
+    "business management consultant": {
+      "attempts": 1,
       "successes": 0,
       "rate": 0
     }

@@ -5,7 +5,7 @@
 
 const { scrapeGoogleMapsOutscraper } = require('../ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
 const { extractEmailsFromWebsite } = require('../shared/outreach-core/email-discovery/website-email-extractor');
-const { scrapeWebsite } = require('../shared/outreach-core/enrichment/website-scraper');
+const { scrapeWebsite, parseName } = require('../shared/outreach-core/enrichment/website-scraper');
 const { getAllMergeVariables } = require('../shared/outreach-core/content-generation/email-merge-variables');
 const { addLeadToCampaign } = require('../shared/outreach-core/export-managers/lemlist-exporter');
 const logger = require('../shared/outreach-core/logger');
@@ -42,10 +42,16 @@ async function exportDentists() {
         const websiteData = await scrapeWebsite(business.website);
         if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
           const owner = websiteData.ownerNames[0];
-          const nameParts = owner.name.split(' ');
-          business.ownerFirstName = nameParts[0];
-          business.ownerLastName = nameParts.slice(1).join(' ');
-          console.log(`   ✅ Owner found: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
+          const { firstName, lastName } = parseName(owner.name);
+
+          // Only use name if validation passed
+          if (firstName) {
+            business.ownerFirstName = firstName;
+            business.ownerLastName = lastName;
+            console.log(`   ✅ Owner found: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
+          } else {
+            console.log(`   ⚠️  Name validation failed: "${owner.name}" (likely job title, not a person)`);
+          }
         } else {
           console.log(`   ⚠️  No owner names found on website`);
         }

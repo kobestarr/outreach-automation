@@ -3,7 +3,7 @@
  * Shows what the actual emails will look like with merge variables
  */
 
-const { scrapeWebsite } = require('../shared/outreach-core/enrichment/website-scraper');
+const { scrapeWebsite, parseName } = require('../shared/outreach-core/enrichment/website-scraper');
 const { getAllMergeVariables } = require('../shared/outreach-core/content-generation/email-merge-variables');
 
 async function previewEmail() {
@@ -28,20 +28,25 @@ async function previewEmail() {
     rating: 4.9,
     reviews: 285,
     assignedOfferTier: 'tier3',
-    owners: websiteData.ownerNames.map(owner => ({
-      firstName: owner.name.split(' ')[0],
-      lastName: owner.name.split(' ').slice(1).join(' '),
-      fullName: owner.name,
-      title: owner.title,
-      hasEmailMatch: owner.hasEmailMatch,
-      matchedEmail: owner.matchedEmail
-    }))
+    owners: websiteData.ownerNames.map(owner => {
+      const { firstName, lastName } = parseName(owner.name);
+      return {
+        firstName: firstName,
+        lastName: lastName,
+        fullName: owner.name,
+        title: owner.title,
+        hasEmailMatch: owner.hasEmailMatch,
+        matchedEmail: owner.matchedEmail
+      };
+    }).filter(owner => owner.firstName) // Remove invalid names that failed validation
   };
 
   // Set primary owner
-  const primaryOwner = business.owners[0];
-  business.ownerFirstName = primaryOwner.firstName;
-  business.ownerLastName = primaryOwner.lastName;
+  if (business.owners.length > 0) {
+    const primaryOwner = business.owners[0];
+    business.ownerFirstName = primaryOwner.firstName;
+    business.ownerLastName = primaryOwner.lastName;
+  }
 
   // Generate merge variables
   const mergeVars = getAllMergeVariables(business);
