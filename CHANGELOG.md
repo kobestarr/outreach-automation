@@ -91,6 +91,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+### Fixed - Lemlist Export Creating Empty Leads
+
+**Date:** 2026-02-13
+**Commit:** 55271a1
+
+**Problem:** When exporting businesses to Lemlist, leads were created with no data - firstName, lastName, and companyName fields were all empty, resulting in unusable leads in the campaign.
+
+**Root Cause:**
+- `addLeadToCampaign()` function expects a complete `leadData` object with all fields
+- Production export script was incorrectly passing just the email string as the second parameter
+- Result: API call succeeded but created empty leads
+
+**Solution:**
+Fixed `test-15-full-production-export.js` to pass complete leadData object:
+
+```javascript
+// BEFORE (incorrect):
+await addLeadToCampaign(CAMPAIGN_ID, business.email, business.mergeVariables);
+
+// AFTER (correct):
+const leadData = {
+  email: business.email,
+  firstName: business.mergeVariables.firstName,
+  lastName: business.mergeVariables.lastName,
+  companyName: business.mergeVariables.companyName,
+  businessType: business.mergeVariables.businessType,
+  location: business.mergeVariables.location,
+  localIntro: business.mergeVariables.localIntro,
+  observationSignal: business.mergeVariables.observationSignal,
+  meetingOption: business.mergeVariables.meetingOption,
+  microOfferPrice: business.mergeVariables.microOfferPrice,
+  multiOwnerNote: business.mergeVariables.multiOwnerNote,
+  noNameNote: business.mergeVariables.noNameNote
+};
+
+await addLeadToCampaign(CAMPAIGN_ID, leadData);
+```
+
+**Files Modified:**
+- `test-15-full-production-export.js` - Corrected leadData object structure
+- `delete-empty-leads.js` - Added cleanup utility for removing empty leads
+
+**Testing:**
+- ✅ 5 businesses exported with complete data (firstName, lastName, companyName)
+- ✅ All merge variables properly populated in Lemlist
+- ✅ No more empty leads created
+
+**Impact:**
+- ✅ Lemlist campaigns now receive complete lead data
+- ✅ All fields properly populated for email personalization
+- ✅ Cleanup utility available for removing any existing empty leads
+
+---
+
+### Fixed - Inverted Tier Pricing (Higher Revenue = Lower Price)
+
+**Date:** 2026-02-13
+**Commit:** 694f3bf
+
+**Problem:** Businesses with higher revenue were being charged LESS than businesses with lower revenue, completely inverting the pricing logic.
+
+**Example:**
+- Dentist (£450K revenue) → **£194** ❌
+- Cafe (£180K revenue) → **£291** ❌
+- **Higher revenue business charged less!**
+
+**Root Cause:**
+Two conflicting tier numbering systems:
+
+1. **tier-config.json** (Orchestrator) - tier1 = LOWEST revenue (£0-150K)
+2. **TIER_MULTIPLIERS** (email-merge-variables.js) - tier1 = HIGHEST multiplier (5×)
+
+When orchestrator assigned:
+- Dentist (£450K) → tier3 (correct: £400K-800K range)
+- Cafe (£180K) → tier2 (correct: £150K-400K range)
+
+But TIER_MULTIPLIERS applied inverted prices:
+- tier3 → 2× multiplier → £194 (should be higher!)
+- tier2 → 3× multiplier → £291 (should be lower!)
+
+**Solution:**
+Corrected TIER_MULTIPLIERS to match tier-config.json numbering:
+
+```javascript
+// BEFORE (inverted):
+const TIER_MULTIPLIERS = {
+  tier1: 5,    // ❌ Highest price for LOWEST revenue
+  tier2: 3,
+  tier3: 2,
+  tier4: 1.5,
+  tier5: 1     // ❌ Lowest price for HIGHEST revenue
+};
+
+// AFTER (corrected):
+const TIER_MULTIPLIERS = {
+  tier1: 1,    // ✅ £0-150K revenue → £97 (lowest)
+  tier2: 1.5,  // ✅ £150K-400K revenue → £146
+  tier3: 2,    // ✅ £400K-800K revenue → £194
+  tier4: 3,    // ✅ £800K-2M revenue → £291
+  tier5: 5     // ✅ £2M+ revenue → £485 (highest)
+};
+```
+
+**Files Modified:**
+- `shared/outreach-core/content-generation/email-merge-variables.js` - Corrected TIER_MULTIPLIERS
+- `test-tier-pricing-fix.js` - Verification test for pricing logic
+
+**Testing:**
+Verified pricing now scales correctly with revenue:
+
+| Revenue | Tier | Price | Correct? |
+|---------|------|-------|----------|
+| £80K | tier1 | £97 | ✅ |
+| £180K | tier2 | £146 | ✅ |
+| £280K | tier2 | £146 | ✅ |
+| £450K | tier3 | £194 | ✅ |
+| £850K | tier4 | £291 | ✅ |
+| £2.5M | tier5 | £485 | ✅ |
+
+**User Question Resolved:**
+- Cafe (£180K revenue) → **£146** ✅
+- Dentist (£450K revenue) → **£194** ✅
+- **Dentist > Cafe** ✅ Higher revenue = Higher price!
+
+**Impact:**
+- ✅ Pricing now correctly scales with business revenue
+- ✅ Higher revenue businesses charged appropriately
+- ✅ Tier system consistent across entire codebase
+- ✅ Verification test ensures pricing logic remains correct
+
+---
+
 ### Fixed - Code Review Issues (Logging, Error Handling, Memory Safety)
 
 **Date:** 2026-02-12
