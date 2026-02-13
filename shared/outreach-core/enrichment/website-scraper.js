@@ -388,7 +388,7 @@ function extractOwnerNames(html, emails = []) {
   // Helper function to validate if a string looks like a real person's name
   const isValidPersonName = (name) => {
     // Reject common non-name words that get capitalized in sentences
-    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|connor|moore|rachubka)\b/i;
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka)\b/i;
 
     const firstWord = name.split(' ')[0].toLowerCase();
     if (nonNameWords.test(firstWord)) {
@@ -540,6 +540,19 @@ function extractOwnerNames(html, emails = []) {
 async function scrapeWebsite(url) {
   try {
     logger.info('website-scraper', 'Scraping website', { url });
+
+    // Skip social media URLs - can't scrape useful data from them
+    // Will add dedicated IG/FB module later for phone/email extraction
+    if (url.includes('facebook.com') || url.includes('instagram.com') || url.includes('fb.com')) {
+      logger.info('website-scraper', 'Skipping social media URL', { url });
+      return {
+        registrationNumber: null,
+        registeredAddress: null,
+        ownerNames: [],
+        emails: [],
+        scrapedAt: new Date().toISOString()
+      };
+    }
 
     // Fetch main page
     const html = await fetchWebsite(url);
