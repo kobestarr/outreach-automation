@@ -11,6 +11,7 @@ const { addLeadToCampaign } = require('./shared/outreach-core/export-managers/le
 const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/website-scraper');
 const { estimateRevenue } = require('./ksd/local-outreach/orchestrator/modules/revenue-estimator');
 const { assignTier } = require('./ksd/local-outreach/orchestrator/modules/tier-assigner');
+const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/database');
 const logger = require('./shared/outreach-core/logger');
 
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
@@ -192,6 +193,35 @@ async function exportToLemlist() {
 
       console.log(`   🏷️  Price: ${mergeVariables.microOfferPrice}`);
       console.log(`   📧 Greeting: "Hi ${mergeVariables.firstName},"`);
+
+      // Save to database
+      saveBusiness({
+        name: business.name || business.businessName,
+        businessName: business.name || business.businessName,
+        location: 'Bramhall',
+        postcode: business.postcode || 'SK7',
+        address: business.address,
+        website: business.website,
+        phone: business.phone,
+        category: business.category,
+        rating: business.rating,
+        reviewCount: business.reviewCount,
+        ownerFirstName: business.ownerFirstName,
+        ownerLastName: business.ownerLastName,
+        ownerEmail: business.email,
+        emailSource: 'website-scraper',
+        estimatedRevenue: business.estimatedRevenue,
+        revenueBand: business.revenueBand,
+        revenueConfidence: business.revenueConfidence,
+        assignedOfferTier: business.assignedOfferTier,
+        setupFee: business.setupFee,
+        monthlyPrice: business.monthlyPrice
+      }, {
+        status: 'enriched',
+        scrapedAt: new Date().toISOString(),
+        enrichedAt: new Date().toISOString()
+      });
+      console.log(`   💾 Saved to database`);
       console.log();
     }
 
