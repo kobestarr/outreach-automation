@@ -56,13 +56,14 @@ const NEARBY_POSTCODES = [
 /**
  * Tier-based pricing multipliers
  * Applied to base micro-offer price (£97, $127, etc.)
+ * Aligned with tier-config.json: tier1=lowest revenue, tier5=highest revenue
  */
 const TIER_MULTIPLIERS = {
-  tier1: 5,    // High revenue businesses → £485
-  tier2: 3,    // Medium-high → £291
-  tier3: 2,    // Medium → £194
-  tier4: 1.5,  // Medium-low → £145
-  tier5: 1     // Low revenue → £97
+  tier1: 1,    // £0-150K revenue → £97 (lowest)
+  tier2: 1.5,  // £150K-400K revenue → £145
+  tier3: 2,    // £400K-800K revenue → £194
+  tier4: 3,    // £800K-2M revenue → £291
+  tier5: 5     // £2M+ revenue → £485 (highest)
 };
 
 /**
