@@ -83,13 +83,17 @@ async function validateUrl(url) {
         }
       }
     } catch (dnsError) {
-      // DNS resolution failed - reject for safety
-      logger.debug('url-validator', 'DNS resolution failed', {
+      // DNS resolution failed - allow request to proceed with warning
+      // Legitimate public websites shouldn't be blocked due to DNS timeouts
+      logger.warn('url-validator', 'DNS resolution failed, allowing request to proceed', {
         url,
         hostname,
-        error: dnsError.message
+        error: dnsError.message,
+        reason: 'Public websites should not be blocked due to DNS issues'
       });
-      return { safe: false, reason: 'DNS resolution failed' };
+      // Return safe=true to allow the request
+      // We've already validated: protocol is http/https, hostname not in blocklist
+      return { safe: true };
     }
 
     return { safe: true };

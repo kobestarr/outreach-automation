@@ -1,61 +1,74 @@
 /**
- * Export 10 Businesses to Lemlist
- * Quick test export of 10 Bramhall SK7 businesses
+ * Test: Export 15 Businesses to Lemlist
+ * Tests 3 different categories (5 businesses each) in Bramhall SK7
+ * Shows name validation, email extraction, and fallback system in action
  */
 
-const { scrapeGoogleMapsOutscraper } = require('../ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
-const { extractEmailsFromWebsite } = require('../shared/outreach-core/email-discovery/website-email-extractor');
-const { getAllMergeVariables } = require('../shared/outreach-core/content-generation/email-merge-variables');
-const { addLeadToCampaign } = require('../shared/outreach-core/export-managers/lemlist-exporter');
-const { scrapeWebsite, parseName } = require('../shared/outreach-core/enrichment/website-scraper');
-const logger = require('../shared/outreach-core/logger');
+const { scrapeGoogleMapsOutscraper } = require('./ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
+const { extractEmailsFromWebsite } = require('./shared/outreach-core/email-discovery/website-email-extractor');
+const { getAllMergeVariables } = require('./shared/outreach-core/content-generation/email-merge-variables');
+const { addLeadToCampaign } = require('./shared/outreach-core/export-managers/lemlist-exporter');
+const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/website-scraper');
+const logger = require('./shared/outreach-core/logger');
 
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
-const EXPORT_LIMIT = 10;
+const BUSINESSES_PER_CATEGORY = 5;
+const CATEGORIES = ['salons', 'dentists', 'cafes'];
 
 async function exportToLemlist() {
   console.log('\n╔════════════════════════════════════════════════════════════════════╗');
-  console.log('║           EXPORT 10 BUSINESSES TO LEMLIST                          ║');
+  console.log('║        EXPORT 15 BUSINESSES TO LEMLIST (3 Categories × 5)         ║');
   console.log('╚════════════════════════════════════════════════════════════════════╝\n');
 
   console.log(`📤 Campaign ID: ${CAMPAIGN_ID}`);
-  console.log(`📊 Export Limit: ${EXPORT_LIMIT} businesses\n`);
+  console.log(`📊 Categories: ${CATEGORIES.join(', ')}`);
+  console.log(`📈 Target: ${BUSINESSES_PER_CATEGORY} businesses per category\n`);
 
   try {
-    // Step 1: Scrape businesses
+    // Step 1: Scrape businesses from all categories
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('STEP 1: SCRAPING BUSINESSES');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    console.log('🗺️  Scraping Bramhall SK7 salons...\n');
+    let allBusinesses = [];
 
-    const businesses = await scrapeGoogleMapsOutscraper(
-      'Bramhall',
-      'SK7',
-      ['salons'], // Just salons for test
-      true
-    );
+    for (const category of CATEGORIES) {
+      console.log(`🗺️  Scraping ${category} in Bramhall SK7...\n`);
 
-    console.log(`\n✅ Found ${businesses.length} salons`);
-    console.log(`📋 Selecting first ${EXPORT_LIMIT} for export\n`);
+      const businesses = await scrapeGoogleMapsOutscraper(
+        'Bramhall',
+        'SK7',
+        [category],
+        true
+      );
 
-    const businessesToExport = businesses.slice(0, EXPORT_LIMIT);
+      const selected = businesses.slice(0, BUSINESSES_PER_CATEGORY);
+      allBusinesses = allBusinesses.concat(selected);
 
-    // Step 2: Enrich with emails and merge variables
+      console.log(`✅ Found ${businesses.length} ${category}, selected ${selected.length}\n`);
+    }
+
+    console.log(`📋 Total businesses to process: ${allBusinesses.length}\n`);
+
+    // Step 2: Enrich with names and emails
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('STEP 2: ENRICHING BUSINESSES');
+    console.log('STEP 2: ENRICHING BUSINESSES (Names + Emails)');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const enrichedBusinesses = [];
+    let namesFound = 0;
+    let namesRejected = 0;
+    let emailsFound = 0;
 
-    for (let i = 0; i < businessesToExport.length; i++) {
-      const business = businessesToExport[i];
-      console.log(`[${i + 1}/${businessesToExport.length}] ${business.name}`);
+    for (let i = 0; i < allBusinesses.length; i++) {
+      const business = allBusinesses[i];
+      console.log(`[${i + 1}/${allBusinesses.length}] ${business.name}`);
 
       // Scrape website for owner names
       if (business.website) {
         try {
           const websiteData = await scrapeWebsite(business.website);
+
           if (websiteData.ownerNames && websiteData.ownerNames.length > 0) {
             const owner = websiteData.ownerNames[0];
             const { firstName, lastName } = parseName(owner.name);
@@ -64,9 +77,11 @@ async function exportToLemlist() {
             if (firstName) {
               business.ownerFirstName = firstName;
               business.ownerLastName = lastName;
-              console.log(`   ✅ Owner found: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
+              console.log(`   ✅ Owner: ${owner.name}${owner.title ? ` (${owner.title})` : ''}`);
+              namesFound++;
             } else {
-              console.log(`   ⚠️  Name validation failed: "${owner.name}" (likely job title, not a person)`);
+              console.log(`   ⚠️  Name rejected: "${owner.name}" (likely job title/business type)`);
+              namesRejected++;
             }
 
             // Populate owners array for multi-owner note (if multiple people found)
@@ -83,10 +98,14 @@ async function exportToLemlist() {
 
               console.log(`   👥 Found ${business.owners.length} validated people total`);
             }
+          } else {
+            console.log(`   ℹ️  No owner names found on website`);
           }
         } catch (error) {
           console.log(`   ⚠️  Website scraping failed: ${error.message}`);
         }
+      } else {
+        console.log(`   ℹ️  No website available`);
       }
 
       // Extract email if website available
@@ -96,15 +115,14 @@ async function exportToLemlist() {
           const emails = await extractEmailsFromWebsite(business.website);
           if (emails.length > 0) {
             email = emails[0];
-            console.log(`   ✅ Email found: ${logger.sanitizeData(email)}`);
+            console.log(`   ✅ Email: ${logger.sanitizeData(email)}`);
+            emailsFound++;
           } else {
-            console.log(`   ⚠️  No email found on website`);
+            console.log(`   ℹ️  No email found on website`);
           }
         } catch (error) {
           console.log(`   ⚠️  Email extraction failed: ${error.message}`);
         }
-      } else {
-        console.log(`   ℹ️  No website available`);
       }
 
       // Set fallback flag if no valid owner name was found
@@ -112,7 +130,7 @@ async function exportToLemlist() {
         business.usedFallbackName = true;
       }
 
-      // Generate merge variables
+      // Generate merge variables (this is where fallback kicks in!)
       const mergeVariables = getAllMergeVariables(business);
 
       enrichedBusinesses.push({
@@ -120,9 +138,19 @@ async function exportToLemlist() {
         email: email,
         mergeVariables: mergeVariables
       });
+
+      console.log(`   📧 Email greeting: "Hi ${mergeVariables.firstName},"`);
+      if (mergeVariables.noNameNote) {
+        console.log(`   💬 Disclaimer: "${mergeVariables.noNameNote}"`);
+      }
+      console.log();
     }
 
-    console.log(`\n✅ Enriched ${enrichedBusinesses.length} businesses\n`);
+    console.log(`✅ Enrichment complete:`);
+    console.log(`   Names found: ${namesFound}`);
+    console.log(`   Names rejected: ${namesRejected}`);
+    console.log(`   Emails found: ${emailsFound}`);
+    console.log(`   Total enriched: ${enrichedBusinesses.length}\n`);
 
     // Step 3: Export to Lemlist
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -162,8 +190,11 @@ async function exportToLemlist() {
         await addLeadToCampaign(CAMPAIGN_ID, leadData);
         console.log(`✅ Exported: ${business.name}`);
         console.log(`   Email: ${logger.sanitizeData(leadData.email)}`);
-        console.log(`   Price: ${leadData.microOfferPrice}`);
-        console.log(`   Name: ${leadData.firstName}\n`);
+        console.log(`   Greeting: "Hi ${leadData.firstName},"`);
+        if (leadData.noNameNote) {
+          console.log(`   Disclaimer: "${leadData.noNameNote}"`);
+        }
+        console.log();
         exportedCount++;
 
         // Small delay to avoid rate limiting
@@ -189,12 +220,21 @@ async function exportToLemlist() {
     console.log(`❌ Errors: ${errorCount}`);
     console.log(`📊 Total processed: ${enrichedBusinesses.length}\n`);
 
+    console.log('📈 DATA QUALITY STATS:');
+    console.log(`   Valid names found: ${namesFound}/${allBusinesses.length} (${Math.round((namesFound/allBusinesses.length)*100)}%)`);
+    console.log(`   Names rejected: ${namesRejected}/${allBusinesses.length} (${Math.round((namesRejected/allBusinesses.length)*100)}%)`);
+    console.log(`   Emails found: ${emailsFound}/${allBusinesses.length} (${Math.round((emailsFound/allBusinesses.length)*100)}%)`);
+    console.log(`   Export success rate: ${exportedCount}/${enrichedBusinesses.length} (${Math.round((exportedCount/enrichedBusinesses.length)*100)}%)\n`);
+
     if (exportedCount > 0) {
       console.log('╔════════════════════════════════════════════════════════════════════╗');
       console.log('║              ✅ EXPORT COMPLETE ✅                                 ║');
       console.log('║                                                                    ║');
       console.log('║  Check your Lemlist campaign to see the new leads!                ║');
       console.log('║  Campaign: https://app.lemlist.com/campaigns/cam_bJYSQ4pqMzasQWsRb║');
+      console.log('║                                                                    ║');
+      console.log('║  NOTE: Leads without names will have the "I couldn\'t find your    ║');
+      console.log('║  names anywhere!" disclaimer for transparency.                    ║');
       console.log('╚════════════════════════════════════════════════════════════════════╝\n');
     } else {
       console.log('⚠️  No businesses were exported. Check errors above.\n');

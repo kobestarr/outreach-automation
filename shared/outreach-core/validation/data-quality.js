@@ -21,7 +21,8 @@ const JOB_TITLE_WORDS = [
   'marketing', 'hr', 'it', 'tech', 'support', 'team', 'staff',
   'associate', 'partner', 'consultant', 'analyst', 'engineer',
   'developer', 'designer', 'architect', 'technician', 'therapist',
-  'hygienist', 'surgeon', 'physician', 'doctor', 'professor'
+  'hygienist', 'surgeon', 'physician', 'doctor', 'professor',
+  'management', 'certified', 'chartered'
 ];
 
 // Common words/UI elements to REJECT
@@ -31,7 +32,9 @@ const COMMON_WORDS = [
   'image', 'photo', 'header', 'footer', 'menu', 'navigation',
   'button', 'link', 'page', 'home', 'our', 'team',
   'meet', 'visit', 'call', 'email', 'phone', 'address',
-  'location', 'directions', 'hours', 'services', 'products'
+  'location', 'directions', 'hours', 'services', 'products',
+  'client', 'cosmetic', 'law', 'bank', 'employment', 'independent',
+  'case', 'begum', 'allen'
 ];
 
 // Image file patterns

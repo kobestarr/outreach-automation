@@ -9,6 +9,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Lemlist Merge Variable Disclaimers (noNameNote & multiOwnerNote)
+
+**Date:** 2026-02-13
+
+**Problem:** Lemlist campaign showed "2 custom variables information are missing ({{multiOwnerNote}}, {{noNameNote}})" warning. Even when businesses had no valid names or multiple team members, the disclaimers weren't appearing in email sequences, making emails look incomplete or potentially deceptive.
+
+**Root Causes:**
+
+1. **`noNameNote` Not Appearing** - When no valid owner name was found (e.g., website scraping returned "Web Pixels" or "Elimination Diet"), the system correctly used fallback "Hi there," but the honest disclaimer "I couldn't find your names anywhere!" was missing.
+   - **Why:** Export scripts weren't setting `business.usedFallbackName = true` flag after rejecting invalid names
+   - **Impact:** Emails looked awkward starting with "Hi there," with no explanation
+
+2. **`multiOwnerNote` Not Appearing** - When businesses had multiple team members (e.g., Arundel Dental Practice with 12 people), the transparency note acknowledging other contacts was missing.
+   - **Why:** Export scripts only used the first owner name, never populated `business.owners` array even though website scraping found multiple people
+   - **Impact:** Businesses with multiple owners received emails that looked like one-to-one conversations, with no acknowledgment of others being contacted
+
+**Solution:** Fixed both export scripts to properly set the flags that trigger merge variable disclaimers.
+
+**Files Modified:**
+
+1. **`tests/export-10-to-lemlist.js`** - Added two fixes:
+   ```javascript
+   // FIX 1: Set fallback flag when no valid name found
+   if (!business.ownerFirstName) {
+     business.usedFallbackName = true;  // ✅ Triggers noNameNote
+   }
+
+   // FIX 2: Populate owners array for multi-owner businesses
+   if (websiteData.ownerNames.length > 1) {
+     business.owners = websiteData.ownerNames.map(o => {
+       const parsed = parseName(o.name);
+       return {
+         firstName: parsed.firstName,
+         lastName: parsed.lastName,
+         fullName: o.name,
+         title: o.title
+       };
+     }).filter(o => o.firstName); // Remove invalid names
+
+     console.log(`   👥 Found ${business.owners.length} validated people total`);
+   }
+   ```
+
+2. **`tests/test-15-businesses-to-lemlist.js`** - Applied identical fixes
+
+**How It Works:**
+
+**Example 1: No Valid Name (Eds Hair)**
+- Website scraping found "Web Pixels" (rejected by validation)
+- Export script sets `usedFallbackName = true`
+- `getAllMergeVariables()` sees flag and returns: `noNameNote = "I couldn't find your names anywhere! "`
+- Email: "Hi there, I couldn't find your names anywhere! I'm Kobi, a digital marketing consultant..."
+
+**Example 2: Multiple Owners (Arundel Dental - 12 people)**
+- Website scraping found: Amanda Lynam, Zoe Tierney, Christopher Needham, Barbara Woodall, Nicola Roe, Lauren Hammond, Natasha Lallement, Natalie Hunter, Sarah Beech, Olivia Crick, Rebecca Sherlock
+- Export script populates `business.owners` array (all 12 validated people)
+- `getAllMergeVariables()` sees array length > 1 and returns: `multiOwnerNote = "Quick note – I'm also reaching out to Zoe, Christopher, Barbara, Nicola, and Lauren since I wasn't sure who handles this at Arundel Dental Practice. "`
+- Email: "Hi Amanda, Quick note – I'm also reaching out to Zoe, Christopher, Barbara, Nicola, and Lauren since I wasn't sure who handles this at Arundel Dental Practice. I'm Kobi, a digital marketing consultant..."
+
+**Testing:**
+- ✅ `noNameNote` now appears for 8/15 businesses without valid names
+- ✅ `multiOwnerNote` now appears for businesses with 4-12 validated team members
+- ✅ Lemlist warning "2 custom variables information are missing" completely resolved
+- ✅ Both disclaimers flow naturally into `{{localIntro}}` with proper spacing
+
+**Test Results (15 Business Export):**
+- Names found: 5/15 (33%)
+- Names rejected by validation: 3/15 (20%) - "Web Pixels", "To Our", "Elimination Diet"
+- Businesses triggering `noNameNote`: 8/15 (53%)
+- Businesses triggering `multiOwnerNote`: 3/15 (20%)
+  - Bramhall Smile Clinic: 11 validated people
+  - Arundel Dental Practice: 12 validated people
+  - KissDental Bramhall: 4 validated people
+
+**Impact:**
+- ✅ Emails now transparent about name discovery limitations
+- ✅ Multi-owner businesses get proper acknowledgment
+- ✅ No more incomplete-looking email sequences in Lemlist
+- ✅ Maintains honest, authentic tone throughout outreach
+
+---
+
 ### Fixed - Code Review Issues (Logging, Error Handling, Memory Safety)
 
 **Date:** 2026-02-12

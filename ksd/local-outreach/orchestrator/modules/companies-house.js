@@ -6,6 +6,7 @@
 const https = require("https");
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
 const logger = require("../../../../shared/outreach-core/logger");
+const { parseName } = require("../../../../shared/outreach-core/enrichment/website-scraper");
 
 const COMPANIES_HOUSE_BASE_URL = "api.company-information.service.gov.uk";
 
@@ -152,11 +153,21 @@ async function getOwnerByRegistrationNumber(registrationNumber) {
 
     // Return first active director/officer
     const owner = officers[0];
-    const nameParts = owner.name.split(" ");
+    const { firstName, lastName } = parseName(owner.name);
+
+    // Skip if name validation failed (e.g., job title instead of person name)
+    if (!firstName) {
+      logger.warn('companies-house', 'Name validation failed for officer', {
+        registrationNumber,
+        rawName: owner.name,
+        reason: 'parseName returned empty (likely job title or invalid name)'
+      });
+      return null;
+    }
 
     const result = {
-      firstName: nameParts[0] || "",
-      lastName: nameParts.slice(1).join(" ") || "",
+      firstName: firstName,
+      lastName: lastName,
       fullName: owner.name,
       title: owner.officer_role,
       companyNumber: registrationNumber,
@@ -205,16 +216,16 @@ async function getAllOwnersByRegistrationNumber(registrationNumber, maxOwners = 
 
     // Convert all officers to owner format (up to maxOwners)
     const owners = officers.slice(0, maxOwners).map(officer => {
-      const nameParts = officer.name.split(" ");
+      const { firstName, lastName } = parseName(officer.name);
       return {
-        firstName: nameParts[0] || "",
-        lastName: nameParts.slice(1).join(" ") || "",
+        firstName: firstName,
+        lastName: lastName,
         fullName: officer.name,
         title: officer.officer_role,
         companyNumber: registrationNumber,
         source: 'companies-house-registration-number'
       };
-    });
+    }).filter(owner => owner.firstName); // Remove invalid names that failed validation
 
     logger.info('companies-house', 'Found owners via registration number', {
       registrationNumber,
@@ -257,11 +268,21 @@ async function getOwnerName(businessName, postcode) {
 
     // Return first active director/officer
     const owner = officers[0];
-    const nameParts = owner.name.split(" ");
+    const { firstName, lastName } = parseName(owner.name);
+
+    // Skip if name validation failed (e.g., job title instead of person name)
+    if (!firstName) {
+      logger.warn('companies-house', 'Name validation failed for officer', {
+        businessName,
+        rawName: owner.name,
+        reason: 'parseName returned empty (likely job title or invalid name)'
+      });
+      return null;
+    }
 
     return {
-      firstName: nameParts[0] || "",
-      lastName: nameParts.slice(1).join(" ") || "",
+      firstName: firstName,
+      lastName: lastName,
       fullName: owner.name,
       title: owner.officer_role,
       companyNumber: company.company_number,
@@ -303,17 +324,17 @@ async function getAllOwnersByName(businessName, postcode, maxOwners = 5) {
 
     // Convert all officers to owner format (up to maxOwners)
     const owners = officers.slice(0, maxOwners).map(officer => {
-      const nameParts = officer.name.split(" ");
+      const { firstName, lastName } = parseName(officer.name);
       return {
-        firstName: nameParts[0] || "",
-        lastName: nameParts.slice(1).join(" ") || "",
+        firstName: firstName,
+        lastName: lastName,
         fullName: officer.name,
         title: officer.officer_role,
         companyNumber: company.company_number,
         companyName: company.title,
         source: 'companies-house-name-search'
       };
-    });
+    }).filter(owner => owner.firstName); // Remove invalid names that failed validation
 
     logger.info('companies-house', 'Found owners via name search', {
       businessName,
