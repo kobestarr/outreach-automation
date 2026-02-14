@@ -1,7 +1,7 @@
 /**
- * PRODUCTION TEST: 50 Business Export
+ * PRODUCTION EXPORT: Professional Services (~50-60 businesses)
  * Full pipeline test: Revenue estimation + Tier assignment + Lemlist export
- * 50 businesses across 3 categories (salons, dentists, cafes)
+ * Targeting professional services with high generic email rates
  */
 
 const { scrapeGoogleMapsOutscraper } = require('./ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper');
@@ -15,18 +15,31 @@ const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/data
 const logger = require('./shared/outreach-core/logger');
 
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
-const BUSINESSES_PER_CATEGORY = 17; // ~50 total (17+17+16)
-const CATEGORIES = ['salons', 'dentists', 'cafes'];
+const BUSINESSES_PER_CATEGORY = 5; // ~50-60 total across 10-12 categories
+const CATEGORIES = [
+  'accountants',
+  'solicitors',
+  'estate agents',
+  'financial advisors',
+  'insurance brokers',
+  'mortgage brokers',
+  'business consultants',
+  'IT support',
+  'recruitment agencies',
+  'architects',
+  'surveyors',
+  'engineers'
+];
 
 async function exportToLemlist() {
   console.log('\n╔════════════════════════════════════════════════════════════════════╗');
-  console.log('║    FULL PRODUCTION EXPORT: 50 Businesses Across 3 Categories      ║');
+  console.log('║   PROFESSIONAL SERVICES EXPORT: ~50-60 High-Value Businesses      ║');
   console.log('║          Revenue Estimation + Dynamic Pricing + Lemlist           ║');
   console.log('╚════════════════════════════════════════════════════════════════════╝\n');
 
   console.log(`📤 Campaign ID: ${CAMPAIGN_ID}`);
-  console.log(`📊 Categories: ${CATEGORIES.join(', ')}`);
-  console.log(`📈 Target: ~${BUSINESSES_PER_CATEGORY} businesses per category (~50 total)`);
+  console.log(`📊 Categories: ${CATEGORIES.length} professional service categories`);
+  console.log(`📈 Target: ${BUSINESSES_PER_CATEGORY} businesses per category (~${BUSINESSES_PER_CATEGORY * CATEGORIES.length} total)`);
   console.log(`💰 Full Pipeline: Revenue Estimation → Tier Assignment → Dynamic Pricing\n`);
 
   const startTime = Date.now();

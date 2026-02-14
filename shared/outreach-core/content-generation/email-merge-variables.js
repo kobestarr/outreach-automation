@@ -241,15 +241,16 @@ function getValidFirstName(business) {
     return business.ownerFirstName;
   }
 
-  // Option 2: Extract from email (CRITICAL FIX for "andrew@themountingstone.co.uk" → "Andrew")
-  if (business.ownerEmail && business.ownerEmail.includes('@')) {
-    const extractedName = extractNameFromEmail(business.ownerEmail);
+  // Option 2: Extract from email (CRITICAL FIX for "derek@4mation-architecture.com" → "Derek")
+  const email = business.ownerEmail || business.email; // Handle both field names
+  if (email && email.includes('@')) {
+    const extractedName = extractNameFromEmail(email);
     if (extractedName) {
       const firstName = extractedName.split(' ')[0];
 
       logger.info('email-merge-variables', 'Extracted firstName from email', {
         business: business.name || business.businessName,
-        email: business.ownerEmail,
+        email: email,
         extractedFirstName: firstName,
         originalFirstName: business.ownerFirstName
       });
@@ -262,7 +263,7 @@ function getValidFirstName(business) {
   logger.warn('email-merge-variables', 'Using fallback firstName "there"', {
     business: business.name || business.businessName,
     ownerFirstName: business.ownerFirstName,
-    ownerEmail: business.ownerEmail
+    ownerEmail: email
   });
 
   return 'there';
