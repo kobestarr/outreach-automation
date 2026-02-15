@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Email Verification Added to Export Pipeline
+
+**Date:** 2026-02-15
+**Commit:** 8d43bc3
+
+**Changes:**
+- Added email verification to export pipeline to ensure all emails are validated before sending
+- Multiple bug fixes to improve export reliability and data quality
+
+---
+
 ### Fixed - Gmail Email Filter Bug (Lost 27 Businesses)
 
 **Date:** 2026-02-13
