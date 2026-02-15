@@ -12,6 +12,7 @@ const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/
 const { estimateRevenue } = require('./ksd/local-outreach/orchestrator/modules/revenue-estimator');
 const { assignTier } = require('./ksd/local-outreach/orchestrator/modules/tier-assigner');
 const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/database');
+const { verifyEmail } = require('./shared/outreach-core/email-verification/reoon-verifier');
 const logger = require('./shared/outreach-core/logger');
 
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
@@ -312,10 +313,78 @@ async function exportToLemlist() {
     console.log(`✅ Revenue estimation & tier assignment complete!\n`);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // STEP 4: EXPORT TO LEMLIST
+    // STEP 3.5: EMAIL VERIFICATION (Reoon API)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('STEP 4: EXPORTING TO LEMLIST');
+    console.log('STEP 3.5: VERIFYING EMAILS WITH REOON API 🔍');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    let verified = 0;
+    let invalid = 0;
+    let risky = 0;
+    let verificationErrors = 0;
+
+    for (let i = 0; i < enrichedBusinesses.length; i++) {
+      const business = enrichedBusinesses[i];
+
+      if (!business.email) {
+        console.log(`[${i + 1}/${enrichedBusinesses.length}] ${business.name} - No email to verify`);
+        continue;
+      }
+
+      console.log(`[${i + 1}/${enrichedBusinesses.length}] ${business.name}`);
+      console.log(`   Email: ${logger.sanitizeData(business.email)}`);
+
+      try {
+        const verification = await verifyEmail(business.email, 'quick'); // Use quick mode to save credits
+
+        business.emailVerified = verification.isValid;
+        business.emailStatus = verification.status;
+        business.emailScore = verification.score;
+
+        if (verification.isValid) {
+          console.log(`   ✅ VALID (${verification.status}, score: ${verification.score})`);
+          verified++;
+        } else if (verification.status === 'risky' || verification.status === 'unknown') {
+          console.log(`   ⚠️  RISKY (${verification.status}, score: ${verification.score})`);
+          risky++;
+          business.emailVerified = false; // Mark as unverified for safety
+          business.email = null; // Don't export risky emails
+        } else {
+          console.log(`   ❌ INVALID (${verification.status})`);
+          invalid++;
+          business.emailVerified = false;
+          business.email = null; // Don't export invalid emails
+        }
+
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+      } catch (error) {
+        console.log(`   ⚠️  Verification error: ${error.message}`);
+        verificationErrors++;
+        business.emailVerified = false;
+        business.email = null; // Don't export unverified emails on error
+      }
+
+      console.log();
+    }
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('VERIFICATION SUMMARY:');
+    console.log(`✅ Valid: ${verified} (${Math.round(verified/enrichedBusinesses.length*100)}%)`);
+    console.log(`⚠️  Risky: ${risky} (${Math.round(risky/enrichedBusinesses.length*100)}%) - EXCLUDED`);
+    console.log(`❌ Invalid: ${invalid} (${Math.round(invalid/enrichedBusinesses.length*100)}%) - EXCLUDED`);
+    console.log(`⚠️  Errors: ${verificationErrors}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    console.log(`📤 Ready to export ${verified} verified leads to Lemlist\n`);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 4: EXPORT TO LEMLIST (Only Verified Emails)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('STEP 4: EXPORTING VERIFIED LEADS TO LEMLIST');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     const existingEmails = new Set();

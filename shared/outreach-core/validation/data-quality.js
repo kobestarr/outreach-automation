@@ -152,6 +152,15 @@ function extractNameFromEmail(email) {
     return null;
   }
 
+  // Reject if username looks like a hash, ID, or random string
+  if (/^[0-9a-f]{8,}$/i.test(username) || /^\d+$/.test(username)) {
+    logger.debug('data-quality', 'Email username rejected: hash/ID pattern', {
+      email,
+      username
+    });
+    return null;
+  }
+
   // Parse username parts (split on dots, underscores, dashes)
   const parts = username.split(/[._-]/);
 
@@ -160,6 +169,22 @@ function extractNameFromEmail(email) {
     .filter(part => part.length > 0)
     .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(' ');
+
+  // Additional rejection patterns for email-extracted names
+  const badEmailNames = [
+    'sandwich', 'bramhall', 'manchester', 'london', 'alderley', 'cheadle',
+    'stockport', 'cheshire', 'yorkshire', 'cafe', 'restaurant', 'salon',
+    'hairdressing', 'beauty', 'dental', 'accountants', 'chartered'
+  ];
+
+  const lowerCapitalized = capitalized.toLowerCase();
+  if (badEmailNames.some(bad => lowerCapitalized.includes(bad))) {
+    logger.debug('data-quality', 'Extracted name from email rejected: business/location word', {
+      email,
+      extractedName: capitalized
+    });
+    return null;
+  }
 
   // Validate extracted name
   if (!isValidPersonName(capitalized)) {
