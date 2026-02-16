@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Playwright Headless Browser for JS-Rendered Sites
+
+**Date:** 2026-02-16
+**Commit:** 5f7664c
+
+**Problem:** Websites built with Wix, Divi/WordPress, Squarespace, and other JS-heavy frameworks return empty HTML shells when fetched with standard HTTP requests. The scraper couldn't find team member names on sites like Arundel Dental Practice (Wix) or Bramhall Smile Clinic (Divi), even though their team pages list multiple dentists/staff.
+
+**Solution:** Smart Playwright fallback — native HTTP fetch first (fast), automatic detection of JS-rendered sites, Playwright headless browser rendering only when needed.
+
+**Key Components:**
+
+1. **Browser Fetcher Module** (`shared/outreach-core/enrichment/browser-fetcher.js`):
+   - `needsBrowserRendering(html)` — detects Wix, Squarespace, Divi, SPAs via framework markers + visible text ratio
+   - `fetchWithBrowser(url, timeout)` — renders with headless Chromium, blocks images/fonts/media for speed
+   - Lazy browser init (only launches when first JS site detected)
+   - Browser reuse across pages (one browser, many pages)
+
+2. **Website Scraper Integration** (`shared/outreach-core/enrichment/website-scraper.js`):
+   - `smartFetch()` helper: native HTTP → detect → Playwright fallback
+   - Site-level flag: if main page is JS-rendered, subpages go straight to Playwright
+   - Browser cleanup on success and error paths
+
+3. **Detection Heuristic:**
+   - Framework markers: `wixCssCustom`, `thunderbolt-`, `sqs-block`, `__NEXT_DATA__`, etc.
+   - Visible text ratio: strip scripts/styles/tags → if < 200 chars but HTML > 10KB → JS-rendered
+
+**Results:**
+- Arundel Dental (Wix): 0 → 10,636 chars visible text, found "Christopher Needham BDS"
+- Bramhall Smile Clinic (Divi): 0 → 5,629 chars, found "Dr Mohamed Mahmoud Principal Dentist"
+
+### Fixed - Email Export Quality (Business Names + noNameNote)
+
+**Date:** 2026-02-16
+
+- Strip internal annotations from business names (e.g., "(SALES PAGE ONLY)" removed from Snapes Estate Agents)
+- Title-case ALL CAPS business names (BRAMHALL SURVEYORS → Bramhall Surveyors)
+- Updated noNameNote: "I couldn't find a direct contact name for your business!" (was "I couldn't find your names anywhere!")
+
+---
+
 ### Added - International Name Splitting Algorithm (766 test cases, 100% pass rate)
 
 **Date:** 2026-02-16
