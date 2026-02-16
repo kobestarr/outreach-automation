@@ -130,7 +130,15 @@ async function verifyAndExport() {
   for (const lead of leadsToExport) {
     try {
       // Generate merge variables
+      let businessData = {};
+      try {
+        businessData = lead.business_data ? JSON.parse(lead.business_data) : {};
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+
       const business = {
+        ...businessData,
         ...lead,
         name: lead.name,
         email: lead.owner_email,
@@ -138,7 +146,9 @@ async function verifyAndExport() {
         ownerFirstName: lead.owner_first_name,
         ownerLastName: lead.owner_last_name,
         assignedOfferTier: lead.assigned_tier || 'tier3', // Database already stores as "tier3"
-        usedFallbackName: !lead.owner_first_name || lead.owner_first_name === 'there'
+        usedFallbackName: !lead.owner_first_name || lead.owner_first_name === 'there',
+        // Preserve owners array from business_data for multi-owner note generation
+        owners: businessData.owners || undefined
       };
 
       const mergeVariables = getAllMergeVariables(business);

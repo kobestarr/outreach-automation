@@ -193,8 +193,8 @@ async function reexport() {
       address: lead.address,
       assignedOfferTier: lead.assigned_tier,
       usedFallbackName: usedFallback,
-      // Don't pass owners array - we're exporting single leads
-      owners: undefined
+      // Preserve owners array from business_data for multi-owner note generation
+      owners: businessData.owners || undefined
     };
 
     // Generate merge variables

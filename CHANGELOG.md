@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Multi-Person Extraction (Scraper + Export Pipeline)
+
+**Date:** 2026-02-16
+
+**Problem:** The website scraper had an early exit optimisation that stopped scraping subpages (team, about, contact) the moment it found 1 email + 1 name from the main page. This meant team pages with 10+ staff members were never visited. Additionally, export scripts explicitly set `owners: undefined`, preventing the multi-owner note from being generated even when the data existed.
+
+**Root Causes (3 breakdown points):**
+
+1. **Early exit in `website-scraper.js`** — `if (allEmails.length > 0 && ownerNames.length > 0) { break; }` stopped scraping after finding 1 person
+2. **`reexport-clean-leads.js`** — explicitly set `owners: undefined` instead of passing through `business_data.owners`
+3. **`verify-and-export.js`** — constructed business object from flat DB columns only, never parsing `business_data` JSON for the owners array
+
+**Fixes:**
+
+1. **Removed early exit** — scraper now always checks all team/about/contact pages to find ALL team members
+2. **Export scripts now pass `owners: businessData.owners`** — multi-owner notes flow through to Lemlist
+3. **Exported `extractEmails`** from website-scraper module for test use
+
+**Results (verified via test):**
+- Arundel Dental Practice (Wix): 1 person → **12 people** (Amanda Lynam, Zoe Tierney, Christopher Needham, Barbara Woodall, Nicola Roe, Lauren Hammond, Natasha Lallement, Natalie Hunter, Sarah Beech, Olivia Crick, Rebecca Sherlock, Michael Clark)
+- Bramhall Smile Clinic (Divi): 1 person → **10 people** (Mohamed Mahmoud, Sarah Aylmer, Maryam Yossefi, Joshua Mathew, Ana Dooley, Kenzey Mahmoud, Ksenia Mchedlidze, Karen Mahmoud, + 2 more)
+- Full `scrapeWebsite()` pipeline test confirms early exit is removed and team pages are scraped
+
 ### Added - Playwright Headless Browser for JS-Rendered Sites
 
 **Date:** 2026-02-16

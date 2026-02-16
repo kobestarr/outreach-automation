@@ -667,21 +667,12 @@ async function scrapeWebsite(url) {
       pagesToCheck = hardcodedPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
     }
 
-    // EARLY EXIT OPTIMIZATION: Stop scraping once we have email + name
-    // This saves tokens and reduces scraping time
+    // SCRAPE ALL TEAM/ABOUT PAGES: Always check subpages to find ALL team members
+    // Previously had early exit that stopped after finding 1 person — now we collect everyone
     let allEmails = [...emails];
 
     for (const pageUrl of pagesToCheck) {
       try {
-        // EARLY EXIT: If we already have email + name, stop scraping
-        if (allEmails.length > 0 && ownerNames.length > 0) {
-          logger.info('website-scraper', 'Early exit: already have email + name', {
-            emails: allEmails.length,
-            names: ownerNames.length
-          });
-          break;
-        }
-
         // If main page was JS-rendered, subpages will be too — go straight to Playwright
         const teamHtml = siteNeedsBrowser
           ? await smartFetch(pageUrl, 5000, true)
@@ -861,6 +852,7 @@ module.exports = {
   extractRegistrationNumber,
   extractRegisteredAddress,
   extractOwnerNames,
+  extractEmails,
   parseName,
   fetchWebsite
 };
