@@ -346,21 +346,89 @@ function findMatchingEmail(fullName, title, emails, claimedEmails = new Set()) {
 function extractOwnerNames(html, emails = []) {
   if (!html) return [];
 
-  const text = html.replace(/<[^>]+>/g, '\n').replace(/\s+/g, ' ');
+  const text = html.replace(/<[^>]+>/g, '\n').replace(/[✓✗→←↑↓•·▸▹►▻★☆♠♣♥♦✔✘]/g, '').replace(/\s+/g, ' ');
   const names = [];
+
+  // ── Shared validation function (used by ALL patterns) ──
+  const isValidPersonName = (name) => {
+    // Strip special characters (checkmarks, arrows, etc.) before validation
+    name = name.replace(/[✓✗→←↑↓•·▸▹►▻★☆♠♣♥♦]/g, '').trim();
+
+    // Reject common non-name words that get capitalized in sentences
+    // Checked against ALL words in the name, not just the first
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka|attach|data|insurance|lead|construction|web|mixed|elimination|recurring|senior|junior|key|community|hybrid|cloud|packaging|support|every|top|survey|choose|managed|employment|engineering|machine|commercial|structural|independent|cutter|microsoft|google|account|programs|academic|alliance|end|customer|claims|information|security|experience|ethical|hours|meet|our|your|form|files|pixels|home|protection|diet|project|design|bank|vacancy|response|enquiry|tag|more|broking|salon|prices|expand|systems|accounts|payroll|admin|office|assistant|cosmetic|director|manager|xero|sage|quickbooks|gold|silver|bronze|platinum|premier|elite|award|partner|approved|accredited|private|residence|after|before|during|between|management|planning|consulting|trading|limited|group|holding|international|global|local|regional|central|eastern|western|northern|southern|following|collaborating|perspectives|front|house|kitchen|garden|room|studio|gallery|shop|store|centre|center|associate|specialist|assistant|trainee|intern|volunteer|freelance|temporary|permanent|full|part|time)$/i;
+
+    const words = name.split(' ');
+    // Check ALL words against nonNameWords (not just first)
+    for (const word of words) {
+      if (nonNameWords.test(word.toLowerCase())) {
+        return false;
+      }
+    }
+
+    // Reject if second word is a qualification (BDS, MSc, etc.)
+    const secondWord = words[1];
+    if (secondWord && /^(BDS|MBBS|MBChB|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Eng|ACCA|ACA|FCA|FCCA|ATT|CTA)$/i.test(secondWord)) {
+      return false;
+    }
+
+    // Reject names ending with job-related words, qualifications, or country codes
+    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co|Executive|Officer|Manager|Sales|Operations|Marketing|Development|Change|Solutions|Professional|Client|Media|Linkedin|Managing|Home|Protection|Diet|Form|Files|Pixels|Bank|Project|Design|Vacancy|Response|Insurance|Cloud|Tag|Security|Engagement|Information|Account|Operators|Accountancy|Recruitment|Partnership|Architecture|Compliance|Technology|Approaches|Finance|Support|Systems|Accounts|Prices|Salon|Expand|Payroll|Admin|Office|Assistant|Cosmetic|Nurse|Hygienist|Therapist|Surgeon|Receptionist|Management|Residence|After|Before|Consulting|Trading|Limited|Group|Holding|International|Global|Studio|Gallery|Shop|Store|Centre|Center|Planning|Collaborating|Perspectives|Front|House|Kitchen|Garden|Room|Associate|Specialist|Trainee|Intern|Volunteer|Freelance)$/i)) {
+      return false;
+    }
+
+    // Reject if contains lowercase articles or conjunctions
+    if (name.match(/\b(the|and|as|an|of|in|on|at|to|for|with|from|by)\b/)) {
+      return false;
+    }
+
+    // Require that both words start with uppercase and contain mostly lowercase
+    for (const word of words) {
+      if (!/^[A-Z][a-z]{1,}$/.test(word)) {
+        return false;
+      }
+    }
+
+    // Reject names where any word is a common short non-name fragment
+    const shortFragments = /^(My|Su|Pl|Bh|Wy|Our|All|Top|End|New|Old|Red|Big|Att|Dom|Ads|Pr|Or|It|So|No)$/;
+    if (words.some(w => shortFragments.test(w))) {
+      return false;
+    }
+
+    // Require last name to be at least 3 characters (filters "My Su", "Kajal Bh" etc.)
+    const lastName = words[words.length - 1];
+    if (lastName.length < 3) {
+      return false;
+    }
+
+    // Require exactly 2 or 3 words (a real person name)
+    if (words.length < 2 || words.length > 3) {
+      return false;
+    }
+
+    return name.length >= 5 && name.length <= 40;
+  };
 
   // Pattern 1: Names with professional qualifications (BDS, MSc, PhD, ACCA, ACA, etc.)
   // e.g., "Christopher Needham BDS", "Andy Vause | BSc FCA", "Laura Gill BDS MJDF RCS Eng"
-  // Handles pipe separators (|, –, —) between name and qualification
-  // NOTE: No 'i' flag — name capture must be case-sensitive (proper nouns: "Christopher Needham")
-  // Qualification group uses alternation with both cases explicitly
+  // NOTE: No 'i' flag — name capture must be case-sensitive (proper nouns)
   const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[|\u2013\u2014]?\s*(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d|ACCA|ACA|FCA|FCCA|ATT|CTA|CIMA|CIPFA|[Bb][Dd][Ss]|[Bb][Ss][Cc]|[Mm][Ss][Cc]|[Pp][Hh][Dd])(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/g;
   let match;
   while ((match = qualificationPattern.exec(text)) !== null) {
-    const name = match[1].trim();
-    if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
+    const rawName = match[1].trim();
+    // Greedy regex may capture extra words — try progressively shorter names
+    const nameWords = rawName.split(/\s+/);
+    let validName = null;
+    for (let len = Math.min(nameWords.length, 3); len >= 2; len--) {
+      const candidate = nameWords.slice(0, len).join(' ');
+      if (isValidPersonName(candidate)) {
+        validName = candidate;
+        break;
+      }
+    }
+    if (validName) {
       const qualification = match[2].toUpperCase();
-      names.push({ name, title: qualification });
+      names.push({ name: validName, title: qualification });
     }
   }
 
@@ -373,81 +441,43 @@ function extractOwnerNames(html, emails = []) {
 
   for (const pattern of titleFirstPatterns) {
     while ((match = pattern.exec(text)) !== null) {
-      const name = match[1].trim();
-      // Ensure name doesn't end with job-related words
-      if (name.length >= 5 && name.length <= 50 &&
-          /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}$/.test(name) &&
-          !name.match(/\b(Dental|Lead|Senior|Junior|Manager|Director|Officer)$/)) {
+      let name = match[1].trim();
+      // Greedy regex may capture too many words (e.g. "Mark Rogers Expand")
+      // Try progressively shorter names until one passes validation
+      const nameWords = name.split(/\s+/);
+      let validName = null;
+      for (let len = Math.min(nameWords.length, 3); len >= 2; len--) {
+        const candidate = nameWords.slice(0, len).join(' ');
+        if (isValidPersonName(candidate)) {
+          validName = candidate;
+          break;
+        }
+      }
+      if (validName) {
         const titleMatch = match[0].match(/(Principal|Owner|Founder|Director|Managing Director|CEO|Proprietor|Dr\.?|Mr\.?|Mrs\.?|Ms\.?)/i);
-        names.push({ name, title: titleMatch ? titleMatch[0] : null });
+        names.push({ name: validName, title: titleMatch ? titleMatch[0] : null });
       }
     }
   }
 
-  // Pattern 3: Context clues (founded by, joined by, graduated from)
+  // Pattern 3: Context clues (founded by, started by, etc.)
   // e.g., "founded by Christopher Needham", "practice was started by Sarah Johnson"
   const contextPattern = /(?:founded|started|established|run|led|owned|joined|managed|graduated)\s+(?:by|from)\s+(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/gi;
   while ((match = contextPattern.exec(text)) !== null) {
-    const name = match[1].trim();
-    if (name.length >= 5 && name.length <= 50 &&
-        /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}$/.test(name) &&
-        !name.match(/\b(Dental|Lead|Senior|Junior|Manager|Director|Officer|University|School|College)$/)) {
-      names.push({ name, title: 'Founder' });
-    }
-  }
-
-  // Pattern 4: General names near job indicators (works for any business type)
-  // Finds proper names followed by job-related terms within proximity
-  // Two sub-patterns: (a) name directly before indicator, (b) name with 1-2 words before indicator
-
-  // Helper function to validate if a string looks like a real person's name
-  const isValidPersonName = (name) => {
-    // Reject common non-name words that get capitalized in sentences
-    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka|attach|data|insurance|lead|construction|web|mixed|elimination|recurring|senior|junior|key|community|hybrid|cloud|packaging|support|every|top|survey|choose|managed|employment|engineering|machine|commercial|structural|independent|cutter|microsoft|google|account|programs|academic|alliance|end|customer|claims|information|security|experience|ethical|hours|meet|our|your|form|files|pixels|home|protection|diet|project|design|bank|vacancy|response|enquiry|tag)\b/i;
-
-    const firstWord = name.split(' ')[0].toLowerCase();
-    if (nonNameWords.test(firstWord)) {
-      return false;
-    }
-
-    // Reject if second word is a qualification (BDS, MSc, etc.)
-    const secondWord = name.split(' ')[1];
-    if (secondWord && /^(BDS|MBBS|MBChB|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Eng|ACCA|ACA|FCA|FCCA|ATT|CTA)$/i.test(secondWord)) {
-      return false;
-    }
-
-    // Reject names ending with job-related words, qualifications, or country codes
-    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co|Executive|Officer|Manager|Sales|Operations|Marketing|Development|Change|Solutions|Professional|Client|Media|Linkedin|Managing|Home|Protection|Diet|Form|Files|Pixels|Bank|Project|Design|Vacancy|Response|Insurance|Cloud|Tag|Security|Engagement|Information|Account|Operators|Accountancy|Recruitment|Partnership|Architecture|Compliance|Technology|Approaches)$/i)) {
-      return false;
-    }
-
-    // Reject if contains lowercase articles or conjunctions
-    if (name.match(/\b(the|and|as|an|of|in|on|at|to|for|with|from|by)\b/)) {
-      return false;
-    }
-
-    // Require that both words start with uppercase and contain mostly lowercase
-    const words = name.split(' ');
-    for (const word of words) {
-      if (!/^[A-Z][a-z]{1,}$/.test(word)) {
-        return false;
+    const rawName = match[1].trim();
+    const nameWords = rawName.split(/\s+/);
+    let validName = null;
+    for (let len = Math.min(nameWords.length, 3); len >= 2; len--) {
+      const candidate = nameWords.slice(0, len).join(' ');
+      if (isValidPersonName(candidate)) {
+        validName = candidate;
+        break;
       }
     }
-
-    // Reject names where any word is a common short non-name fragment
-    const shortFragments = /^(My|Su|Pl|Bh|Wy|Our|All|Top|End|New|Old|Red|Big|Att|Dom|Ads)$/;
-    if (words.some(w => shortFragments.test(w))) {
-      return false;
+    if (validName) {
+      names.push({ name: validName, title: 'Founder' });
     }
-
-    // Require last name to be at least 3 characters (filters "My Su", "Kajal Bh" etc.)
-    const lastName = words[words.length - 1];
-    if (lastName.length < 3) {
-      return false;
-    }
-
-    return name.length >= 5 && name.length <= 40;
-  };
+  }
 
   // 4a: Name immediately followed by job indicator (most reliable)
   // e.g., "Amanda Lynam Practice Manager", "Paul Brown Tax Director"

@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved - Hardened False Positive Filtering & Lemlist Re-export
+
+**Date:** 2026-02-16
+
+**1. Centralised name validation:**
+- All extraction patterns (qualifications, title-before-name, context clues, job indicators) now route through a single `isValidPersonName()` function
+- Previously, Patterns 1-3 had weaker inline validation that let garbage through
+- Progressive name shortening: greedy regex captures like "Mark Rogers Expand" are trimmed to "Mark Rogers" by testing shorter subsets
+
+**2. Expanded blocklists (150+ blocked words):**
+- nonNameWords now checks ALL words in a name (not just the first word)
+- Added department words: Finance, Support, Systems, Accounts, Management, Associate, Consulting, Trading
+- Added layout/UI words: Private, Residence, Studio, Gallery, Front, House, Room, Centre
+- Added brand words: Xero, Sage, QuickBooks, Gold, Silver, Bronze, Platinum, Premier
+- Added temporal words: After, Before, During, Between, Following, Collaborating
+- Unicode/emoji stripping (✓✗→★ etc.) applied before name extraction
+
+**3. Re-scrape results (with fixed filters):**
+- 98 businesses scraped, 18 improved, 0 errors
+- Key fixes: "Lesley Finance" → blocked, "Mark Rogers Expand ✓" → "Mark Rogers", "Connor Chief" → blocked
+- Remaining FPs cleaned via targeted DB cleanup script
+
+**4. Lemlist re-export:**
+- 63 leads exported (0 errors, 0 duplicates)
+- 18 real person names, 8 team names, 37 "there" fallbacks
+- All merge variables generated (localIntro, observationSignal, microOfferPrice, multiOwnerNote)
+
 ### Improved - Scraper Optimisation, False Positive Filtering & Tech Detection
 
 **Date:** 2026-02-16
