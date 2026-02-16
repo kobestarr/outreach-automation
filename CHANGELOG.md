@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved - Scraper Optimisation, False Positive Filtering & Tech Detection
+
+**Date:** 2026-02-16
+
+**1. Smart page prioritisation:**
+- Sitemap URLs capped at 5 most relevant pages
+- Hardcoded paths split into high-priority (team/contact/about) and low-priority (blog/news)
+- Low-priority pages only checked if zero people found from high-priority pages
+- Smart exit after finding 3+ people from subpages (stops checking remaining pages)
+- Result: Arundel Dental now checks 7 pages instead of 16, finds 15 people
+
+**2. False positive filtering:**
+- Added 60+ non-name words to blocklist (email, form, attach, data, protection, insurance, home, lead, design, construction, web, pixels, etc.)
+- Added 30+ ending-word blocks (Home, Protection, Form, Files, Pixels, Bank, Project, etc.)
+- Short fragment filter: blocks 2-char words like "Su", "Bh", "Wy", "Pl"
+- Minimum 3-char last name requirement
+- Fixed qualification pattern (Pattern 1): removed case-insensitive flag so "BDS" isn't treated as a name word
+- Result: "Email Form", "Data Protection", "My Su", "Insurance Home" etc. all now blocked
+
+**3. Website tech/age detection** (`shared/outreach-core/enrichment/tech-detector.js`):
+- CMS detection: WordPress, Wix, Squarespace, Shopify, HubSpot, Webflow, Joomla, Drupal, Divi, Elementor, GoDaddy, Weebly
+- WordPress version extraction from generator meta
+- Age estimation: pre-2010, 2010-2015, 2015-2020, 2020+ based on HTML signals
+- Old signals: table layouts, font tags, Flash, frames, IE conditionals, jQuery 1.x
+- Modern signals: responsive viewport, lazy loading, srcset, ES modules, preload
+
 ### Fixed - Multi-Person Extraction (Scraper + Export Pipeline)
 
 **Date:** 2026-02-16

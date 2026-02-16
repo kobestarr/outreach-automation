@@ -352,12 +352,14 @@ function extractOwnerNames(html, emails = []) {
   // Pattern 1: Names with professional qualifications (BDS, MSc, PhD, ACCA, ACA, etc.)
   // e.g., "Christopher Needham BDS", "Andy Vause | BSc FCA", "Laura Gill BDS MJDF RCS Eng"
   // Handles pipe separators (|, –, —) between name and qualification
-  const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[|\u2013\u2014]?\s*(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d|ACCA|ACA|FCA|FCCA|ATT|CTA|CIMA|CIPFA)(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/gi;
+  // NOTE: No 'i' flag — name capture must be case-sensitive (proper nouns: "Christopher Needham")
+  // Qualification group uses alternation with both cases explicitly
+  const qualificationPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*[|\u2013\u2014]?\s*(BDS|MBChB|MBBS|MD|PhD|BSc|MSc|MFDS|MJDF|RCS|NVQ|Level\s+\d|ACCA|ACA|FCA|FCCA|ATT|CTA|CIMA|CIPFA|[Bb][Dd][Ss]|[Bb][Ss][Cc]|[Mm][Ss][Cc]|[Pp][Hh][Dd])(?:\s+[A-Z][a-z]+|\s+RCS|\s+Eng|\s+\([A-Za-z]+\)|\s+in)?/g;
   let match;
   while ((match = qualificationPattern.exec(text)) !== null) {
     const name = match[1].trim();
     if (name.length >= 5 && name.length <= 50 && /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(name)) {
-      const qualification = match[2];
+      const qualification = match[2].toUpperCase();
       names.push({ name, title: qualification });
     }
   }
@@ -401,7 +403,7 @@ function extractOwnerNames(html, emails = []) {
   // Helper function to validate if a string looks like a real person's name
   const isValidPersonName = (name) => {
     // Reject common non-name words that get capitalized in sentences
-    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka)\b/i;
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka|attach|data|insurance|lead|construction|web|mixed|elimination|recurring|senior|junior|key|community|hybrid|cloud|packaging|support|every|top|survey|choose|managed|employment|engineering|machine|commercial|structural|independent|cutter|microsoft|google|account|programs|academic|alliance|end|customer|claims|information|security|experience|ethical|hours|meet|our|your|form|files|pixels|home|protection|diet|project|design|bank|vacancy|response|enquiry|tag)\b/i;
 
     const firstWord = name.split(' ')[0].toLowerCase();
     if (nonNameWords.test(firstWord)) {
@@ -415,7 +417,7 @@ function extractOwnerNames(html, emails = []) {
     }
 
     // Reject names ending with job-related words, qualifications, or country codes
-    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co|Executive|Officer|Manager|Sales|Operations|Marketing|Development|Change|Solutions|Professional|Client|Media|Linkedin|Managing)$/i)) {
+    if (name.match(/\b(Dental|Lead|Senior|Junior|Practice|Team|Contact|About|University|School|College|Service|Care|General|Degree|Certificate|Diploma|Number|Website|Email|uk|usa|com|org|net|co|Executive|Officer|Manager|Sales|Operations|Marketing|Development|Change|Solutions|Professional|Client|Media|Linkedin|Managing|Home|Protection|Diet|Form|Files|Pixels|Bank|Project|Design|Vacancy|Response|Insurance|Cloud|Tag|Security|Engagement|Information|Account|Operators|Accountancy|Recruitment|Partnership|Architecture|Compliance|Technology|Approaches)$/i)) {
       return false;
     }
 
@@ -430,6 +432,18 @@ function extractOwnerNames(html, emails = []) {
       if (!/^[A-Z][a-z]{1,}$/.test(word)) {
         return false;
       }
+    }
+
+    // Reject names where any word is a common short non-name fragment
+    const shortFragments = /^(My|Su|Pl|Bh|Wy|Our|All|Top|End|New|Old|Red|Big|Att|Dom|Ads)$/;
+    if (words.some(w => shortFragments.test(w))) {
+      return false;
+    }
+
+    // Require last name to be at least 3 characters (filters "My Su", "Kajal Bh" etc.)
+    const lastName = words[words.length - 1];
+    if (lastName.length < 3) {
+      return false;
     }
 
     return name.length >= 5 && name.length <= 40;
@@ -650,26 +664,35 @@ async function scrapeWebsite(url) {
     }
 
     // INTELLIGENT SCRAPING: Try sitemap.xml first, then fall back to hardcoded paths
-    // This discovers pages like /resources/news/in-team/ that we'd otherwise miss
-    let pagesToCheck = await fetchSitemapUrls(url);
+    // Prioritise team/contact/about pages — skip blog/news/insights unless we found nothing
+    let sitemapUrls = await fetchSitemapUrls(url);
+    const baseParsedUrl = new URL(url);
 
-    // If no sitemap or no relevant pages found, use hardcoded paths
-    if (pagesToCheck.length === 0) {
+    // Split hardcoded paths into HIGH-PRIORITY (team/contact/about) and LOW-PRIORITY (blog/news)
+    const highPriorityPaths = [
+      '/contact', '/contact-us', '/contactus',
+      '/team', '/meet-the-team', '/our-team', '/meet-the-team-subtitle', '/team-members',
+      '/staff', '/people', '/directors',
+      '/about', '/about-us', '/about-me', '/aboutus', '/about-us/meet-the-team'
+    ];
+    const lowPriorityPaths = ['/blog', '/insights', '/news'];
+
+    let pagesToCheck;
+    if (sitemapUrls.length > 0) {
+      // Sitemap found — use its filtered URLs (already prioritised by fetchSitemapUrls), cap at 5
+      pagesToCheck = sitemapUrls.slice(0, 5);
+      logger.info('website-scraper', 'Using sitemap URLs', { count: pagesToCheck.length });
+    } else {
+      // No sitemap — use high-priority hardcoded paths first
+      pagesToCheck = highPriorityPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
       logger.debug('website-scraper', 'No sitemap found, using hardcoded paths');
-      const baseParsedUrl = new URL(url);
-      const hardcodedPaths = [
-        '/contact', '/contact-us', '/contactus',  // Contact pages first (usually have email + names)
-        '/team', '/meet-the-team', '/our-team', '/meet-the-team-subtitle', '/team-members',
-        '/staff', '/people', '/directors',
-        '/about', '/about-us', '/about-me', '/aboutus', '/about-us/meet-the-team',
-        '/blog', '/insights', '/news'
-      ];
-      pagesToCheck = hardcodedPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
     }
 
-    // SCRAPE ALL TEAM/ABOUT PAGES: Always check subpages to find ALL team members
-    // Previously had early exit that stopped after finding 1 person — now we collect everyone
+    // SCRAPE TEAM/CONTACT/ABOUT PAGES: Find all team members
+    // Smart exit: stop once we've found 3+ people from subpages (enough for multi-owner note)
+    const MIN_PEOPLE_TARGET = 3;
     let allEmails = [...emails];
+    let subpageNamesFound = 0;
 
     for (const pageUrl of pagesToCheck) {
       try {
@@ -694,9 +717,10 @@ async function scrapeWebsite(url) {
               ownerNames.push({
                 name: name,
                 title: 'Dr',
-                hasEmailMatch: false, // Will be validated later with email claiming
+                hasEmailMatch: false,
                 matchedEmail: null
               });
+              subpageNamesFound++;
               logger.info('website-scraper', `Found name in meta description`, { name, url: pageUrl });
             }
           }
@@ -707,15 +731,56 @@ async function scrapeWebsite(url) {
         for (const name of teamNames) {
           if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
             ownerNames.push(name);
+            subpageNamesFound++;
           }
         }
         if (teamNames.length > 0) {
           const pagePath = new URL(pageUrl).pathname;
           logger.info('website-scraper', `Found names on page`, { path: pagePath, count: teamNames.length });
         }
+
+        // SMART EXIT: If we've found enough people from subpages, stop checking more
+        if (subpageNamesFound >= MIN_PEOPLE_TARGET) {
+          logger.info('website-scraper', 'Enough team members found, skipping remaining pages', {
+            namesFound: subpageNamesFound,
+            totalNames: ownerNames.length,
+            pagesChecked: pagesToCheck.indexOf(pageUrl) + 1,
+            pagesTotal: pagesToCheck.length
+          });
+          break;
+        }
       } catch (error) {
         // Team page fetch failed - not critical, try next one
         logger.debug('website-scraper', `Could not fetch page`, { url: pageUrl, error: error.message });
+      }
+    }
+
+    // LOW-PRIORITY FALLBACK: Only check blog/news if we found NO people from high-priority pages
+    if (subpageNamesFound === 0 && sitemapUrls.length === 0) {
+      const lowPriorityUrls = lowPriorityPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
+      for (const pageUrl of lowPriorityUrls) {
+        try {
+          const html = siteNeedsBrowser
+            ? await smartFetch(pageUrl, 5000, true)
+            : await fetchWebsite(pageUrl, 5000);
+
+          const pageEmails = extractEmails(html);
+          allEmails = [...new Set([...allEmails, ...pageEmails])];
+
+          const pageNames = extractOwnerNames(html, allEmails);
+          for (const name of pageNames) {
+            if (!ownerNames.find(n => n.name.toLowerCase() === name.name.toLowerCase())) {
+              ownerNames.push(name);
+            }
+          }
+          if (pageNames.length > 0) {
+            const pagePath = new URL(pageUrl).pathname;
+            logger.info('website-scraper', `Found names on low-priority page`, { path: pagePath, count: pageNames.length });
+            break; // Found something on a low-priority page, stop
+          }
+        } catch (error) {
+          logger.debug('website-scraper', `Could not fetch low-priority page`, { url: pageUrl, error: error.message });
+        }
       }
     }
 
