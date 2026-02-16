@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - International Name Splitting Algorithm (766 test cases, 100% pass rate)
+
+**Date:** 2026-02-16
+**Commit:** 4a917df
+
+**Problem:** Concatenated email usernames (e.g., `kategymer@owlbookkeeper.com`) couldn't be split into first + last names. The system would fall back to "Owl Digital Team" instead of correctly identifying "Kate Gymer". This matters at scale — when sending 1000s of emails/day, every wrong name is a wasted opportunity.
+
+**Solution:** Built a dictionary-based name splitting algorithm with comprehensive international coverage.
+
+**Key Components:**
+
+1. **First Names Dictionary** (`common-first-names.js`) — ~600 names across 16 regions:
+   - UK/English, Welsh, Scottish, Irish
+   - Spanish, Portuguese, Catalan, Basque, Galician
+   - Scandinavian (Danish, Swedish, Norwegian)
+   - Indian (Hindi, Bengali, Marathi, South Indian, Punjabi)
+   - Pakistani / Middle Eastern
+   - NZ/Pacific, African American
+
+2. **Name Splitting Algorithm** (`trySplitConcatenatedName`):
+   - Tries each known first name as prefix (longest match first)
+   - Validates remainder as plausible surname (length, pronounceability, blocklist check)
+   - `longestRejectedMatch` tracking prevents false splits (e.g., "robertson" won't become "Rob Ertson")
+   - `KNOWN_SHORT_SURNAMES` set (~70 entries) for 2-3 char surnames: Gil, Lee, Ek, Rao, Sen, Das, Roy, etc.
+   - Compound first name support: `miguelangel`, `joaopedro`
+
+3. **Extraction Chain** (`extractNameFromEmail`):
+   - Reject generic/hash usernames → Separated usernames (dot/underscore) → Known first name (whole match) → Dictionary split → Single name fallback → null
+
+4. **Validation Hardening** (`isValidPersonName`):
+   - Reject names containing digits (e.g., "Bali1room")
+   - Reject single-word names >15 chars (e.g., "Dataprotectionofficer")
+   - Reject 2-char names not in known set (e.g., "Gm")
+   - Added venue/object words to blocklist (aviator, salon, etc.)
+
+**Testing:** 766 international email handles stress-tested across all 16 regions — 100% pass rate. Plus 28 edge case tests and 34 validation hardening tests all passing.
+
+**Utility Scripts Added:**
+- `reexport-clean-leads.js` — Re-export verified leads from DB to Lemlist with name resolution
+- `cleanup-bad-leads.js` — Fix bad names in DB and Lemlist via API
+
+---
+
 ### Fixed - Email Verification Added to Export Pipeline
 
 **Date:** 2026-02-15
