@@ -220,7 +220,7 @@ function getNoNameNote(business) {
   }
 
   // Note: trailing space ensures natural flow into {{localIntro}}
-  return "I couldn't find your names anywhere! ";
+  return "I couldn't find a direct contact name for your business! ";
 }
 
 /**

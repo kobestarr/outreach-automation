@@ -16,6 +16,25 @@ const DB_PATH = './ksd/local-outreach/orchestrator/data/businesses.db';
 const DELAY_MS = 500; // Between API calls
 
 /**
+ * Clean business name for use in customer-facing emails
+ * - Strips internal annotations like "(SALES PAGE ONLY)"
+ * - Title-cases ALL CAPS multi-word names
+ */
+function cleanBusinessNameForEmail(name) {
+  if (!name) return name;
+
+  // Strip parenthetical internal annotations
+  let cleaned = name.replace(/\s*\([^)]*\)\s*/g, '').trim();
+
+  // Title-case ALL CAPS multi-word names (but leave single-word acronyms like "EMS-IT" alone)
+  if (cleaned === cleaned.toUpperCase() && /\s/.test(cleaned)) {
+    cleaned = cleaned.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  return cleaned;
+}
+
+/**
  * Determine the final firstName for a lead
  * Priority: DB name → email extraction → "there"
  */
@@ -120,7 +139,8 @@ async function reexport() {
   for (const { lead, firstName, lastName, usedFallback } of toExport) {
     const nameDisplay = usedFallback ? '(there)' : `${firstName} ${lastName}`.trim();
     const tag = usedFallback ? 'THERE' : firstName.endsWith(' Team') ? 'TEAM ' : 'NAME ';
-    console.log(`  ${tag}  ${nameDisplay.padEnd(25)} → ${lead.owner_email.padEnd(45)} ${lead.name}`);
+    const displayBizName = cleanBusinessNameForEmail(lead.name);
+    console.log(`  ${tag}  ${nameDisplay.padEnd(25)} → ${lead.owner_email.padEnd(45)} ${displayBizName}`);
   }
   console.log();
 
@@ -154,10 +174,12 @@ async function reexport() {
       // Ignore JSON parse errors
     }
 
+    const cleanName = cleanBusinessNameForEmail(lead.name);
+
     const business = {
       ...businessData,
-      name: lead.name,
-      businessName: lead.name,
+      name: cleanName,
+      businessName: cleanName,
       ownerFirstName: firstName,
       ownerLastName: lastName,
       ownerEmail: lead.owner_email,
@@ -183,7 +205,7 @@ async function reexport() {
       email: lead.owner_email,
       firstName: firstName,
       lastName: lastName,
-      companyName: lead.name,
+      companyName: cleanName,
       phone: lead.phone,
       companyDomain: lead.website ? (() => {
         try { return new URL(lead.website).hostname.replace(/^www\./, ''); } catch { return null; }

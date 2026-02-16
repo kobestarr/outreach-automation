@@ -6,6 +6,7 @@
 const https = require('https');
 const http = require('http');
 const { isValidPersonName } = require('../validation/data-quality');
+const { needsBrowserRendering, fetchWithBrowser, closeBrowser } = require('./browser-fetcher');
 const logger = require('../logger');
 
 /**
@@ -545,6 +546,34 @@ function extractOwnerNames(html, emails = []) {
 }
 
 /**
+ * Smart fetch: native HTTP first, Playwright fallback for JS-rendered sites
+ * @param {string} url - URL to fetch
+ * @param {number} timeout - Timeout in ms
+ * @param {boolean} forceBrowser - Skip detection and use Playwright directly
+ * @returns {Promise<string>} HTML content
+ */
+async function smartFetch(url, timeout = 10000, forceBrowser = false) {
+  // If we already know the site needs a browser, skip native fetch
+  if (forceBrowser) {
+    const rendered = await fetchWithBrowser(url, 15000);
+    if (rendered) return rendered;
+    // Fall through to native fetch if Playwright fails
+  }
+
+  const html = await fetchWebsite(url, timeout);
+
+  if (needsBrowserRendering(html)) {
+    logger.info('website-scraper', 'JS-rendered site detected, using Playwright', { url });
+    const rendered = await fetchWithBrowser(url, 15000);
+    if (rendered) return rendered;
+    // Fall back to native HTML if Playwright fails
+    logger.warn('website-scraper', 'Playwright failed, using native HTML', { url });
+  }
+
+  return html;
+}
+
+/**
  * Scrape website for company information
  * @param {string} url - Website URL
  * @returns {Promise<Object>} Scraped data
@@ -566,8 +595,18 @@ async function scrapeWebsite(url) {
       };
     }
 
-    // Fetch main page
-    const html = await fetchWebsite(url);
+    // Fetch main page (native HTTP first, Playwright fallback for JS-rendered sites)
+    let html = await fetchWebsite(url);
+    let siteNeedsBrowser = false;
+
+    if (needsBrowserRendering(html)) {
+      logger.info('website-scraper', 'JS-rendered site detected, using Playwright', { url });
+      const rendered = await fetchWithBrowser(url, 15000);
+      if (rendered) {
+        html = rendered;
+        siteNeedsBrowser = true;
+      }
+    }
 
     // Extract emails first (used for name validation)
     const emails = extractEmails(html);
@@ -643,7 +682,10 @@ async function scrapeWebsite(url) {
           break;
         }
 
-        const teamHtml = await fetchWebsite(pageUrl, 5000);
+        // If main page was JS-rendered, subpages will be too — go straight to Playwright
+        const teamHtml = siteNeedsBrowser
+          ? await smartFetch(pageUrl, 5000, true)
+          : await fetchWebsite(pageUrl, 5000);
 
         // Extract emails from team page (may have additional staff emails)
         const teamEmails = extractEmails(teamHtml);
@@ -742,9 +784,13 @@ async function scrapeWebsite(url) {
       uniqueEmailsMatched: uniqueMatchedEmails.size // Correct count of unique emails
     });
 
+    // Clean up browser if it was launched
+    await closeBrowser();
+
     return result;
   } catch (error) {
     logger.error('website-scraper', 'Website scraping failed', { url, error: error.message });
+    await closeBrowser();
     return {
       registrationNumber: null,
       registeredAddress: null,
