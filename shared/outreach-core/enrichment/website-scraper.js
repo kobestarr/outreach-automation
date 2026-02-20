@@ -6,6 +6,7 @@
 const https = require('https');
 const http = require('http');
 const { isValidPersonName } = require('../validation/data-quality');
+const { COMMON_FIRST_NAMES_SET } = require('../validation/common-first-names');
 const { needsBrowserRendering, fetchWithBrowser, closeBrowser } = require('./browser-fetcher');
 const logger = require('../logger');
 
@@ -225,9 +226,23 @@ async function fetchSitemapUrls(baseUrl) {
     // Check if this is a sitemap index (contains links to other sitemaps)
     const isSitemapIndex = urls.some(url => url.endsWith('.xml') || url.includes('sitemap'));
     if (isSitemapIndex) {
-      logger.debug('website-scraper', 'Detected sitemap index, skipping sub-sitemaps');
-      // Don't recursively fetch sub-sitemaps - too expensive
-      return [];
+      logger.debug('website-scraper', 'Detected sitemap index, following sub-sitemaps');
+      // Follow sub-sitemaps one level deep (cap at 3 to limit requests)
+      const subSitemapUrls = urls.filter(url => url.endsWith('.xml'));
+      const allSubUrls = [];
+      for (const subUrl of subSitemapUrls.slice(0, 3)) {
+        try {
+          const subXml = await fetchWebsite(subUrl, 5000);
+          const subClean = subXml.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1');
+          const subMatches = subClean.match(/<loc>(.*?)<\/loc>/g) || [];
+          const subUrls = subMatches.map(m => m.replace(/<\/?loc>/g, '').trim());
+          allSubUrls.push(...subUrls);
+        } catch (e) {
+          logger.debug('website-scraper', 'Sub-sitemap fetch failed', { url: subUrl, error: e.message });
+        }
+      }
+      // Replace index URLs with actual page URLs
+      urls = allSubUrls;
     }
 
     // Filter and prioritize relevant pages
@@ -264,6 +279,75 @@ async function fetchSitemapUrls(baseUrl) {
     logger.debug('website-scraper', 'No sitemap found or parse failed', {
       error: error.message
     });
+    return [];
+  }
+}
+
+/**
+ * Extract relevant page links from homepage HTML (about, team, meet, contact pages)
+ * Discovers pages like "/meet-nathan" that hardcoded paths would miss
+ * @param {string} html - Homepage HTML content
+ * @param {string} baseUrl - Base website URL for resolving relative links
+ * @returns {Array<string>} Array of absolute URLs to check
+ */
+function extractNavLinks(html, baseUrl) {
+  if (!html || !baseUrl) return [];
+
+  try {
+    const parsedBase = new URL(baseUrl);
+    const sameDomain = parsedBase.hostname;
+
+    // Match <a> tags with href containing relevant keywords
+    const linkPattern = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi;
+    const relevantLinks = [];
+    let match;
+
+    while ((match = linkPattern.exec(html)) !== null) {
+      const href = match[1].trim();
+      const linkText = match[2].replace(/<[^>]+>/g, '').trim().toLowerCase();
+
+      // Check if link text or URL path suggests an about/team/meet page
+      const isRelevant =
+        linkText.includes('meet') || linkText.includes('about') ||
+        linkText.includes('team') || linkText.includes('who we are') ||
+        linkText.includes('our story') || linkText.includes('founder') ||
+        href.toLowerCase().includes('meet') || href.toLowerCase().includes('about') ||
+        href.toLowerCase().includes('team') || href.toLowerCase().includes('founder');
+
+      if (!isRelevant) continue;
+
+      // Resolve relative URLs
+      let fullUrl;
+      try {
+        if (href.startsWith('http')) {
+          fullUrl = href;
+        } else if (href.startsWith('/')) {
+          fullUrl = `${parsedBase.protocol}//${sameDomain}${href}`;
+        } else {
+          fullUrl = `${parsedBase.protocol}//${sameDomain}/${href}`;
+        }
+
+        // Only include same-domain links
+        const parsed = new URL(fullUrl);
+        if (parsed.hostname === sameDomain) {
+          relevantLinks.push(fullUrl);
+        }
+      } catch (e) {
+        // Invalid URL, skip
+      }
+    }
+
+    const unique = [...new Set(relevantLinks)];
+    if (unique.length > 0) {
+      logger.info('website-scraper', 'Found relevant nav links', {
+        count: unique.length,
+        urls: unique.slice(0, 5)
+      });
+    }
+
+    return unique.slice(0, 5); // Cap at 5 to limit requests
+  } catch (error) {
+    logger.debug('website-scraper', 'Nav link extraction failed', { error: error.message });
     return [];
   }
 }
@@ -356,7 +440,7 @@ function extractOwnerNames(html, emails = []) {
 
     // Reject common non-name words that get capitalized in sentences
     // Checked against ALL words in the name, not just the first
-    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka|attach|data|insurance|lead|construction|web|mixed|elimination|recurring|senior|junior|key|community|hybrid|cloud|packaging|support|every|top|survey|choose|managed|employment|engineering|machine|commercial|structural|independent|cutter|microsoft|google|account|programs|academic|alliance|end|customer|claims|information|security|experience|ethical|hours|meet|our|your|form|files|pixels|home|protection|diet|project|design|bank|vacancy|response|enquiry|tag|more|broking|salon|prices|expand|systems|accounts|payroll|admin|office|assistant|cosmetic|director|manager|xero|sage|quickbooks|gold|silver|bronze|platinum|premier|elite|award|partner|approved|accredited|private|residence|after|before|during|between|management|planning|consulting|trading|limited|group|holding|international|global|local|regional|central|eastern|western|northern|southern|following|collaborating|perspectives|front|house|kitchen|garden|room|studio|gallery|shop|store|centre|center|associate|specialist|assistant|trainee|intern|volunteer|freelance|temporary|permanent|full|part|time)$/i;
+    const nonNameWords = /^(visiting|become|qualified|joined|graduated|gained|spent|completed|passed|achieved|acts|enjoys|says|lives|works|moved|returned|continued|successful|provides|offers|accepts|uses|finds|working|taking|playing|going|doing|making|having|being|getting|coming|looking|website|visit|contact|general|special|excellent|friendly|relaxed|committed|registered|professional|enhanced|extended|national|british|internal|external|modern|current|several|practice|service|dental|clinical|reception|treatment|gdc|chief|executive|business|development|sales|operations|marketing|finance|technical|digital|solutions|change|contractor|company|best|call|email|linkedin|certified|chartered|begum|ward|sports|client|main|social|media|care|message|umbrella|rachubka|attach|data|insurance|lead|construction|web|mixed|elimination|recurring|senior|junior|key|community|hybrid|cloud|packaging|support|every|top|survey|choose|managed|employment|engineering|machine|commercial|structural|independent|cutter|microsoft|google|account|programs|academic|alliance|end|customer|claims|information|security|experience|ethical|hours|meet|our|your|form|files|pixels|home|protection|diet|project|design|bank|vacancy|response|enquiry|tag|more|broking|salon|prices|expand|systems|accounts|payroll|admin|office|assistant|cosmetic|director|manager|xero|sage|quickbooks|gold|silver|bronze|platinum|premier|elite|award|partner|approved|accredited|private|residence|after|before|during|between|management|planning|consulting|trading|limited|group|holding|international|global|local|regional|central|eastern|western|northern|southern|following|collaborating|perspectives|front|house|kitchen|garden|room|studio|gallery|shop|store|centre|center|associate|specialist|assistant|trainee|intern|volunteer|freelance|temporary|permanent|full|part|time|free|consultation|today|book|schedule|request|enquire|quote|pricing|discount|offer|subscribe|download|upload|explore|discover|learn|read|watch|listen|view|browse|search|filter|apply|submit|register|login|signup|checkout|purchase|buy|order|delivery|shipping|payment|returns|guarantee|warranty|bespoke|luxury|outdoor|indoor|premium|standard|custom|handmade|sustainable|organic|natural|traditional|contemporary|affordable)$/i;
 
     const words = name.split(' ');
     // Check ALL words against nonNameWords (not just first)
@@ -528,6 +612,30 @@ function extractOwnerNames(html, emails = []) {
 
     if (isValidPersonName(name)) {
       names.push({ name, title: 'Professional' });
+    }
+  }
+
+  // Pattern 5: First-name-only from high-confidence contexts
+  // Captures owner first names when no surname is given on the website
+  // e.g., "Meet Nathan", "I'm Nathan", "Hello! I'm Nathan", "Hi, I'm Nathan"
+  // Validated against common first names dictionary to prevent false positives
+  const firstNamePatterns = [
+    /\bMeet\s+([A-Z][a-z]{2,})\b/g,
+    /\b(?:I'm|I am|I'm)\s+([A-Z][a-z]{2,})\b/g,
+    /\b(?:Hi|Hello)!?\s*,?\s*(?:I'm|I am|I'm)\s+([A-Z][a-z]{2,})\b/g,
+    /\bMy\s+name\s+is\s+([A-Z][a-z]{2,})\b/gi,
+    /\bSay\s+[Hh]ello\s+to\s+[^.]{0,30}?\b([A-Z][a-z]{2,})\b/g
+  ];
+
+  for (const pattern of firstNamePatterns) {
+    while ((match = pattern.exec(text)) !== null) {
+      const firstName = match[1].trim();
+      // Validate against common first names dictionary to avoid false positives
+      if (COMMON_FIRST_NAMES_SET.has(firstName.toLowerCase()) &&
+          !names.find(n => n.name.toLowerCase() === firstName.toLowerCase())) {
+        names.push({ name: firstName, title: 'Owner', firstNameOnly: true });
+        logger.info('website-scraper', 'Found first-name-only owner', { name: firstName, pattern: pattern.source.substring(0, 30) });
+      }
     }
   }
 
@@ -707,15 +815,23 @@ async function scrapeWebsite(url) {
     ];
     const lowPriorityPaths = ['/blog', '/insights', '/news'];
 
+    // Also discover relevant pages from homepage navigation links (e.g., "Meet Nathan")
+    const navLinks = extractNavLinks(html, url);
+
     let pagesToCheck;
     if (sitemapUrls.length > 0) {
-      // Sitemap found — use its filtered URLs (already prioritised by fetchSitemapUrls), cap at 5
-      pagesToCheck = sitemapUrls.slice(0, 5);
-      logger.info('website-scraper', 'Using sitemap URLs', { count: pagesToCheck.length });
+      // Sitemap found — use its filtered URLs, then add any nav links not already covered
+      const sitemapSet = new Set(sitemapUrls.map(u => u.toLowerCase()));
+      const extraNavLinks = navLinks.filter(u => !sitemapSet.has(u.toLowerCase()));
+      pagesToCheck = [...sitemapUrls.slice(0, 5), ...extraNavLinks.slice(0, 3)];
+      logger.info('website-scraper', 'Using sitemap URLs + nav links', { sitemap: sitemapUrls.length, nav: extraNavLinks.length });
     } else {
-      // No sitemap — use high-priority hardcoded paths first
-      pagesToCheck = highPriorityPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
-      logger.debug('website-scraper', 'No sitemap found, using hardcoded paths');
+      // No sitemap — use hardcoded paths + any discovered nav links
+      const hardcodedUrls = highPriorityPaths.map(path => `${baseParsedUrl.protocol}//${baseParsedUrl.hostname}${path}`);
+      const hardcodedSet = new Set(hardcodedUrls.map(u => u.toLowerCase()));
+      const extraNavLinks = navLinks.filter(u => !hardcodedSet.has(u.toLowerCase()));
+      pagesToCheck = [...hardcodedUrls, ...extraNavLinks.slice(0, 3)];
+      logger.debug('website-scraper', 'Using hardcoded paths + nav links', { nav: extraNavLinks.length });
     }
 
     // SCRAPE TEAM/CONTACT/ABOUT PAGES: Find all team members

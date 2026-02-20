@@ -1,14 +1,16 @@
 /**
  * Bramhall Deep Dive — All Business Categories
  *
- * Full pipeline: Google Maps scrape → Website enrichment → Revenue estimation →
- * Tier assignment → Smart email verification → DB save → Lemlist export
+ * Full pipeline: Google Maps scrape → Website enrichment → LLM owner extraction →
+ * Revenue estimation → Tier assignment → Smart email verification → DB save → Lemlist export
  *
+ * Owner extraction: regex first (free), then LLM (Haiku ~$0.001/biz) for any misses.
  * Smart email verification: website-scraped emails = auto-valid, others via Reoon.
  *
  * Usage:
  *   node batch-bramhall-all-categories.js --dry-run     # Show what would be searched (no API calls)
  *   node batch-bramhall-all-categories.js --scrape-only  # Scrape + enrich + save to DB, no Lemlist export
+ *   node batch-bramhall-all-categories.js --wave3        # Only wave 3 categories (services + more trades)
  *   node batch-bramhall-all-categories.js                # Full pipeline including Lemlist export
  */
 
@@ -22,6 +24,8 @@ const { addLeadToCampaign } = require('./shared/outreach-core/export-managers/le
 const { verifyEmail } = require('./shared/outreach-core/email-verification/reoon-verifier');
 const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/database');
 const { isValidEmail } = require('./shared/outreach-core/validation/data-quality');
+const { extractOwnersFromWebsite } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
+const { closeBrowser } = require('./shared/outreach-core/enrichment/browser-fetcher');
 const logger = require('./shared/outreach-core/logger');
 
 // ── Configuration ──────────────────────────────────────────────────────────
@@ -31,9 +35,11 @@ const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const SCRAPE_ONLY = process.argv.includes('--scrape-only');
+const NEW_TRADES_ONLY = process.argv.includes('--new-trades');
+const WAVE3_ONLY = process.argv.includes('--wave3');
 
 // ── Wave 1: Core categories (35) ───────────────────────────────────────────
-// Start here. Expand to wave 2/3 based on what comes back.
+// Already scraped. Expand to wave 2/3 based on what comes back.
 
 // Professional services (12)
 const PROFESSIONAL_CATEGORIES = [
@@ -78,22 +84,62 @@ const CONSUMER_CATEGORIES = [
   'personal trainers'
 ];
 
-const ALL_CATEGORIES = [...PROFESSIONAL_CATEGORIES, ...CONSUMER_CATEGORIES];
+// ── New trades: Checkatrade/MyBuilder heavy categories ────────────────────
+// Use --new-trades flag to scrape ONLY these (skips already-scraped categories)
+const NEW_TRADE_CATEGORIES = [
+  'roofers',
+  'landscapers',
+  'painters and decorators',
+  'plasterers',
+  'tilers',
+  'fencing contractors',
+  'heating engineers',
+  'boiler installers',
+  'handymen',
+  'bathroom fitters',
+  'kitchen fitters',
+  'window cleaners',
+  'driveway contractors',
+  'tree surgeons',
+  'locksmiths',
+  'pest control',
+  'carpet cleaners'
+];
 
-// ── Future waves (uncomment to expand) ─────────────────────────────────────
-// Wave 2: More professional services
-// 'lawyers', 'letting agents', 'tax advisors', 'bookkeepers', 'web designers',
-// 'marketing agencies', 'HR consultants', 'business coaches', 'will writers'
-//
-// Wave 3: More consumer
-// 'barbers', 'nail salons', 'osteopaths', 'massage therapists', 'caterers',
-// 'bakeries', 'roofers', 'landscapers', 'pest control', 'locksmiths',
-// 'pet shops', 'interior designers', 'wedding photographers', 'cake makers'
-//
-// Wave 4: Deep niche
-// 'chiropodists', 'nutritionists', 'hypnotherapists', 'pilates studios',
-// 'martial arts', 'dance schools', 'dog walkers', 'carpet cleaners',
-// 'tree surgeons', 'solar panel installers', 'CCTV installers'
+// ── Wave 3: Services + more trades ────────────────────────────────────────
+// Use --wave3 flag to scrape ONLY these new categories
+const WAVE3_SERVICES = [
+  'photographers',
+  'interior designers',
+  'web designers',
+  'counsellors',
+  'osteopaths',
+  'massage therapists',
+  'caterers',
+  'removal companies',
+  'dry cleaners',
+  'chiropodists',
+  'dog walkers',
+  'dance schools',
+  'martial arts',
+  'pilates studios',
+  'music teachers'
+];
+
+const WAVE3_TRADES = [
+  'scaffolders',
+  'skip hire',
+  'tyre fitters',
+  'garage door installers',
+  'aerial installers',
+  'security systems installers'
+];
+
+const ALL_CATEGORIES = WAVE3_ONLY
+  ? [...WAVE3_SERVICES, ...WAVE3_TRADES]
+  : NEW_TRADES_ONLY
+    ? NEW_TRADE_CATEGORIES
+    : [...PROFESSIONAL_CATEGORIES, ...CONSUMER_CATEGORIES, ...NEW_TRADE_CATEGORIES, ...WAVE3_SERVICES, ...WAVE3_TRADES];
 
 // ── Stats tracking ─────────────────────────────────────────────────────────
 const STATS = {
@@ -109,6 +155,10 @@ const STATS = {
   emailsReoonValid: 0,
   emailsReoonInvalid: 0,
   emailsReoonRisky: 0,
+  llmProcessed: 0,
+  llmNamesFound: 0,
+  llmInputTokens: 0,
+  llmOutputTokens: 0,
   revenueEstimated: 0,
   savedToDb: 0,
   exported: 0,
@@ -124,16 +174,26 @@ async function run() {
   console.log('╚════════════════════════════════════════════════════════════════════╝\n');
 
   console.log(`Location:   ${LOCATION}, ${POSTCODE}`);
-  console.log(`Categories: ${ALL_CATEGORIES.length} (${PROFESSIONAL_CATEGORIES.length} professional + ${CONSUMER_CATEGORIES.length} consumer)`);
+  if (NEW_TRADES_ONLY) {
+    console.log(`Categories: ${ALL_CATEGORIES.length} (new trades only)`);
+  } else {
+    console.log(`Categories: ${ALL_CATEGORIES.length} (${PROFESSIONAL_CATEGORIES.length} professional + ${CONSUMER_CATEGORIES.length} consumer + ${NEW_TRADE_CATEGORIES.length} new trades)`);
+  }
   console.log(`Mode:       ${DRY_RUN ? 'DRY RUN (no API calls)' : SCRAPE_ONLY ? 'SCRAPE ONLY (no Lemlist export)' : 'FULL PIPELINE'}\n`);
 
   if (DRY_RUN) {
-    console.log('--- Wave 1 Categories ---\n');
-    console.log(`Professional Services (${PROFESSIONAL_CATEGORIES.length}):`);
-    PROFESSIONAL_CATEGORIES.forEach(c => console.log(`  - ${c}`));
-    console.log(`\nConsumer (${CONSUMER_CATEGORIES.length}):`);
-    CONSUMER_CATEGORIES.forEach(c => console.log(`  - ${c}`));
-    console.log(`\nTotal: ${ALL_CATEGORIES.length} categories (wave 1 of 4)`);
+    if (NEW_TRADES_ONLY) {
+      console.log(`--- New Trade Categories (${NEW_TRADE_CATEGORIES.length}) ---\n`);
+      NEW_TRADE_CATEGORIES.forEach(c => console.log(`  - ${c}`));
+    } else {
+      console.log(`Professional Services (${PROFESSIONAL_CATEGORIES.length}):`);
+      PROFESSIONAL_CATEGORIES.forEach(c => console.log(`  - ${c}`));
+      console.log(`\nConsumer (${CONSUMER_CATEGORIES.length}):`);
+      CONSUMER_CATEGORIES.forEach(c => console.log(`  - ${c}`));
+      console.log(`\nNew Trades (${NEW_TRADE_CATEGORIES.length}):`);
+      NEW_TRADE_CATEGORIES.forEach(c => console.log(`  - ${c}`));
+    }
+    console.log(`\nTotal: ${ALL_CATEGORIES.length} categories`);
     console.log(`Estimated Outscraper queries: ~${ALL_CATEGORIES.length}`);
     console.log('Dedup: placeId-based — overlapping categories won\'t double-enrich\n');
     console.log('Run without --dry-run to execute.\n');
@@ -308,6 +368,57 @@ async function run() {
   console.log(`\n  Enriched: ${enrichedBusinesses.length}, Names: ${STATS.namesFound}, Emails: ${STATS.emailsFound}\n`);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STEP 2b: LLM OWNER EXTRACTION (for businesses where regex missed)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('STEP 2b: LLM OWNER EXTRACTION (Haiku — filling regex gaps)');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  const needsLlm = enrichedBusinesses.filter(b =>
+    b.website && !b.ownerFirstName && !b.website.includes('facebook.com') && !b.website.includes('instagram.com')
+  );
+  console.log(`  ${needsLlm.length} businesses need LLM extraction (regex found nothing)\n`);
+
+  for (const business of needsLlm) {
+    const label = `${(business.name || '').substring(0, 40).padEnd(40)}`;
+    try {
+      const result = await extractOwnersFromWebsite(business.name, business.website);
+      if (!result) {
+        console.log(`  NOFETCH  ${label}`);
+        continue;
+      }
+
+      STATS.llmProcessed++;
+      STATS.llmInputTokens += result.inputTokens;
+      STATS.llmOutputTokens += result.outputTokens;
+
+      if (result.owners.length > 0) {
+        const best = result.owners[0];
+        const parts = best.name.trim().split(/\s+/);
+        business.ownerFirstName = parts[0];
+        business.ownerLastName = parts.slice(1).join(' ');
+        business.usedFallbackName = false;
+        business.llmExtraction = result;
+        STATS.llmNamesFound++;
+        STATS.namesFound++;
+        console.log(`  FOUND ${label} ${best.name} (${best.title})`);
+      } else {
+        console.log(`  ---   ${label} no names found`);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    } catch (err) {
+      console.log(`  ERR   ${label} ${err.message.substring(0, 60)}`);
+    }
+  }
+
+  // Close browser if LLM extraction used it
+  try { await closeBrowser(); } catch (e) {}
+
+  const llmCost = ((STATS.llmInputTokens / 1_000_000) * 0.80 + (STATS.llmOutputTokens / 1_000_000) * 4.00);
+  console.log(`\n  LLM processed: ${STATS.llmProcessed}, Names found: ${STATS.llmNamesFound}, Cost: $${llmCost.toFixed(3)}\n`);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // STEP 3: SMART EMAIL VERIFICATION
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -428,7 +539,8 @@ async function run() {
         assignedOfferTier: business.assignedOfferTier,
         setupFee: business.setupFee,
         monthlyPrice: business.monthlyPrice,
-        owners: business.owners
+        owners: business.owners,
+        llmExtraction: business.llmExtraction || undefined
       }, {
         status: 'enriched',
         location: LOCATION,
@@ -525,7 +637,9 @@ async function run() {
 
   console.log('  --- Enrichment ---');
   console.log(`  With website:          ${STATS.withWebsite}`);
-  console.log(`  Names found:           ${STATS.namesFound}`);
+  console.log(`  Names found (total):   ${STATS.namesFound}`);
+  console.log(`    Regex:               ${STATS.namesFound - STATS.llmNamesFound}`);
+  console.log(`    LLM (Haiku):         ${STATS.llmNamesFound} ($${((STATS.llmInputTokens / 1_000_000) * 0.80 + (STATS.llmOutputTokens / 1_000_000) * 4.00).toFixed(3)})`);
   console.log(`  Emails found:          ${STATS.emailsFound}\n`);
 
   console.log('  --- Email Verification ---');

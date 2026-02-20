@@ -2,6 +2,12 @@
  * Database Module
  * SQLite database for high-performance business data storage
  *
+ * Includes automatic backup system:
+ * - Creates timestamped backup before every init (if DB has data)
+ * - Keeps last 10 backups, rotates older ones
+ * - Validates SQLite integrity on startup
+ * - WAL checkpoint on close
+ *
  * @module database
  */
 
@@ -14,13 +20,123 @@ const crypto = require("crypto");
 const DEFAULT_DB_DIR = path.join(__dirname, "../data");
 const DB_DIR = process.env.OUTREACH_DB_DIR || DEFAULT_DB_DIR;
 const DB_PATH = process.env.OUTREACH_DB_PATH || path.join(DB_DIR, "businesses.db");
+const BACKUP_DIR = path.join(DB_DIR, "backups");
+const MAX_BACKUPS = 10;
 
-// Ensure database directory exists
+// Ensure database and backup directories exist
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
 }
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true, mode: 0o700 });
+}
 
 let db = null;
+
+/**
+ * Check if a file is a valid SQLite database (has the magic header bytes)
+ */
+function isValidSQLiteFile(filePath) {
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.size < 100) return false; // SQLite header is 100 bytes
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(16);
+    fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    return buf.toString('ascii', 0, 15) === 'SQLite format 3';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Create a timestamped backup of the database file.
+ * Only backs up if the file exists and contains actual data (valid SQLite).
+ */
+function backupDatabase() {
+  if (!fs.existsSync(DB_PATH)) return null;
+  if (!isValidSQLiteFile(DB_PATH)) return null;
+
+  const stat = fs.statSync(DB_PATH);
+  if (stat.size === 0) return null;
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupName = `businesses-${timestamp}.db`;
+  const backupPath = path.join(BACKUP_DIR, backupName);
+
+  try {
+    fs.copyFileSync(DB_PATH, backupPath);
+
+    // Also backup WAL if it exists (contains uncommitted data)
+    const walPath = DB_PATH + '-wal';
+    if (fs.existsSync(walPath) && fs.statSync(walPath).size > 0) {
+      fs.copyFileSync(walPath, backupPath + '-wal');
+    }
+
+    rotateBackups();
+    return backupPath;
+  } catch (e) {
+    console.error(`[DB] Backup failed: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Keep only the most recent MAX_BACKUPS backups, delete older ones.
+ */
+function rotateBackups() {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('businesses-') && f.endsWith('.db'))
+      .sort()
+      .reverse();
+
+    // Remove old backups beyond MAX_BACKUPS
+    for (let i = MAX_BACKUPS; i < files.length; i++) {
+      const toDelete = path.join(BACKUP_DIR, files[i]);
+      fs.unlinkSync(toDelete);
+      // Also clean up associated WAL file
+      const walFile = toDelete + '-wal';
+      if (fs.existsSync(walFile)) fs.unlinkSync(walFile);
+    }
+  } catch (e) {
+    // Non-fatal — don't block database operations for cleanup failures
+  }
+}
+
+/**
+ * Restore the most recent valid backup.
+ * @returns {string|null} Path to the restored backup, or null if no valid backup found
+ */
+function restoreLatestBackup() {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('businesses-') && f.endsWith('.db') && !f.endsWith('-wal'))
+      .sort()
+      .reverse();
+
+    for (const file of files) {
+      const backupPath = path.join(BACKUP_DIR, file);
+      if (isValidSQLiteFile(backupPath)) {
+        fs.copyFileSync(backupPath, DB_PATH);
+        // Restore WAL if it exists
+        const walBackup = backupPath + '-wal';
+        const walPath = DB_PATH + '-wal';
+        if (fs.existsSync(walBackup)) {
+          fs.copyFileSync(walBackup, walPath);
+        } else if (fs.existsSync(walPath)) {
+          fs.unlinkSync(walPath); // Remove stale WAL
+        }
+        console.log(`[DB] Restored from backup: ${file}`);
+        return backupPath;
+      }
+    }
+  } catch (e) {
+    console.error(`[DB] Restore failed: ${e.message}`);
+  }
+  return null;
+}
 
 // SQL Schema - defined as array for readability
 const SCHEMA_STATEMENTS = [
@@ -70,19 +186,50 @@ const SCHEMA_STATEMENTS = [
 ];
 
 /**
- * Initialize the SQLite database with WAL mode and required schema
+ * Initialize the SQLite database with WAL mode and required schema.
+ * Creates a backup of existing data before opening.
+ * If the DB file is 0 bytes or corrupt, attempts to restore from backup.
  * @returns {Database} The initialized better-sqlite3 database instance
  */
 function initDatabase() {
   if (db) return db;
+
+  // If DB file exists but is 0 bytes or corrupt, try to restore from backup
+  if (fs.existsSync(DB_PATH)) {
+    const stat = fs.statSync(DB_PATH);
+    if (stat.size === 0 || !isValidSQLiteFile(DB_PATH)) {
+      console.warn(`[DB] WARNING: Database file is ${stat.size === 0 ? 'empty (0 bytes)' : 'corrupt'}!`);
+      const restored = restoreLatestBackup();
+      if (restored) {
+        console.log('[DB] Successfully restored from backup.');
+      } else {
+        console.warn('[DB] No valid backup found. Creating fresh database.');
+      }
+    }
+  }
+
+  // Backup existing database before opening (if it has data)
+  const backupPath = backupDatabase();
+  if (backupPath) {
+    console.log(`[DB] Backup created: ${path.basename(backupPath)}`);
+  }
+
   db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
-  
+
   // Execute schema statements
   for (const statement of SCHEMA_STATEMENTS) {
     db.exec(statement);
   }
-  
+
+  // Log database stats on init
+  try {
+    const count = db.prepare("SELECT COUNT(*) as count FROM businesses").get();
+    console.log(`[DB] Initialized with ${count.count} businesses (${path.basename(DB_PATH)})`);
+  } catch (e) {
+    // Table might not exist yet on first run — that's fine
+  }
+
   return db;
 }
 
@@ -156,7 +303,7 @@ function loadBusinesses(filters = {}) {
   const rows = database.prepare(query).all(...params);
   return rows.map(row => {
     const business = row.business_data ? JSON.parse(row.business_data) : { name: row.name, postcode: row.postcode, address: row.address, website: row.website, phone: row.phone, category: row.category, rating: row.rating, reviewCount: row.review_count, ownerFirstName: row.owner_first_name, ownerLastName: row.owner_last_name, ownerEmail: row.owner_email, emailSource: row.email_source, emailVerified: !!row.email_verified, linkedInUrl: row.linkedin_url, estimatedRevenue: row.estimated_revenue, revenueBand: row.revenue_band, assignedOfferTier: row.assigned_tier, setupFee: row.setup_fee, monthlyPrice: row.monthly_price };
-    return { id: row.id, scrapedAt: row.scraped_at, enrichedAt: row.enriched_at, location: row.location, postcode: row.postcode, business: business, exportedTo: row.exported_to ? JSON.parse(row.exported_to) : [], exportedAt: row.exported_at, status: row.status };
+    return { id: row.id, scrapedAt: row.scraped_at, enrichedAt: row.enriched_at, location: row.location, postcode: row.postcode, business: business, exportedTo: (() => { try { return row.exported_to ? JSON.parse(row.exported_to) : []; } catch(e) { return [row.exported_to]; } })(), exportedAt: row.exported_at, status: row.status };
   });
 }
 
@@ -192,7 +339,7 @@ function getBusiness(businessId) {
   const row = database.prepare("SELECT * FROM businesses WHERE id = ?").get(businessId);
   if (!row) return null;
   const business = row.business_data ? JSON.parse(row.business_data) : { name: row.name, postcode: row.postcode, address: row.address, website: row.website, phone: row.phone, category: row.category, rating: row.rating, reviewCount: row.review_count, ownerFirstName: row.owner_first_name, ownerLastName: row.owner_last_name, ownerEmail: row.owner_email, emailSource: row.email_source, emailVerified: !!row.email_verified, linkedInUrl: row.linkedin_url, estimatedRevenue: row.estimated_revenue, revenueBand: row.revenue_band, assignedOfferTier: row.assigned_tier };
-  return { id: row.id, scrapedAt: row.scraped_at, enrichedAt: row.enriched_at, location: row.location, postcode: row.postcode, business: business, exportedTo: row.exported_to ? JSON.parse(row.exported_to) : [], exportedAt: row.exported_at, status: row.status };
+  return { id: row.id, scrapedAt: row.scraped_at, enrichedAt: row.enriched_at, location: row.location, postcode: row.postcode, business: business, exportedTo: (() => { try { return row.exported_to ? JSON.parse(row.exported_to) : []; } catch(e) { return [row.exported_to]; } })(), exportedAt: row.exported_at, status: row.status };
 }
 
 function getBusinessStats(filters = {}) {
@@ -227,7 +374,35 @@ function batchUpdateBusinesses(updates) {
 }
 
 function closeDatabase() {
-  if (db) { db.close(); db = null; }
+  if (db) {
+    try {
+      // Checkpoint WAL to ensure all data is written to the main database file
+      db.pragma("wal_checkpoint(TRUNCATE)");
+    } catch (e) {
+      // Non-fatal — database may already be in a non-WAL mode
+    }
+    db.close();
+    db = null;
+  }
 }
 
-module.exports = { initDatabase, saveBusiness, batchSaveBusinesses, loadBusinesses, updateBusiness, batchUpdateBusinesses, getBusiness, getBusinessStats, checkDuplicate, generateBusinessId, closeDatabase };
+/**
+ * List available backups with their sizes and dates.
+ * @returns {Array<{file: string, size: number, date: string}>}
+ */
+function listBackups() {
+  try {
+    return fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('businesses-') && f.endsWith('.db') && !f.endsWith('-wal'))
+      .sort()
+      .reverse()
+      .map(f => {
+        const stat = fs.statSync(path.join(BACKUP_DIR, f));
+        return { file: f, size: stat.size, date: stat.mtime.toISOString() };
+      });
+  } catch (e) {
+    return [];
+  }
+}
+
+module.exports = { initDatabase, saveBusiness, batchSaveBusinesses, loadBusinesses, updateBusiness, batchUpdateBusinesses, getBusiness, getBusinessStats, checkDuplicate, generateBusinessId, closeDatabase, backupDatabase, restoreLatestBackup, listBackups, isValidSQLiteFile, DB_PATH, BACKUP_DIR };

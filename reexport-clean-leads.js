@@ -14,6 +14,20 @@ const { isValidPersonName, extractNameFromEmail, isValidEmail, isValidNamePair }
 const CAMPAIGN_ID = 'cam_bJYSQ4pqMzasQWsRb';
 const DB_PATH = './ksd/local-outreach/orchestrator/data/businesses.db';
 const DELAY_MS = 500; // Between API calls
+const AUTO_CONFIRM = process.argv.includes('--yes');
+
+// Category filtering
+const TRADE_CATEGORIES = [
+  'builders', 'electricians', 'plumbers', 'cleaners', 'gardeners',
+  'roofers', 'landscapers', 'painters and decorators', 'plasterers', 'tilers',
+  'fencing contractors', 'heating engineers', 'boiler installers', 'handymen',
+  'bathroom fitters', 'kitchen fitters', 'window cleaners', 'driveway contractors',
+  'tree surgeons', 'locksmiths', 'pest control', 'carpet cleaners', 'car mechanics'
+];
+const EXCLUDE_TRADES = process.argv.includes('--exclude-trades');
+const ONLY_TRADES = process.argv.includes('--only-trades');
+const CATEGORY_FILTER = process.argv.find(a => a.startsWith('--category='));
+const SPECIFIC_CATEGORY = CATEGORY_FILTER ? CATEGORY_FILTER.split('=')[1] : null;
 
 /**
  * Clean business name for use in customer-facing emails
@@ -79,13 +93,28 @@ async function reexport() {
 
   const db = new Database(DB_PATH);
 
-  // Get all verified leads with emails
-  const leads = db.prepare(`
-    SELECT * FROM businesses
+  // Build query with category filters
+  let query = `SELECT * FROM businesses
     WHERE owner_email IS NOT NULL AND length(owner_email) > 0
-    AND (email_verified IS NULL OR email_verified != 0)
-    ORDER BY name
-  `).all();
+    AND (email_verified IS NULL OR email_verified != 0)`;
+  const params = [];
+
+  if (EXCLUDE_TRADES) {
+    query += ` AND category NOT IN (${TRADE_CATEGORIES.map(() => '?').join(',')})`;
+    params.push(...TRADE_CATEGORIES);
+    console.log(`Excluding trades: ${TRADE_CATEGORIES.join(', ')}\n`);
+  } else if (ONLY_TRADES) {
+    query += ` AND category IN (${TRADE_CATEGORIES.map(() => '?').join(',')})`;
+    params.push(...TRADE_CATEGORIES);
+    console.log(`Only trades: ${TRADE_CATEGORIES.join(', ')}\n`);
+  } else if (SPECIFIC_CATEGORY) {
+    query += ` AND category = ?`;
+    params.push(SPECIFIC_CATEGORY);
+    console.log(`Category filter: ${SPECIFIC_CATEGORY}\n`);
+  }
+
+  query += ` ORDER BY name`;
+  const leads = db.prepare(query).all(...params);
 
   console.log(`Found ${leads.length} verified leads in database\n`);
 
@@ -145,17 +174,21 @@ async function reexport() {
   console.log();
 
   // Confirm
-  const readline = require('readline');
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await new Promise(resolve => {
-    rl.question(`Export ${toExport.length} leads to Lemlist campaign? (yes/no): `, resolve);
-  });
-  rl.close();
+  if (!AUTO_CONFIRM) {
+    const readline = require('readline');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await new Promise(resolve => {
+      rl.question(`Export ${toExport.length} leads to Lemlist campaign? (yes/no): `, resolve);
+    });
+    rl.close();
 
-  if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
-    console.log('\nExport cancelled.\n');
-    db.close();
-    return;
+    if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
+      console.log('\nExport cancelled.\n');
+      db.close();
+      return;
+    }
+  } else {
+    console.log(`Auto-confirming export of ${toExport.length} leads...\n`);
   }
 
   // Execute export

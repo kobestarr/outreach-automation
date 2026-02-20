@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] — 2026-02-20
+
+### Added — LLM Owner Extraction + Wave 3 Expansion + Multi-Channel Export
+
+**Date:** 2026-02-17 to 2026-02-20
+
+**1. LLM Owner Extraction (Claude Haiku 4.5):**
+- New module `shared/outreach-core/enrichment/llm-owner-extractor.js`
+- Sends cleaned website text to Claude Haiku 4.5 for structured owner/email extraction
+- Achieves ~100% precision vs ~70% for regex alone
+- Cost: ~$0.001 per business (~$1.00 total for 1,000 businesses)
+- Integrated into main pipeline: regex first (free), LLM fallback for misses
+- Extracts both owner names + roles AND all visible email addresses
+- Fetches homepage + about/team pages, handles Playwright fallback for JS-rendered sites
+
+**2. Wave 3 Category Expansion (21 new categories):**
+- Services (15): photographers, interior designers, web designers, counsellors, osteopaths, massage therapists, caterers, removal companies, dry cleaners, chiropodists, dog walkers, dance schools, martial arts, pilates studios, music teachers
+- Trades (6): scaffolders, skip hire, tyre fitters, garage door installers, aerial installers, security systems installers
+- Added `--wave3` CLI flag to `batch-bramhall-all-categories.js`
+- Pipeline results: 776 unique businesses, 300 names, 409 emails, 317 exported to Lemlist
+
+**3. Trades Segmentation:**
+- New `tradesLeadGen` observation signal (highest priority for trade categories)
+- Hook: "cutting your lead gen costs" — references Checkatrade/MyBuilder spend
+- `--only-trades` and `--exclude-trades` flags on `reexport-clean-leads.js`
+
+**4. 3-Stage Email Improvement Pipeline (`improve-emails.js`):**
+- Stage 1: LLM extraction from website text (Claude Haiku)
+- Stage 2: Email pattern guessing + Reoon verification (7 patterns tested)
+- Stage 3: Icypeas email finder API (name + domain)
+- CLI flags: `--dry-run`, `--llm-only`, `--patterns-only`, `--icypeas-only`, `--limit=N`
+- Built but not yet run on full database
+
+**5. No-Website Business Export:**
+- Identified ~300 businesses with no website
+- Phone segmentation: 168 mobile (07...), 105 landline, 27 no phone
+- CSV export at `exports/ghl-no-website-businesses.csv` for GHL import
+- GHL API integration planned with intelligent tagging (9 tag categories)
+
+**6. Lemlist Campaign Audit Enhancements:**
+- Full data quality audit: email validation, name validation, merge variable completeness
+- Smart email verification mode (`--verify`): website-scraped = auto-valid, others → Reoon
+- Invalid lead removal (`--verify --remove`)
+- Multi-owner and duplicate detection
+
+**7. Database Fixes:**
+- Fixed `exported_to` JSON.parse crash — some rows had raw string "lemlist" instead of valid JSON
+- Added try/catch wrapper in both `loadBusinesses()` and `getBusiness()`
+- Auto-backup keeps last 10 backups, auto-restore on 0-byte detection
+
+### Stats at Release
+- ~1,410 businesses in DB (70 categories, 3 waves)
+- ~591 Lemlist leads (campaign paused)
+- ~684 emails found (all website-scraped = auto-valid)
+- ~513 owner names extracted (regex + LLM)
+- ~300 no-website businesses identified for phone/SMS outreach
+- Total LLM extraction cost: ~$1.00
+
+---
+
 ## [Unreleased]
 
 ### Improved - Hardened False Positive Filtering & Lemlist Re-export

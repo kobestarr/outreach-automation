@@ -104,6 +104,7 @@ function getObservationSignal(business) {
 
   // Map signals to natural observations
   const observations = {
+    tradesLeadGen: "know how much sites like Checkatrade and MyBuilder can eat into your margins — most tradespeople I speak to are spending £1,000-2,000 a year just to compete for leads in their own postcode",
     lowReviews: "saw you're building up your online reputation",
     noWebsite: "noticed you don't have a website yet",
     poorWebsite: "thought your website could use a refresh",

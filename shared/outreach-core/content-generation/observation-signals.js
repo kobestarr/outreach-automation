@@ -3,8 +3,25 @@
  * Detects business signals for email personalization hooks
  */
 
+// Trade categories that typically spend big on Checkatrade/MyBuilder/Rated People
+const TRADE_CATEGORIES = ['builders', 'electricians', 'plumbers', 'cleaners', 'gardeners',
+  'roofers', 'landscapers', 'handymen', 'painters', 'decorators', 'carpenters',
+  'plasterers', 'tilers', 'joiners', 'fitters', 'locksmiths', 'fencing'];
+
+function isTradeCategory(category) {
+  if (!category) return false;
+  const cat = category.toLowerCase().trim();
+  return TRADE_CATEGORIES.some(t => cat.includes(t) || t.includes(cat));
+}
+
 // Signal definitions with thresholds and hooks
 const SIGNAL_DEFINITIONS = {
+  tradesLeadGen: {
+    hook: "cutting your lead gen costs",
+    description: "Trade business likely spending £1,000-2,000+/year on Checkatrade, MyBuilder, Rated People etc.",
+    check: (business) => isTradeCategory(business.category)
+  },
+
   lowReviews: {
     threshold: 10,
     hook: "growing your review count",
@@ -145,6 +162,7 @@ function selectPrimarySignal(signals) {
 
   // Priority order (most urgent first)
   const priority = [
+    "tradesLeadGen",
     "lowRating",
     "noWebsite",
     "lowReviews",

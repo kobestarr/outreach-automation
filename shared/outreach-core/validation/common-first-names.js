@@ -4,13 +4,16 @@
  * Used for dictionary-based splitting of concatenated email usernames
  * e.g., "kategymer" → match "kate" → split → "Kate Gymer"
  *
- * ~600 common international first names, sorted by length descending
+ * ~1400 common international first names, sorted by length descending
  * for longest-match-first extraction.
  *
  * Covers: UK/English, Welsh, Scottish, Irish, Spanish, Portuguese,
  * Catalan, Basque, Galician, Scandinavian (Danish/Swedish/Norwegian),
  * Indian (North/South/Bengali/Marathi), Pakistani, NZ/Pacific,
- * African American, and more.
+ * Polish/Eastern European (Czech, Slovak, Romanian, Hungarian, Lithuanian),
+ * Italian, French, German/Austrian, Turkish, Greek,
+ * African (West/East African, Caribbean), Chinese, Korean, Japanese,
+ * Vietnamese, and more.
  *
  * IMPORTANT: Only include FIRST names, not surnames.
  * This prevents false splits like "markham" → "Mark Ham"
@@ -317,6 +320,370 @@ const COMMON_FIRST_NAMES = [
   'greer',
   'manaia',
   'tane',
+
+  // ══════════════════════════════════════════════════════════════
+  // POLISH / EASTERN EUROPEAN
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Polish Female ──
+  'agata', 'agnieszka', 'aleksandra', 'alicja', 'anna', 'aneta',
+  'beata', 'bozena',
+  'dagmara', 'danuta', 'dominika', 'dorota',
+  'edyta', 'elzbieta', 'emilia', 'ewa',
+  'gabriela', 'grazyna',
+  'halina',
+  'ilona', 'iwona', 'izabela',
+  'jadwiga', 'jagoda', 'joanna', 'jolanta', 'justyna',
+  'kamila', 'karolina', 'katarzyna', 'kinga', 'klaudia',
+  'krystyna',
+  'lidia',
+  'magdalena', 'malgorzata', 'marta', 'martyna', 'milena',
+  'monika',
+  'natalia',
+  'patrycja', 'paulina',
+  'renata',
+  'sandra', 'sylwia',
+  'urszula',
+  'wanda', 'weronika', 'wioletta',
+  'zofia', 'zuzanna',
+
+  // ── Polish Male ──
+  'andrzej', 'arkadiusz', 'artur',
+  'bartlomiej', 'bartosz', 'blazej', 'bogdan',
+  'czeslaw',
+  'dariusz', 'dawid',
+  'filip',
+  'grzegorz',
+  'henryk',
+  'jacek', 'jakub', 'jan', 'janusz', 'jarek', 'jaroslaw', 'jerzy',
+  'karol', 'kazimierz', 'konrad', 'krystian', 'krzysztof',
+  'lech', 'leszek', 'lukasz',
+  'maciej', 'marcin', 'marek', 'mariusz', 'mateusz', 'michal',
+  'miroslaw',
+  'norbert',
+  'patryk', 'pawel', 'piotr', 'przemyslaw',
+  'radoslaw', 'rafal', 'remigiusz', 'robert', 'roman', 'ryszard',
+  'sebastian', 'slawek', 'slawomir', 'stanislaw', 'stefan',
+  'szymon',
+  'tadeusz', 'tomasz',
+  'waldemar', 'wiktor', 'witold', 'wojciech',
+  'zbigniew', 'zenon',
+
+  // ── Czech / Slovak ──
+  'hana', 'jana', 'jitka', 'lucie', 'petra', 'veronika',
+  'frantisek', 'jiri', 'lukas', 'martin', 'miroslav', 'ondrej',
+  'pavel', 'petr', 'radek', 'tomas', 'vaclav', 'vladimir', 'zdenek',
+
+  // ── Romanian ──
+  'alina', 'anca', 'andreea', 'cristina', 'ioana', 'mihaela',
+  'raluca', 'roxana',
+  'alexandru', 'bogdan', 'ciprian', 'cosmin', 'cristian', 'florin',
+  'ionut', 'marian', 'mihai', 'razvan', 'sorin', 'stefan', 'vlad',
+
+  // ── Hungarian ──
+  'aniko', 'eszter', 'katalin', 'zsuzsa',
+  'attila', 'balazs', 'gabor', 'gyorgy', 'istvan', 'janos',
+  'laszlo', 'sandor', 'tamas', 'tibor', 'zoltan', 'zsolt',
+
+  // ── Lithuanian / Latvian ──
+  'ausra', 'dalia', 'rasa', 'ruta', 'vilma',
+  'algis', 'dainius', 'giedrius', 'mindaugas', 'rolandas',
+  'tomas', 'valdas', 'vytautas',
+
+  // ══════════════════════════════════════════════════════════════
+  // ITALIAN
+  // ══════════════════════════════════════════════════════════════
+  'alessandra', 'alessia', 'antonella', 'arianna',
+  'bianca',
+  'chiara', 'cinzia',
+  'federica', 'flavia',
+  'giada', 'giorgia', 'giovanna', 'giulia', 'giuliana',
+  'ilaria',
+  'luisa',
+  'margherita', 'michela',
+  'ornella',
+  'paola',
+  'roberta', 'rossella',
+  'sabrina', 'serena', 'simona',
+  'valentina',
+  'alessio', 'aldo', 'andrea', 'angelo',
+  'claudio', 'cristiano',
+  'davide',
+  'edoardo', 'emanuele', 'enrico', 'enzo',
+  'fabio', 'fabrizio', 'filippo', 'flavio',
+  'giacomo', 'gianluca', 'gianluigi', 'gianmarco', 'giorgio',
+  'giovanni', 'giuseppe', 'guido',
+  'leonardo', 'lorenzo', 'luca', 'luciano', 'luigi',
+  'marco', 'massimo', 'matteo', 'mauro',
+  'nicola',
+  'paolo', 'pasquale', 'pietro',
+  'raffaele', 'riccardo', 'roberto',
+  'salvatore', 'simone', 'stefano',
+  'tommaso',
+  'umberto',
+  'vincenzo', 'vittorio',
+
+  // ══════════════════════════════════════════════════════════════
+  // FRENCH
+  // ══════════════════════════════════════════════════════════════
+  'amelie', 'aurelie',
+  'brigitte',
+  'celine', 'chantal', 'clementine',
+  'delphine',
+  'elodie',
+  'genevieve',
+  'helene',
+  'isabelle',
+  'juliette',
+  'laetitia', 'laurence', 'lucienne',
+  'margaux', 'mathilde',
+  'nathalie',
+  'odette',
+  'pascale',
+  'sylvie',
+  'therese',
+  'veronique',
+  'alain', 'arnaud', 'antoine',
+  'baptiste', 'benoit', 'bertrand',
+  'cedric', 'claude', 'cyrille',
+  'denis',
+  'edouard', 'emmanuel', 'etienne',
+  'fabien', 'florian', 'franck', 'frederic',
+  'gael', 'gauthier', 'gerard', 'gilles', 'guillaume',
+  'herve',
+  'jacques', 'julien',
+  'laurent', 'lionel', 'loic', 'lucien',
+  'marcel', 'mathieu', 'maxime', 'michel',
+  'nicolas',
+  'olivier',
+  'pascal', 'patrice', 'philippe', 'pierre',
+  'quentin',
+  'remi', 'renaud', 'romain',
+  'sebastien', 'stephane', 'sylvain',
+  'thierry',
+  'yann', 'yves',
+
+  // ══════════════════════════════════════════════════════════════
+  // GERMAN / AUSTRIAN
+  // ══════════════════════════════════════════════════════════════
+  'anke', 'annett',
+  'birgit',
+  'claudia', 'cornelia',
+  'dagmar', 'doris',
+  'gabi', 'gertrud', 'gudrun',
+  'hannelore', 'heidi', 'heike',
+  'inga', 'inge',
+  'jutta',
+  'karin', 'katja',
+  'marlene', 'meike', 'monika',
+  'petra',
+  'renate',
+  'sabine', 'silke', 'sonja', 'susanne',
+  'tanja',
+  'ulrike', 'ursula', 'ute',
+  'bernd', 'bernhard',
+  'christoph', 'claus',
+  'detlef', 'dieter', 'dietrich', 'dirk', 'dominik',
+  'erich',
+  'florian', 'friedhelm', 'friedrich', 'fritz',
+  'gerhard', 'gerd', 'goetz', 'guenter',
+  'hans', 'hartmut', 'heinz', 'helmut', 'herbert', 'holger', 'horst',
+  'ingo',
+  'jens', 'jochen', 'joerg', 'juergen',
+  'karsten', 'klaus', 'konrad', 'kurt',
+  'lothar', 'lutz',
+  'manfred', 'matthias', 'markus',
+  'norbert',
+  'olaf', 'otto',
+  'rainer', 'ralf', 'reinhard', 'roland', 'rolf', 'ruediger',
+  'siegfried',
+  'thorsten', 'torsten',
+  'uwe', 'ulf',
+  'volker',
+  'walther', 'werner', 'wilfried', 'winfried', 'wolfgang',
+
+  // ══════════════════════════════════════════════════════════════
+  // TURKISH
+  // ══════════════════════════════════════════════════════════════
+  'aysegul', 'ayse', 'aylin', 'arzu',
+  'bahar', 'buse',
+  'canan',
+  'derya', 'dilek',
+  'ebru', 'elif', 'emine', 'esra',
+  'fatma', 'filiz',
+  'gamze', 'gonca', 'gulcan',
+  'hatice',
+  'leyla',
+  'merve', 'melek',
+  'nihan', 'nilufer', 'nur', 'nuray',
+  'ozlem',
+  'pinar',
+  'seda', 'serap', 'sevgi', 'sibel', 'sinem',
+  'yasemin',
+  'zehra', 'zeynep',
+  'ahmet', 'alper',
+  'bahadir', 'baris', 'burak',
+  'cem', 'cengiz',
+  'emre', 'erdal', 'erdem', 'erhan',
+  'fatih', 'ferhat', 'firat',
+  'gokhan',
+  'hakan', 'halil', 'huseyin',
+  'ilhan', 'ismail',
+  'kemal', 'kerem', 'koray',
+  'mehmet', 'mert', 'murat', 'mustafa',
+  'necdet', 'nihat',
+  'okan', 'onur', 'orhan', 'osman', 'ozgur',
+  'recep',
+  'selim', 'serdar', 'serkan', 'sinan', 'suleyman',
+  'taner', 'tolga', 'tuncay', 'turgut',
+  'ugur',
+  'volkan',
+  'yasin', 'yilmaz', 'yunus', 'yusuf',
+
+  // ══════════════════════════════════════════════════════════════
+  // GREEK
+  // ══════════════════════════════════════════════════════════════
+  'androniki', 'athena',
+  'despoina', 'dimitra',
+  'eleftheria', 'elpida', 'evangelia',
+  'ioanna', 'irini',
+  'katerina', 'kyriaki',
+  'maria', 'marina',
+  'niki',
+  'paraskevi',
+  'sofia', 'stavroula',
+  'vasiliki',
+  'alexandros', 'anastasios', 'antonios',
+  'charalampos', 'christos',
+  'dimitrios', 'dimitris',
+  'efstratios', 'elias',
+  'georgios', 'giorgos',
+  'ioannis',
+  'konstantinos', 'kostas',
+  'michalis',
+  'nikos', 'nikolaos',
+  'panagiotis', 'pavlos', 'petros',
+  'sotirios', 'spyros', 'stavros',
+  'thanasis', 'theodoros', 'thomas',
+  'vasilis', 'vassilis',
+  'yannis',
+
+  // ══════════════════════════════════════════════════════════════
+  // AFRICAN / CARIBBEAN / AFRICAN-BRITISH
+  // ══════════════════════════════════════════════════════════════
+
+  // ── West African (Nigerian, Ghanaian) ──
+  'abimbola', 'adaeze', 'adenike', 'adewale', 'afolabi',
+  'akosua', 'amara',
+  'bola', 'bukola',
+  'chiamaka', 'chidinma', 'chidi', 'chinelo', 'chinonso',
+  'damilola',
+  'ebele', 'emeka',
+  'folake', 'funke', 'funmi',
+  'ifeoma', 'ifeoluwa',
+  'kemi', 'kofi', 'kwame', 'kwesi',
+  'lateef',
+  'ngozi', 'nkechi', 'nneka', 'nnamdi',
+  'obinna', 'olajide', 'olamide', 'olanrewaju', 'olayinka',
+  'olu', 'oluchi', 'oluwaseun', 'oluwatobiloba',
+  'segun', 'sola', 'sulaimon',
+  'temitope', 'tobi', 'tolulope', 'tunde',
+  'uchechukwu', 'ugochukwu',
+  'wale',
+  'yewande', 'yemi',
+
+  // ── East African (Somali, Ethiopian, Eritrean) ──
+  'abdi', 'amina',
+  'fadumo', 'fatuma', 'fathi',
+  'habiba', 'hamdi',
+  'idris', 'ismail',
+  'khadija',
+  'liban',
+  'sahra', 'samatar',
+  'yusra',
+  'zeinab',
+
+  // ── Caribbean ──
+  'beverly', 'clive', 'delroy', 'desmond', 'errol',
+  'leroy', 'marcia', 'neville', 'paulette', 'rudolph',
+  'sonia', 'trevor', 'winston',
+
+  // ══════════════════════════════════════════════════════════════
+  // CHINESE (Common anglicized given names used in UK business)
+  // ══════════════════════════════════════════════════════════════
+  'bao',
+  'chao', 'chen', 'cheng',
+  'dandan',
+  'fang', 'feng',
+  'guang',
+  'hao', 'hong', 'hua', 'hui',
+  'jia', 'jian', 'jing', 'jun',
+  'kai',
+  'lei', 'ling', 'lixia',
+  'mei', 'min', 'ming',
+  'nan',
+  'ping',
+  'qian', 'qing',
+  'rui',
+  'shan', 'shu',
+  'tao', 'ting',
+  'wei', 'wen',
+  'xia', 'xiao', 'xin', 'xiu', 'xiulan',
+  'yan', 'yang', 'ying', 'yong', 'yuan', 'yue',
+  'zhen', 'zhi',
+
+  // ══════════════════════════════════════════════════════════════
+  // KOREAN / JAPANESE / VIETNAMESE
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Korean ──
+  'eunji', 'hyejin', 'hyun', 'jieun', 'jiyeon',
+  'minjung', 'minji', 'soyeon', 'suji', 'yejin', 'yuna',
+  'dongwoo', 'jaehyun', 'jinwoo', 'minho', 'seunghyun',
+  'sungjin', 'woojin', 'youngjae',
+
+  // ── Japanese ──
+  'akiko', 'ayumi', 'chihiro', 'haruka', 'keiko', 'kumiko',
+  'maki', 'mayumi', 'megumi', 'mika', 'misaki', 'naomi',
+  'sachiko', 'sakura', 'sayuri', 'yoko', 'yuki', 'yumi',
+  'akira', 'daichi', 'daisuke', 'hiro', 'hiroshi', 'kazuki',
+  'kenji', 'kenta', 'makoto', 'masashi', 'ryota', 'satoshi',
+  'shingo', 'takashi', 'takeshi', 'tatsuya', 'yusuke',
+
+  // ── Vietnamese ──
+  'anh', 'binh', 'duc', 'hanh', 'hien', 'hoang', 'huy',
+  'khanh', 'lan', 'linh', 'minh', 'ngan', 'nhat',
+  'phuong', 'quang', 'tam', 'thi', 'thuy', 'tien', 'trang',
+  'trung', 'tuan', 'tuyen', 'van', 'viet',
+
+  // ══════════════════════════════════════════════════════════════
+  // ADDITIONAL UK NAMES (less common but found in business)
+  // ══════════════════════════════════════════════════════════════
+  'alistair', 'anabel', 'barnaby', 'barrie', 'basil',
+  'bertie', 'beverley', 'bryn',
+  'cedric', 'ceri', 'clifford', 'clint', 'crispin',
+  'daphne', 'deirdre', 'delia', 'della',
+  'edmund', 'edna', 'elsie', 'enid', 'ernest',
+  'fleur', 'geraldine', 'gilbert', 'gladys',
+  'godfrey', 'grahame', 'greta',
+  'hector', 'hermione', 'hester', 'humphrey',
+  'ingram', 'iona',
+  'jacinta', 'jarvis', 'jeanette', 'jocelyn', 'jolene',
+  'josephina',
+  'keiran', 'kingsley',
+  'lavinia', 'leopold', 'lionel', 'lucinda',
+  'mabel', 'madeleine', 'marjorie', 'mavis', 'meryl',
+  'mervyn', 'millicent', 'montague', 'muriel', 'myrtle',
+  'neville', 'norma',
+  'ottilie',
+  'percival', 'piers', 'prudence',
+  'quentin',
+  'reginald', 'roland', 'rosamund', 'rowena', 'ruben',
+  'sabrina', 'selwyn', 'sheridan', 'sybil',
+  'tarquin', 'theodora', 'theresa', 'thomasina', 'tobias',
+  'tristram',
+  'venetia',
+  'wilfred', 'winifred',
 ];
 
 // Pre-process: deduplicate and sort by length descending (longest match first)
