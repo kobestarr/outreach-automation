@@ -57,7 +57,7 @@ outreach-automation/
 │   │   ├── email-pattern-matcher.js   # firstname@domain pattern testing
 │   │   └── website-email-extractor.js # Regex email extraction from HTML
 │   ├── email-verification/
-│   │   └── reoon-verifier.js          # Reoon verification (2,000/day limit)
+│   │   └── reoon-verifier.js          # Reoon verification (2,100/day limit)
 │   ├── content-generation/
 │   │   ├── email-merge-variables.js   # Dynamic Lemlist merge variables
 │   │   ├── observation-signals.js     # Business pain-point detection (7 signals)
@@ -96,7 +96,7 @@ The main pipeline (`batch-bramhall-all-categories.js`) runs these steps:
 | 1. Scrape | Google Maps business listings | Outscraper API | ~$0.002/result |
 | 2a. Enrich | Website scrape + regex name/email extraction | HTTP + Playwright | Free |
 | 2b. LLM Extract | Owner names + emails from website text | Claude Haiku 4.5 | ~$0.001/biz |
-| 3. Verify | Email verification (website emails = auto-valid) | Reoon API | 2,000/day |
+| 3. Verify | Email verification (website emails = auto-valid) | Reoon API | 2,100/day |
 | 4. Estimate | Revenue + tier + pricing assignment | Local logic | Free |
 | 5. Save | Deduplicated save to SQLite | better-sqlite3 | Free |
 | 6. Export | Push to Lemlist with merge variables | Lemlist API | Free |
@@ -198,7 +198,7 @@ All API keys stored in `~/.credentials/api-keys.json` (not committed):
   "outscraper": { "apiKey": "..." },
   "anthropic": { "apiKey": "..." },
   "lemlist": { "apiKey": "..." },
-  "reoon": { "apiKey": "...", "dailyLimit": 2000 },
+  "reoon": { "apiKey": "...", "dailyLimit": 2090 },
   "icypeas": { "apiKey": "...", "userId": "..." },
   "ghl": { "locationApiKey": "..." }
 }
@@ -220,7 +220,7 @@ All API keys stored in `~/.credentials/api-keys.json` (not committed):
 ## Security
 
 - API keys in `~/.credentials/` (excluded from git via `.gitignore`)
-- Daily limit enforcement for Reoon (2,000/day) and Icypeas (100/day)
+- Daily limit enforcement for Reoon (2,100/day) and Icypeas (100/day)
 - Usage tracking per service per day
 - No credentials in code or environment variables
 - Database excluded from git (local only)

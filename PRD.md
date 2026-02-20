@@ -68,7 +68,7 @@ Scrapes Google Maps business listings by category + location, returning:
 | Stage | Method | Cost | Daily Limit |
 |-------|--------|------|-------------|
 | 1. LLM Extract | Claude Haiku reads website text | ~$0.001/biz | Unlimited |
-| 2. Pattern + Reoon | Generate firstname@domain patterns, verify via Reoon | $0/pattern + Reoon credit | 2,000/day |
+| 2. Pattern + Reoon | Generate firstname@domain patterns, verify via Reoon | $0/pattern + Reoon credit | 2,100/day |
 | 3. Icypeas | Name + domain email finder API | 1 credit/search | 100/day |
 
 **Smart Verification Policy:**
@@ -203,7 +203,7 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 |---------|---------|-------------|------|
 | Outscraper | Google Maps scraping | Per-credit | ~$0.002/result |
 | Anthropic (Haiku) | LLM owner extraction | Unlimited | ~$0.001/business |
-| Reoon | Email verification (SMTP power mode) | 2,000/day | Lifetime deal |
+| Reoon | Email verification (SMTP power mode) | 2,100/day | Lifetime deal |
 | Icypeas | Email discovery | 100/day | Per-credit |
 | Lemlist | Email campaign management | Unlimited | Subscription |
 | GoHighLevel | CRM + SMS/phone | Unlimited | Subscription |
