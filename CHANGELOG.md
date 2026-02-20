@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] — 2026-02-20
+
+### Changed — Reoon Upgrade + Geographic Expansion Prep
+
+**Date:** 2026-02-20
+
+**1. Reoon Email Verification Upgrade:**
+- Upgraded from 500/day to 2,000/day (lifetime deal)
+- SMTP power mode for full mailbox verification
+- Enables single-day pattern verification runs for entire database
+- Set `"dailyLimit": 2000` in `~/.credentials/api-keys.json` reoon section
+- Unblocks geographic expansion without daily limit bottleneck
+
+**2. Next: Larger Multi-Area Scrape:**
+- Reoon capacity now supports expanding beyond Bramhall SK7
+- Planned areas: Poynton, Cheadle Hulme, Hazel Grove, Stockport
+- 2,000/day allows full pattern verification of new areas in single runs
+
+---
+
 ## [2.0.0] — 2026-02-20
 
 ### Added — LLM Owner Extraction + Wave 3 Expansion + Multi-Channel Export
