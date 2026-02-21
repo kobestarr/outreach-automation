@@ -57,3 +57,7 @@ temp/
 # Session/cache files
 *.jsonl
 **/*.jsonl
+
+# Export data files (contain business contact data)
+exports/*.csv
+exports/*.json

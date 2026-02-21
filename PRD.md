@@ -1,28 +1,31 @@
 # Outreach Automation Platform — Product Requirements Document
 
-**Version:** 2.0.0
-**Last Updated:** February 20, 2026
-**Status:** Active — Bramhall SK7 campaign live
+**Version:** 2.2.0
+**Last Updated:** February 21, 2026
+**Status:** Active — Bramhall SK7 + UFH Football Clubs campaigns
 
 ---
 
 ## 1. Overview
 
-The Outreach Automation Platform is a local business outreach system that discovers businesses via Google Maps, enriches them with website data and AI-extracted owner information, and exports to multi-channel outreach tools (Lemlist for email, GoHighLevel for SMS/phone).
+The Outreach Automation Platform is a multi-campaign outreach system that discovers businesses via Google Maps, enriches them with website data and AI-extracted owner information, imports contacts from external sources (PressRanger), and exports to multi-channel outreach tools (Lemlist for email, GoHighLevel for SMS/phone, CSV for manual outreach).
 
 ### Core Value Proposition
 
-Enable digital agencies to run hyper-personalized, multi-channel local outreach at scale:
+Enable hyper-personalized, multi-channel outreach at scale across multiple campaigns:
+- **Multi-campaign architecture** — businesses can belong to multiple campaigns simultaneously
 - **70 business categories** across professional services, consumer services, and trades
 - **AI-powered owner extraction** (Claude Haiku 4.5, ~$0.001/business)
 - **7 observation-driven personalization signals** for email hooks
 - **Tiered micro-offer pricing** based on revenue estimation
 - **Smart email verification** that preserves API credits
-- **Multi-channel export** — email (Lemlist) + SMS/phone (GoHighLevel)
+- **Multi-channel export** — email (Lemlist) + SMS/phone (GoHighLevel) + CSV
+- **External data import** — PressRanger journalist/podcast CSV import with Reoon verification
 
 ### Target Market
 
-Local businesses in Bramhall SK7 and surrounding South Manchester postcodes (54 postcodes within 45 minutes of Poynton).
+- **KSD Local Outreach:** Local businesses in Bramhall SK7 and surrounding South Manchester postcodes
+- **UFH Campaign:** Youth football clubs, journalists, and podcasts for Ultimate Football Heroes podcast/book promotion
 
 ---
 
@@ -143,10 +146,44 @@ Scrapes Google Maps business listings by category + location, returning:
   - Source: `google-maps`, `bramhall-sk7`
   - Campaign: `google-maps-scraping-campaign`
 
-### 2.7 Data Storage
+### 2.7 Multi-Campaign System
+
+**Campaign Architecture:**
+- `campaigns` column stores a JSON array of campaign tags per business (e.g., `["ksd-bramhall-SK7", "ufh-football-clubs"]`)
+- Businesses can belong to multiple campaigns simultaneously (e.g., a journalist contacted for UFH and another project)
+- Campaign merge on save: new tags are appended to existing ones, deduplicated via Set
+- Campaign filter on load: `loadBusinesses({ campaign: 'ufh-football-clubs' })` uses SQL LIKE on JSON array
+- Helper functions: `addCampaignToBusiness()`, `listCampaigns()`
+- Universal export: `export-campaign.js` supports `--campaign=X --format=csv|lemlist`
+
+**Active Campaigns:**
+
+| Campaign | Type | Records | Description |
+|----------|------|---------|-------------|
+| `ksd-bramhall-SK7` | Local business outreach | ~1,370 | KSD agency services to Bramhall businesses |
+| `ufh-football-clubs` | Podcast/book promotion | ~125 | UFH podcast outreach to youth football clubs |
+
+### 2.8 External Data Import
+
+**PressRanger Integration** (`import-pressranger.js`):
+- Imports journalist, podcast, and publisher contacts from PressRanger CSV exports
+- Auto-detects CSV column names (~50 header variants mapped)
+- Validates emails (filters tracking addresses, junk domains)
+- Optional Reoon verification before saving
+- Deduplicates against existing DB records
+- Stores all raw PressRanger data in business JSON blob
+- Supports `--type=journalist|podcast|publisher` for contact classification
+
+**PressRanger (Tier 2 LTD):**
+- 500K+ journalist profiles, 200K+ podcast profiles, 160K+ publisher profiles
+- 2,000 CSV exports/month
+- Search by topic/beat, location, recent activity
+- No API — CSV export only, fed into import pipeline
+
+### 2.9 Data Storage
 
 **SQLite Database** (`ksd/local-outreach/orchestrator/data/businesses.db`):
-- Schema: businesses table with 25+ columns + JSON business_data blob
+- Schema: businesses table with 25+ columns + campaigns JSON + business_data JSON blob
 - Deduplication: placeId-based across categories + name+postcode + website domain + address
 - Auto-backup on every init to `data/backups/` (keeps last 10)
 - Auto-restore on 0-byte database detection
@@ -207,14 +244,17 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 | Icypeas | Email discovery | 100/day | Per-credit |
 | Lemlist | Email campaign management | Unlimited | Subscription |
 | GoHighLevel | CRM + SMS/phone | Unlimited | Subscription |
+| PressRanger | Journalist/podcast contact database | 2,000 CSV exports/mo | Lifetime deal (Tier 2) |
 
 ---
 
 ## 6. Current Metrics (Feb 2026)
 
+### KSD Bramhall Campaign
+
 | Metric | Value |
 |--------|-------|
-| Total businesses in DB | ~1,410 |
+| Total businesses in DB | ~1,370 |
 | Categories scraped | 70 |
 | Lemlist campaign leads | ~591 |
 | Emails found | ~684 (all auto-valid) |
@@ -222,6 +262,18 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 | No-website businesses | ~300 |
 | Total LLM extraction cost | ~$1.00 |
 | Campaign status | Paused |
+
+### UFH Football Clubs Campaign
+
+| Metric | Value |
+|--------|-------|
+| Total clubs/academies | 125 |
+| Locations scraped | Bramhall SK7 + Poynton SK12 |
+| With email | 76 (61%) |
+| With phone | 95 (76%) |
+| With contact name | 48 (38%) |
+| Enrichment LLM cost | ~$0.09 |
+| Campaign status | Email sequence drafted (4 emails) |
 
 ---
 

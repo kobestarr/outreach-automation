@@ -37,12 +37,17 @@ node batch-bramhall-all-categories.js --wave3
 
 ```
 outreach-automation/
-├── batch-bramhall-all-categories.js   # Main pipeline orchestrator
+├── batch-bramhall-all-categories.js   # Main pipeline orchestrator (KSD)
 ├── improve-emails.js                  # 3-stage email improvement
 ├── reexport-clean-leads.js            # Re-export verified leads to Lemlist
 ├── audit-lemlist-campaign.js          # Audit + verify campaign leads
 ├── rescrape-all-websites.js           # Re-scrape websites with Playwright
 ├── verify-and-export.js               # Verify emails then export
+│
+├── explore-football-clubs.js          # UFH: scrape youth football clubs
+├── enrich-campaign.js                 # Enrich any campaign (website + LLM)
+├── export-campaign.js                 # Universal campaign export (CSV/Lemlist)
+├── import-pressranger.js              # Import PressRanger journalist/podcast CSV
 │
 ├── shared/outreach-core/              # Reusable core modules
 │   ├── credentials-loader.js          # API key management + usage tracking
@@ -80,7 +85,9 @@ outreach-automation/
 │       └── backups/                   # Auto-rotating backups (last 10)
 │
 ├── exports/                           # Generated export files
-│   └── ghl-no-website-businesses.csv  # No-website businesses for GHL
+│   ├── ghl-no-website-businesses.csv  # No-website businesses for GHL
+│   ├── ufh-football-clubs-*.csv       # UFH football clubs exports
+│   └── ufh-football-clubs-email-sequence.md  # UFH email sequence (4 emails)
 │
 └── docs/                              # Additional documentation
 ```
@@ -115,6 +122,8 @@ Website-scraped emails are **auto-valid** (the business published it themselves)
 
 ## Key Scripts
 
+### KSD Local Outreach
+
 | Script | Purpose | Flags |
 |--------|---------|-------|
 | `batch-bramhall-all-categories.js` | Main scrape + enrich + export pipeline | `--dry-run`, `--scrape-only`, `--wave3`, `--new-trades` |
@@ -123,6 +132,15 @@ Website-scraped emails are **auto-valid** (the business published it themselves)
 | `audit-lemlist-campaign.js` | Audit Lemlist campaign quality | `--verify`, `--remove` |
 | `rescrape-all-websites.js` | Re-scrape all websites with Playwright | — |
 | `verify-and-export.js` | Verify unverified emails then export | — |
+
+### Multi-Campaign Tools
+
+| Script | Purpose | Flags |
+|--------|---------|-------|
+| `export-campaign.js` | Universal campaign export (CSV or Lemlist) | `--list`, `--campaign=X`, `--format=csv\|lemlist`, `--has-email`, `--has-phone` |
+| `explore-football-clubs.js` | Scrape youth football clubs via Outscraper | `--dry-run`, `--scrape-only` |
+| `enrich-campaign.js` | Enrich any campaign with website + LLM data | `--campaign=X`, `--limit=N`, `--llm-only`, `--dry-run` |
+| `import-pressranger.js` | Import PressRanger journalist/podcast CSV | `--file=X`, `--campaign=X`, `--type=journalist\|podcast`, `--verify`, `--dry-run` |
 
 ---
 
@@ -177,15 +195,20 @@ Each business gets a primary "hook" for email personalization based on detected 
 
 ## Current State (Feb 2026)
 
+### Campaigns
+
+| Campaign | Records | Emails | Names | Status |
+|----------|---------|--------|-------|--------|
+| `ksd-bramhall-SK7` | ~1,370 | ~684 | ~513 | Lemlist paused (~591 leads) |
+| `ufh-football-clubs` | 125 | 76 | 48 | Email sequence drafted |
+
+### Totals
+
 | Metric | Count |
 |--------|-------|
-| Businesses in DB | ~1,410 |
-| Categories scraped | 70 |
-| Lemlist leads | ~591 (paused) |
-| Emails found | ~684 (all website-scraped, auto-valid) |
-| Owner names | ~513 (regex + LLM) |
-| No-website businesses | ~300 (for GHL phone/SMS) |
-| Total LLM cost | ~$1.00 |
+| Total contacts in DB | ~1,500 |
+| KSD categories scraped | 70 |
+| Total LLM cost | ~$1.09 |
 
 ---
 

@@ -173,6 +173,7 @@ const SCHEMA_STATEMENTS = [
     exported_at TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    campaigns TEXT,
     business_data TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS idx_location_postcode ON businesses(location, postcode)`,
@@ -220,6 +221,26 @@ function initDatabase() {
   // Execute schema statements
   for (const statement of SCHEMA_STATEMENTS) {
     db.exec(statement);
+  }
+
+  // Migration: add campaigns column if it doesn't exist (for existing databases)
+  try {
+    db.prepare("SELECT campaigns FROM businesses LIMIT 1").get();
+  } catch (e) {
+    db.exec("ALTER TABLE businesses ADD COLUMN campaigns TEXT");
+    console.log("[DB] Migration: added campaigns column");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_campaigns ON businesses(campaigns)");
+
+  // Backfill: tag existing records without campaigns as ksd-bramhall-SK7
+  try {
+    const unfilled = db.prepare("SELECT COUNT(*) as count FROM businesses WHERE campaigns IS NULL").get();
+    if (unfilled.count > 0) {
+      db.exec(`UPDATE businesses SET campaigns = '["ksd-bramhall-SK7"]' WHERE campaigns IS NULL`);
+      console.log(`[DB] Backfilled ${unfilled.count} records with ksd-bramhall-SK7 campaign`);
+    }
+  } catch (e) {
+    // Non-fatal
   }
 
   // Log database stats on init
@@ -276,6 +297,17 @@ function saveBusiness(business, metadata = {}) {
   const finalId = existingId || businessId;
   const stmt = database.prepare(`INSERT INTO businesses (id, name, location, postcode, address, website, phone, category, rating, review_count, owner_first_name, owner_last_name, owner_email, email_source, email_verified, linkedin_url, estimated_revenue, revenue_band, revenue_confidence, assigned_tier, setup_fee, monthly_price, ghl_offer, lead_magnet, barter_opportunity, status, scraped_at, enriched_at, exported_to, exported_at, business_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, location = excluded.location, postcode = excluded.postcode, address = excluded.address, website = excluded.website, phone = excluded.phone, category = excluded.category, rating = excluded.rating, review_count = excluded.review_count, owner_first_name = excluded.owner_first_name, owner_last_name = excluded.owner_last_name, owner_email = excluded.owner_email, email_source = excluded.email_source, email_verified = excluded.email_verified, linkedin_url = excluded.linkedin_url, estimated_revenue = excluded.estimated_revenue, revenue_band = excluded.revenue_band, revenue_confidence = excluded.revenue_confidence, assigned_tier = excluded.assigned_tier, setup_fee = excluded.setup_fee, monthly_price = excluded.monthly_price, ghl_offer = excluded.ghl_offer, lead_magnet = excluded.lead_magnet, barter_opportunity = excluded.barter_opportunity, status = excluded.status, enriched_at = excluded.enriched_at, exported_to = excluded.exported_to, exported_at = excluded.exported_at, business_data = excluded.business_data, updated_at = CURRENT_TIMESTAMP`);
   stmt.run(finalId, business.name || business.businessName || "Unknown Business" || "Unknown Business", metadata.location || business.location, business.postcode || metadata.postcode, business.address, business.website, business.phone, business.category, business.rating, business.reviewCount || 0, business.ownerFirstName, business.ownerLastName, business.ownerEmail, business.emailSource, business.emailVerified ? 1 : 0, business.linkedInUrl, business.estimatedRevenue, business.revenueBand, business.revenueConfidence, business.assignedOfferTier, business.setupFee, business.monthlyPrice, business.ghlOffer, business.leadMagnet, business.barterOpportunity ? JSON.stringify(business.barterOpportunity) : null, metadata.status || "enriched", metadata.scrapedAt || new Date().toISOString(), metadata.enrichedAt || new Date().toISOString(), metadata.exportedTo ? JSON.stringify(metadata.exportedTo) : null, metadata.exportedAt || null, JSON.stringify(business));
+
+  // Merge campaigns (append new campaigns to existing, dedup)
+  const campaigns = metadata.campaigns || [];
+  if (campaigns.length > 0) {
+    const existing = database.prepare("SELECT campaigns FROM businesses WHERE id = ?").get(finalId);
+    let current = [];
+    try { current = existing?.campaigns ? JSON.parse(existing.campaigns) : []; } catch(e) {}
+    const merged = [...new Set([...current, ...campaigns])];
+    database.prepare("UPDATE businesses SET campaigns = ? WHERE id = ?").run(JSON.stringify(merged), finalId);
+  }
+
   return finalId;
 }
 
@@ -298,6 +330,7 @@ function loadBusinesses(filters = {}) {
   if (filters.hasLinkedIn !== undefined) { query += filters.hasLinkedIn ? " AND linkedin_url IS NOT NULL" : " AND linkedin_url IS NULL"; }
   if (filters.enrichedAfter) { query += " AND enriched_at >= ?"; params.push(filters.enrichedAfter); }
   if (filters.enrichedBefore) { query += " AND enriched_at <= ?"; params.push(filters.enrichedBefore); }
+  if (filters.campaign) { query += " AND campaigns LIKE ?"; params.push(`%"${filters.campaign}"%`); }
   query += " ORDER BY enriched_at DESC";
   if (filters.limit) { query += " LIMIT ?"; params.push(filters.limit); }
   const rows = database.prepare(query).all(...params);
@@ -342,6 +375,37 @@ function getBusiness(businessId) {
   return { id: row.id, scrapedAt: row.scraped_at, enrichedAt: row.enriched_at, location: row.location, postcode: row.postcode, business: business, exportedTo: (() => { try { return row.exported_to ? JSON.parse(row.exported_to) : []; } catch(e) { return [row.exported_to]; } })(), exportedAt: row.exported_at, status: row.status };
 }
 
+/**
+ * Add a campaign tag to an existing business (appends, deduplicates)
+ */
+function addCampaignToBusiness(businessId, campaignName) {
+  const database = initDatabase();
+  const row = database.prepare("SELECT campaigns FROM businesses WHERE id = ?").get(businessId);
+  if (!row) return null;
+  let current = [];
+  try { current = row.campaigns ? JSON.parse(row.campaigns) : []; } catch(e) {}
+  if (current.includes(campaignName)) return current;
+  current.push(campaignName);
+  database.prepare("UPDATE businesses SET campaigns = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(JSON.stringify(current), businessId);
+  return current;
+}
+
+/**
+ * List all unique campaign names in the database
+ */
+function listCampaigns() {
+  const database = initDatabase();
+  const rows = database.prepare("SELECT DISTINCT campaigns FROM businesses WHERE campaigns IS NOT NULL").all();
+  const campaigns = new Set();
+  for (const row of rows) {
+    try {
+      const arr = JSON.parse(row.campaigns);
+      arr.forEach(c => campaigns.add(c));
+    } catch(e) {}
+  }
+  return Array.from(campaigns).sort();
+}
+
 function getBusinessStats(filters = {}) {
   const database = initDatabase();
   let whereClause = "WHERE 1=1";
@@ -349,6 +413,7 @@ function getBusinessStats(filters = {}) {
   if (filters.location) { whereClause += " AND location = ?"; params.push(filters.location); }
   if (filters.postcode) { whereClause += " AND postcode = ?"; params.push(filters.postcode); }
   if (filters.status) { whereClause += " AND status = ?"; params.push(filters.status); }
+  if (filters.campaign) { whereClause += " AND campaigns LIKE ?"; params.push(`%"${filters.campaign}"%`); }
   const stats = { total: database.prepare(`SELECT COUNT(*) as count FROM businesses ${whereClause}`).get(...params).count, byStatus: {}, byTier: {}, byLocation: {}, withEmail: 0, withLinkedIn: 0, withBoth: 0, exported: 0, dateRange: { earliest: null, latest: null } };
   const statusRows = database.prepare(`SELECT status, COUNT(*) as count FROM businesses ${whereClause} GROUP BY status`).all(...params);
   statusRows.forEach(row => { stats.byStatus[row.status] = row.count; });
@@ -405,4 +470,4 @@ function listBackups() {
   }
 }
 
-module.exports = { initDatabase, saveBusiness, batchSaveBusinesses, loadBusinesses, updateBusiness, batchUpdateBusinesses, getBusiness, getBusinessStats, checkDuplicate, generateBusinessId, closeDatabase, backupDatabase, restoreLatestBackup, listBackups, isValidSQLiteFile, DB_PATH, BACKUP_DIR };
+module.exports = { initDatabase, saveBusiness, batchSaveBusinesses, loadBusinesses, updateBusiness, batchUpdateBusinesses, getBusiness, getBusinessStats, checkDuplicate, generateBusinessId, closeDatabase, backupDatabase, restoreLatestBackup, listBackups, isValidSQLiteFile, addCampaignToBusiness, listCampaigns, DB_PATH, BACKUP_DIR };

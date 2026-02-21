@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] — 2026-02-21
+
+### Added — Multi-Campaign System + UFH Football Clubs + PressRanger Import
+
+**Date:** 2026-02-20 to 2026-02-21
+
+**1. Multi-Campaign Architecture:**
+- Added `campaigns` JSON array column to businesses table
+- Businesses can belong to multiple campaigns simultaneously
+- Campaign merge on save: new tags appended, deduplicated via Set
+- Campaign filter on load/stats: `loadBusinesses({ campaign: 'name' })`
+- Auto-migration for existing databases (ALTER TABLE + backfill as `ksd-bramhall-SK7`)
+- New helpers: `addCampaignToBusiness()`, `listCampaigns()`
+
+**2. Universal Campaign Export (`export-campaign.js`):**
+- `--list` shows all campaigns with record counts
+- `--campaign=X --format=csv` exports filtered CSV (16 columns)
+- `--campaign=X --format=lemlist --campaign-id=cam_xxx` pushes to Lemlist
+- Additional filters: `--has-email`, `--has-phone`, `--category=X`
+- Exports to `exports/{campaign}-{date}.csv`
+
+**3. UFH Football Clubs Campaign:**
+- New scraper `explore-football-clubs.js` for youth football clubs/academies
+- 6 search terms x 2 locations (Bramhall SK7 + Poynton SK12) = 12 Outscraper queries
+- Triple dedup: within-run (placeId), cross-location (placeId), cross-campaign (DB checkDuplicate)
+- Results: 125 unique clubs, 5 cross-campaign overlaps with KSD
+- New enrichment script `enrich-campaign.js` (reusable for any campaign)
+  - Two-stage: website scraping + regex, then LLM extraction for gaps
+  - Supports `--campaign=X`, `--limit=N`, `--llm-only`, `--dry-run`
+- Enrichment results: 76 emails (61%), 48 contact names (38%), 95 phones (76%)
+- LLM enrichment cost: ~$0.09
+- 4-email outreach sequence drafted (Day 0/3/7/21 cadence)
+
+**4. PressRanger CSV Import (`import-pressranger.js`):**
+- Imports journalist, podcast, and publisher contacts from PressRanger CSV exports
+- Auto-detects CSV column names (~50 header variants mapped)
+- Email validation (filters tracking addresses, junk domains)
+- Optional Reoon email verification (`--verify`)
+- Deduplication against existing DB records
+- Stores all raw PressRanger data in business JSON blob
+- Supports `--type=journalist|podcast|publisher`, `--dry-run`, `--allow-dupes`
+
+### Stats at Release
+- ~1,500 total contacts in DB (1,370 KSD + 125 UFH football clubs)
+- 2 active campaigns: `ksd-bramhall-SK7`, `ufh-football-clubs`
+- UFH: 76 clubs with email, 48 with contact name, 95 with phone
+- PressRanger import pipeline ready (awaiting first CSV export)
+
+---
+
 ## [2.1.0] — 2026-02-20
 
 ### Changed — Reoon Upgrade + Geographic Expansion Prep
