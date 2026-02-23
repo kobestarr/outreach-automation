@@ -1,8 +1,8 @@
 # Outreach Automation System
 
-AI-powered local business outreach platform. Scrapes Google Maps, enriches with website data, extracts owner names via LLM, discovers and verifies emails, estimates revenue, and exports to Lemlist (email) and GoHighLevel (SMS/phone).
+AI-powered outreach platform. Scrapes Google Maps, enriches with website data, extracts owner names via LLM, discovers and verifies emails, and exports to Lemlist (email), Mailead (cold email), and GoHighLevel (SMS/phone).
 
-**Built for:** KSD (Kobi Omenaka), targeting Bramhall SK7 and surrounding South Manchester postcodes.
+**Built for:** KSD (Kobi Omenaka) — local business outreach (Bramhall SK7) and UFH podcast (youth football clubs nationwide).
 
 ---
 
@@ -12,17 +12,20 @@ AI-powered local business outreach platform. Scrapes Google Maps, enriches with 
 npm install
 npx playwright install chromium
 
-# Dry run — see what would be scraped (no API calls)
+# KSD: Bramhall local businesses
 node batch-bramhall-all-categories.js --dry-run
 
-# Scrape + enrich + save to DB (no Lemlist export)
-node batch-bramhall-all-categories.js --scrape-only
+# UFH: Football clubs (GM + East Cheshire)
+node explore-football-clubs.js --area=gm --dry-run
 
-# Full pipeline including Lemlist export
-node batch-bramhall-all-categories.js
+# UFH: Football clubs (Chelsea area)
+node explore-football-clubs.js --area=chelsea --dry-run
 
-# Wave 3 categories only (services + more trades)
-node batch-bramhall-all-categories.js --wave3
+# Enrich any campaign
+node enrich-campaign.js --campaign=ufh-football-clubs --dry-run
+
+# Export with junk filtering
+node export-campaign.js --campaign=ufh-football-clubs --has-email --clean --format=mailead
 ```
 
 ### Prerequisites
@@ -37,16 +40,17 @@ node batch-bramhall-all-categories.js --wave3
 
 ```
 outreach-automation/
-├── batch-bramhall-all-categories.js   # Main pipeline orchestrator (KSD)
+├── batch-bramhall-all-categories.js   # KSD: main pipeline orchestrator
 ├── improve-emails.js                  # 3-stage email improvement
 ├── reexport-clean-leads.js            # Re-export verified leads to Lemlist
 ├── audit-lemlist-campaign.js          # Audit + verify campaign leads
 ├── rescrape-all-websites.js           # Re-scrape websites with Playwright
 ├── verify-and-export.js               # Verify emails then export
 │
-├── explore-football-clubs.js          # UFH: scrape youth football clubs
-├── enrich-campaign.js                 # Enrich any campaign (website + LLM)
-├── export-campaign.js                 # Universal campaign export (CSV/Lemlist)
+├── explore-football-clubs.js          # UFH: scrape youth football clubs (--area=gm|chelsea|original)
+├── enrich-campaign.js                 # Enrich any campaign (website + LLM, timeout-protected)
+├── export-campaign.js                 # Universal export (CSV/Mailead/Lemlist, --clean junk filter)
+├── verify-football-clubs.js           # Batch Reoon verification of exported CSVs
 ├── import-pressranger.js              # Import PressRanger journalist/podcast CSV
 │
 ├── shared/outreach-core/              # Reusable core modules
@@ -86,8 +90,11 @@ outreach-automation/
 │
 ├── exports/                           # Generated export files
 │   ├── ghl-no-website-businesses.csv  # No-website businesses for GHL
-│   ├── ufh-football-clubs-*.csv       # UFH football clubs exports
-│   └── ufh-football-clubs-email-sequence.md  # UFH email sequence (4 emails)
+│   ├── ufh-football-clubs-*-verified.csv      # Verified GM club leads (Mailead)
+│   ├── ufh-chelsea-area-clubs-*-verified.csv  # Verified Chelsea club leads (Mailead)
+│   ├── ufh-football-clubs-email-sequence.md   # Email sequences (GM + Chelsea)
+│   ├── ufh-press-pitch.md             # Casual press pitch (Lexi/Chelsea story)
+│   └── ufh-press-release.md           # Formal press release
 │
 └── docs/                              # Additional documentation
 ```
@@ -96,7 +103,7 @@ outreach-automation/
 
 ## Pipeline Overview
 
-The main pipeline (`batch-bramhall-all-categories.js`) runs these steps:
+### KSD Pipeline (`batch-bramhall-all-categories.js`)
 
 | Step | What | Tool | Cost |
 |------|------|------|------|
@@ -108,15 +115,20 @@ The main pipeline (`batch-bramhall-all-categories.js`) runs these steps:
 | 5. Save | Deduplicated save to SQLite | better-sqlite3 | Free |
 | 6. Export | Push to Lemlist with merge variables | Lemlist API | Free |
 
-### Smart Email Verification
+### UFH Pipeline (`explore → enrich → export → verify`)
 
-Website-scraped emails are **auto-valid** (the business published it themselves). Only pattern-guessed or Icypeas-found emails go through Reoon verification. This saves ~80% of Reoon credits.
+| Step | What | Tool | Cost |
+|------|------|------|------|
+| 1. Explore | Scrape football clubs by area | Outscraper API | ~$3/1000 |
+| 2. Enrich | Website scrape + LLM extraction (60s timeout) | HTTP + Haiku 4.5 | ~$0.003/biz |
+| 3. Export | Clean CSV with category/email/name junk filtering | Local | Free |
+| 4. Verify | Batch Reoon verification | Reoon API | 1 credit/email |
 
-### Owner Extraction Strategy
+### Data Quality Filters (export --clean)
 
-1. **Regex first** (free) — extracts names from common HTML patterns
-2. **LLM fallback** (Claude Haiku, ~$0.001/biz) — for businesses where regex finds nothing
-3. LLM achieves ~100% precision vs ~70% for regex alone
+- **Junk emails:** sentry, wixpress, Google Calendar, broken Cloudflare, noreply, example, placeholder
+- **Non-football categories:** 50+ categories (schools, pubs, hotels, shops, non-football sports, etc.)
+- **Garbage names:** Pitchero artifacts, generic role names, broken extractions
 
 ---
 
@@ -130,66 +142,16 @@ Website-scraped emails are **auto-valid** (the business published it themselves)
 | `improve-emails.js` | 3-stage email improvement (LLM → Pattern+Reoon → Icypeas) | `--dry-run`, `--llm-only`, `--patterns-only`, `--icypeas-only`, `--limit=N` |
 | `reexport-clean-leads.js` | Re-export verified leads to Lemlist | `--only-trades`, `--exclude-trades`, `--category=X`, `--yes` |
 | `audit-lemlist-campaign.js` | Audit Lemlist campaign quality | `--verify`, `--remove` |
-| `rescrape-all-websites.js` | Re-scrape all websites with Playwright | — |
-| `verify-and-export.js` | Verify unverified emails then export | — |
 
 ### Multi-Campaign Tools
 
 | Script | Purpose | Flags |
 |--------|---------|-------|
-| `export-campaign.js` | Universal campaign export (CSV or Lemlist) | `--list`, `--campaign=X`, `--format=csv\|lemlist`, `--has-email`, `--has-phone` |
-| `explore-football-clubs.js` | Scrape youth football clubs via Outscraper | `--dry-run`, `--scrape-only` |
-| `enrich-campaign.js` | Enrich any campaign with website + LLM data | `--campaign=X`, `--limit=N`, `--llm-only`, `--dry-run` |
+| `explore-football-clubs.js` | Scrape youth football clubs by area | `--area=gm\|chelsea\|original`, `--dry-run`, `--scrape-only` |
+| `enrich-campaign.js` | Enrich any campaign (website + LLM, timeout-protected) | `--campaign=X`, `--limit=N`, `--llm-only`, `--dry-run` |
+| `export-campaign.js` | Universal export with junk filtering | `--campaign=X`, `--format=csv\|mailead\|lemlist`, `--has-email`, `--clean`, `--list` |
+| `verify-football-clubs.js` | Batch Reoon verification of exported CSVs | `--dry-run` |
 | `import-pressranger.js` | Import PressRanger journalist/podcast CSV | `--file=X`, `--campaign=X`, `--type=journalist\|podcast`, `--verify`, `--dry-run` |
-
----
-
-## Business Categories (70 total)
-
-### Wave 1 — Professional Services (12)
-accountants, solicitors, financial advisers, architects, surveyors, insurance brokers, mortgage brokers, estate agents, opticians, dentists, veterinary surgeons, physiotherapists
-
-### Wave 1 — Consumer Services (23)
-hairdressers, beauty salons, barbers, florists, dry cleaners, restaurants, cafes, takeaways, gyms, yoga studios, driving schools, tutors, pet groomers, nail salons, tattoo parlours, jewellers, tailors, picture framers, furniture shops, garden centres, travel agents, funeral directors, car dealerships
-
-### Wave 2 — Trades (17)
-plumbers, electricians, roofers, builders, painters and decorators, landscapers, fencing contractors, bathroom fitters, kitchen fitters, heating engineers, glaziers, handymen, window cleaners, driveway contractors, tree surgeons, locksmiths, pest control, carpet cleaners
-
-### Wave 3 — Services (15)
-photographers, interior designers, web designers, counsellors, osteopaths, massage therapists, caterers, removal companies, dry cleaners, chiropodists, dog walkers, dance schools, martial arts, pilates studios, music teachers
-
-### Wave 3 — Trades (6)
-scaffolders, skip hire, tyre fitters, garage door installers, aerial installers, security systems installers
-
----
-
-## Observation Signals (Email Personalization)
-
-Each business gets a primary "hook" for email personalization based on detected signals:
-
-| Signal | Trigger | Hook Text |
-|--------|---------|-----------|
-| tradesLeadGen | Trade category (highest priority) | "cutting your lead gen costs" |
-| lowRating | < 4.0 stars | "improving customer experience" |
-| noWebsite | No website found | "getting a simple site live" |
-| lowReviews | < 10 reviews | "growing your review count" |
-| poorWebsite | No HTTPS, DIY builders | "refreshing your web presence" |
-| noSocialMedia | No Instagram/Facebook | "building a social presence" |
-| highReviews | 50+ reviews | "capitalizing on your reputation" |
-
----
-
-## Multi-Channel Export Strategy
-
-### Lemlist (Email Outreach)
-- **Target:** Businesses with verified email addresses (~591 leads)
-- **Merge variables:** localIntro, observationSignal, meetingOption, microOfferPrice, multiOwnerNote, noNameNote, businessType, location
-- **Campaign ID:** `cam_bJYSQ4pqMzasQWsRb`
-
-### GoHighLevel (SMS/Phone Outreach) — Planned
-- **Target:** No-website businesses (~300) with phone numbers
-- **Tags:** mobile/landline, trade/service/professional, category, high-rating, reviewed, needs-website, google-maps, bramhall-sk7, google-maps-scraping-campaign
-- **API:** Location API key (sub-account scoped)
 
 ---
 
@@ -197,18 +159,21 @@ Each business gets a primary "hook" for email personalization based on detected 
 
 ### Campaigns
 
-| Campaign | Records | Emails | Names | Status |
-|----------|---------|--------|-------|--------|
-| `ksd-bramhall-SK7` | ~1,370 | ~684 | ~513 | Lemlist paused (~591 leads) |
-| `ufh-football-clubs` | 125 | 76 | 48 | Email sequence drafted |
+| Campaign | Records | Emails | Verified | Platform | Status |
+|----------|---------|--------|----------|----------|--------|
+| `ksd-bramhall-SK7` | ~1,370 | ~684 | ~591 | Lemlist | Paused |
+| `ufh-football-clubs` | 1,042 | 516 | **255** | Mailead | Ready for Tuesday launch |
+| `ufh-chelsea-area-clubs` | 504 | 267 | **144** | Mailead | Ready for Tuesday launch |
 
 ### Totals
 
 | Metric | Count |
 |--------|-------|
-| Total contacts in DB | ~1,500 |
+| Total contacts in DB | ~2,749 |
 | KSD categories scraped | 70 |
-| Total LLM cost | ~$1.09 |
+| UFH areas scraped | 52 locations (36 GM + 16 Chelsea) |
+| Total LLM cost | ~$1.87 |
+| Reoon verifications used | ~412 |
 
 ---
 
@@ -221,7 +186,7 @@ All API keys stored in `~/.credentials/api-keys.json` (not committed):
   "outscraper": { "apiKey": "..." },
   "anthropic": { "apiKey": "..." },
   "lemlist": { "apiKey": "..." },
-  "reoon": { "apiKey": "...", "dailyLimit": 2090 },
+  "reoon": { "apiKey": "...", "dailyLimit": 2100 },
   "icypeas": { "apiKey": "...", "userId": "..." },
   "ghl": { "locationApiKey": "..." }
 }

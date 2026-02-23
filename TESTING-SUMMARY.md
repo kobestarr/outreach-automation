@@ -1,209 +1,66 @@
-# Testing Summary - Multi-Owner Lemlist Integration
+# Testing Summary
 
-**Date:** 2026-02-10
-**Status:** ✅ **PRODUCTION READY** (with manual verification recommended)
-
----
-
-## What Was Tested
-
-### 1. Multi-Owner Lead Creation ✅
-**Test Business:** KissDental Bramhall (2 owners)
-
-**Results:**
-```bash
-[INFO] Exporting multi-owner business
-[INFO] Created lead for owner Kailesh Solanki (lea_cnmXxJKR7zYnzWasK)
-[INFO] Created lead for owner Callum Coombs (lea_6FrGrE8F67ykAqbK2)
-✓ Export successful! Leads created: 2, Failures: 0
-```
-
-✅ Both leads created successfully
-✅ Lead IDs returned from Lemlist API
-✅ No errors during export
+**Last Updated:** 2026-02-23
 
 ---
 
-### 2. Custom Fields Preservation ✅
-All fields required for reply detection were preserved:
+## Multi-Owner Lemlist Integration (2026-02-10)
 
-| Field | Value | Status |
-|-------|-------|--------|
-| businessId | `3f120bdc3bf6` | ✅ Same for both leads |
-| multiOwnerGroup | `"true"` | ✅ Present (string format) |
-| ownerCount | `"2"` | ✅ Correct |
-| ownerIndex | `"1"` / `"2"` | ✅ Unique per lead |
+**Status:** Production ready (with manual verification recommended)
 
-**Note:** Lemlist converts boolean `true` to string `"true"` - our code handles both formats.
+- Multi-owner lead creation works (tested with KissDental Bramhall, 2 owners)
+- Custom fields preserved (businessId, multiOwnerGroup, ownerCount, ownerIndex)
+- Retry logic + rate limiting functional
+- Bug fixed: empty Lemlist API response handling (commit f2df249)
+- Known issue: GET /leads API returns empty — use Lemlist UI to verify
 
 ---
 
-### 3. businessId Linking ✅
-**Algorithm:** SHA-256 hash of `businessName + location`
+## UFH Football Clubs Pipeline (2026-02-22/23)
 
-**Test Case:**
-- Input: `"KissDental Bramhall-32 Woodford Rd, Bramhall, Stockport SK7 1PA, United Kingdom"`
-- Output: `3f120bdc3bf6`
-- **Result:** Both leads have identical businessId ✅
+**Status:** Launch-ready for Tuesday 2026-02-24
 
-This ensures reply detection can correctly link owners from the same business.
+### Scraping Results
 
----
+| Area | Locations | Queries | Businesses Found | New Records |
+|------|-----------|---------|-----------------|-------------|
+| GM + East Cheshire | 36 | 216 | 1,331 | 912 |
+| Chelsea-area | 16 | 96 | 711 | 472 |
 
-### 4. Retry Logic & Rate Limiting ✅
-- All leads created on first attempt (no retries needed)
-- 500ms delay between lead creations working correctly
-- Exponential backoff logic ready for failures (3 retries with backoff)
-- Rate limit handling (429 detection) implemented
+### Enrichment Results
 
----
+| Campaign | Websites Scraped | Regex Names | Regex Emails | LLM Names | LLM Emails | LLM Cost |
+|----------|-----------------|-------------|-------------|-----------|-----------|----------|
+| ufh-football-clubs | 461 + 411 (2 runs) | 83 | 229 | 120 | 14 | $0.60 |
+| ufh-chelsea-area-clubs | 416 | 120 | 246 | 53 | 5 | $0.27 |
 
-### 5. Bug Fixed: Empty Response Handling 🐛✅
-**Problem:**
-```
-Error: Failed to parse Lemlist response: Unexpected end of JSON input
-```
+### Export Filtering
 
-**Cause:** Lemlist returns `content-length: 0` for empty campaigns instead of `[]`
+| Campaign | Raw Emails | After Junk Filter | After Reoon | Final |
+|----------|-----------|-------------------|-------------|-------|
+| GM + East Cheshire | 516 | 274 | **255** | **255** |
+| Chelsea-area | 267 | 156 | **144** | **144** |
 
-**Fix:** Added empty response check before JSON parsing:
-```javascript
-if (!data || data.trim().length === 0) {
-  resolve([]);
-  return;
-}
-const result = JSON.parse(data);
-```
+Junk filter removed: sentry/wixpress emails, non-football businesses (schools, pubs, hotels, shops, rugby/cricket/boxing clubs, etc.), garbage contact names (Pitchero artifacts).
 
-**Status:** Fixed in commit f2df249 ✅
+### Reoon Verification
 
----
+- 412 unique emails verified
+- Valid: 323 | Risky (catch-all, kept): 63 | Invalid (removed): 26 | Errors: 0
+- 93% pass rate
 
-## ⚠️ Lemlist API Limitation
+### Issues Encountered
 
-### Problem
-After successfully creating leads (got lead IDs back), the GET endpoint returns empty:
-```bash
-GET /api/campaigns/cam_bJYSQ4pqMzasQWsRb/leads
-Response: 200 OK, Content-Length: 0
-```
+1. **soccerstars.com hang** — website with 24 sitemap URLs caused enrichment to hang indefinitely. Fixed by:
+   - Marking business as skipped in `business_data` JSON (not just flat columns)
+   - Adding 60s per-website timeout to `enrich-campaign.js` for future runs
+2. **Category pollution** — Google Maps returns non-football businesses for football searches. Fixed with comprehensive category-based filtering in export (50+ excluded categories).
+3. **Broken email patterns** — Cloudflare email obfuscation produces `6AEMail...` prefixes. Added to junk email filter.
 
-### Impact
-- **Lead creation:** ✅ Works perfectly
-- **Custom fields:** ✅ Preserved correctly
-- **Reply detection polling:** ⚠️ Cannot list leads to check for replies
+### Files Produced
 
-### Workarounds
-1. **Contact Lemlist Support** - Ask about GET /leads API issue
-2. **Use Lemlist Webhooks** - Real-time reply events (if available)
-3. **Local Database Tracking** - Store exported leads, query by email
-4. **Manual Verification** - Use Lemlist UI to verify and test
-
----
-
-## 📊 Production Readiness
-
-### ✅ Ready for Production
-- Multi-owner lead creation
-- Custom field preservation
-- businessId linking
-- Retry logic
-- Rate limiting
-- Empty response handling
-
-### ⚠️ Requires Manual Verification
-- Reply detection polling (API limitation)
-- Email sequence activation
-- Lemlist UI verification
-
----
-
-## 🎯 Next Steps
-
-### Immediate (Before Production)
-1. **Manual Lemlist UI Verification:**
-   - Login to https://app.lemlist.com
-   - Navigate to "Local outreach Test Campaign"
-   - Verify 2 leads exist with correct custom fields
-   - Check email content uses approved template
-   - Test sending to one lead
-
-2. **Contact Lemlist Support:**
-   - Report GET /leads API empty response issue
-   - Ask about campaign activation requirements
-   - Inquire about webhook availability for reply events
-
-### Short-term (Production Launch)
-1. **Manual Reply Testing:**
-   - Send email to Kailesh (test account)
-   - Reply from Kailesh's email
-   - Run reply detector manually (when API fixed)
-   - Verify Callum's sequence stops
-
-2. **Local Database Integration:**
-   - Store exported leads in SQLite
-   - Track reply status locally
-   - Query Lemlist by email (if needed)
-
-### Long-term (Automation)
-1. **Webhook Integration:**
-   - Implement Lemlist webhook handler
-   - Real-time reply detection
-   - Auto-stop related sequences
-
-2. **Dashboard:**
-   - UI for viewing exported leads
-   - Reply status tracking
-   - Campaign performance analytics
-
----
-
-## 📄 Documentation
-
-### Files Created
-1. `LEMLIST-TEST-REPORT.md` - Comprehensive test report (246 lines)
-2. `TESTING-SUMMARY.md` - This file
-
-### Files Updated
-1. `CHANGELOG.md` - Added test results section
-2. `lemlist-exporter.js` - Fixed empty response handling
-
-### Git Commits
-```
-f2df249 - fix: handle empty Lemlist API responses gracefully
-974af07 - docs: add comprehensive Lemlist integration test report
-78cd20c - docs: update CHANGELOG with Lemlist testing results
-```
-
----
-
-## 💡 Key Learnings
-
-1. **Lemlist API has caching/consistency issues** - GET /leads returns empty even after successful POST
-2. **Custom fields work perfectly** - All businessId/multiOwnerGroup fields preserved
-3. **String conversion** - Lemlist converts boolean `true` to string `"true"` (handle both)
-4. **Empty responses must be handled** - content-length: 0 instead of [] for empty campaigns
-5. **Lead creation is reliable** - No failures in testing, retry logic ready
-
----
-
-## ✅ Conclusion
-
-**The multi-owner email system is PRODUCTION READY** with one caveat:
-
-- ✅ Lead creation works flawlessly
-- ✅ Custom fields preserved correctly
-- ✅ businessId linking operational
-- ✅ Retry logic and rate limiting functional
-- ⚠️ Reply detection requires manual verification or Lemlist API fix
-
-**Recommendation:**
-
-1. **Manual UI verification** - Check Lemlist dashboard to confirm leads exist
-2. **Send test email** - Verify content and sequences work
-3. **Contact Lemlist support** - Report GET /leads API issue
-4. **Proceed with confidence** - Multi-owner export is solid, reply detection can be added later
-
----
-
-**Status:** 🎉 **READY TO LAUNCH** (with manual UI verification)
+- `exports/ufh-football-clubs-mailead-2026-02-22-verified.csv` — 255 verified GM leads
+- `exports/ufh-chelsea-area-clubs-mailead-2026-02-22-verified.csv` — 144 verified Chelsea leads
+- `exports/ufh-football-clubs-email-sequence.md` — 3-email sequences (both campaigns)
+- `exports/ufh-press-pitch.md` — Casual press pitch (Lexi/Chelsea mascot story)
+- `exports/ufh-press-release.md` — Formal press release
