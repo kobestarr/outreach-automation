@@ -4,15 +4,17 @@
 
 ---
 
-## Young Podcast Listener Walks Out as Chelsea Mascot After Voice Note Inspires Thousands
+## "The Best Day Ever" — 8-Year-Old Podcast Listener Walks Out as Chelsea Mascot After Voice Note
 
-**A girl called Lexi, who sent a voice note to the Ultimate Football Heroes podcast, lived her dream day at Stamford Bridge this weekend**
+**Lexi, who sent a voice note to the Ultimate Football Heroes podcast, walked out at Stamford Bridge with Trevor Chalobah in front of 40,000 fans**
 
 ---
 
-**London / Manchester, February 2026** — Lexi, a young football fan and listener of the Ultimate Football Heroes podcast, was selected as the matchday mascot at Chelsea this weekend — walking out at Stamford Bridge in front of thousands of fans.
+**London / Manchester, February 2026** — Lexi, an 8-year-old Chelsea fan from London and listener of the Ultimate Football Heroes podcast, was selected as the matchday mascot at Chelsea vs Burnley this weekend — walking out onto the pitch at Stamford Bridge with Trevor Chalobah in front of 40,000 fans.
 
-Lexi had previously sent in a voice note to the podcast, which was read out on a recent episode. The Ultimate Football Heroes podcast, based on the bestselling children's book series that has sold over 1 million copies worldwide, invites young football fans to send in voice notes sharing their favourite footballing moments, opinions on their heroes, and stories from their own matches.
+Lexi had previously sent in a voice note to the podcast, which was read out on a recent episode. On matchday, she met the club mascots Stamford and Bridget, watched the players arrive from the VIP area, high-fived her favourite player Cole Palmer, and walked out alongside Chalobah for kick-off. "I was nervous but excited at the same time," Lexi said. "It was so loud with all the fans cheering, but it felt amazing. It was the best day ever."
+
+The Ultimate Football Heroes podcast, based on the bestselling children's book series that has sold over 1 million copies worldwide, invites young football fans to send in voice notes sharing their favourite footballing moments, opinions on their heroes, and stories from their own matches. Children whose voice notes are featured on the show receive a free Ultimate Football Heroes book. Lexi has asked for the Cole Palmer edition.
 
 "Lexi's story is exactly what this podcast is about," said Kobi Omenaka, host of the Ultimate Football Heroes podcast. "Kids getting involved, having their voices heard, and falling even more in love with football. The fact that she then got to walk out at Chelsea is incredible — but it started with a 30-second voice note on a phone."
 

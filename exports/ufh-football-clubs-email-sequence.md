@@ -96,7 +96,7 @@ Hi there,
 
 I'm reaching out from the Ultimate Football Heroes podcast — we work with the bestselling kids book series (over 1 million copies sold).
 
-One of our listeners, a young girl called Lexi, sent in a voice note to the podcast a little while back. This weekend, she was the mascot at Chelsea — walked out at Stamford Bridge in front of thousands. We thought clubs near Chelsea would love to hear that story.
+One of our listeners, an 8-year-old called Lexi from London, sent in a voice note to the podcast a while back. This weekend, she was the mascot at Chelsea vs Burnley — walked out onto the pitch at Stamford Bridge with Trevor Chalobah in front of 40,000 fans. She called it "the best day ever." We thought clubs near Chelsea would love to hear that story.
 
 We'd love to get your players involved too. Any of your kids can send in a voice note to the podcast — talking about their favourite footballer or a moment from their own match. If it gets picked to be read out, they get a free Ultimate Football Heroes book sent to them.
 
@@ -121,7 +121,7 @@ Quick follow-up on the Ultimate Football Heroes podcast.
 
 The voice note thing is dead simple — kids just record a short clip on a phone (30 seconds to a minute). The best ones get read out on the podcast and the player gets a free book posted to them.
 
-It works really well as a fun thing to do at the end of a training session or in a WhatsApp group with parents. That's actually how Lexi's voice note came in — and now she's been a mascot at the Bridge.
+It works really well as a fun thing to do at the end of a training session or in a WhatsApp group with parents. That's how Lexi's voice note started — and she ended up high-fiving Cole Palmer and walking out in front of 40,000 people.
 
 Happy to send you everything you'd need to share with your players and parents.
 

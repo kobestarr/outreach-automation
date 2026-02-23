@@ -15,11 +15,11 @@ Hi {{firstName}},
 
 Quick story I thought you might like.
 
-A young girl called Lexi has been listening to the Ultimate Football Heroes podcast — the one based on the bestselling kids book series (over 1 million copies sold). She sent in a voice note to the show a little while back, which got read out on an episode.
+An 8-year-old Chelsea fan called Lexi sent in a voice note to the Ultimate Football Heroes podcast — the one based on the bestselling kids book series (over 1 million copies sold). Her voice note got read out on an episode.
 
-This weekend, Lexi was the mascot at Chelsea. Walked out at Stamford Bridge in front of thousands.
+This weekend, Lexi was the mascot at Chelsea vs Burnley. She walked out onto the pitch at Stamford Bridge with Trevor Chalobah in front of 40,000 fans, high-fived Cole Palmer, and met the club mascots Stamford and Bridget. She said it was "the best day ever."
 
-It's a lovely grassroots story — a kid who loves football, gets involved with a podcast that's getting children reading through the sport, and then gets to live a dream day at a Premier League ground.
+It's a lovely grassroots story — a kid who loves football, gets involved with a podcast that's getting children reading through the sport, and ends up living a dream day at a Premier League ground. And it all started with a 30-second voice note on a phone. (She's asked for the Cole Palmer book as her free copy — every kid who gets featured receives a UFH book.)
 
 We have the clip from the episode if you'd like to use it, and we're happy to chat about the podcast and how we're working with grassroots clubs across the country to get kids involved.
 
