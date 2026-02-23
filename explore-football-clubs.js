@@ -4,12 +4,15 @@
  * Football Clubs/Academies Scraper — UFH Campaign
  *
  * Scrapes youth football clubs and academies via Outscraper,
- * saves to DB with ufh-football-clubs campaign tag, deduplicates across locations.
+ * saves to DB with campaign tag, deduplicates across locations.
  *
  * Usage:
- *   node explore-football-clubs.js --dry-run       # Show what would be searched
- *   node explore-football-clubs.js --scrape-only    # Scrape + save to DB (no enrichment)
- *   node explore-football-clubs.js                  # Full: scrape + enrich + save
+ *   node explore-football-clubs.js --dry-run                    # Show what would be searched (default: GM+EC)
+ *   node explore-football-clubs.js --scrape-only                # Scrape + save to DB (no enrichment)
+ *   node explore-football-clubs.js                              # Full: scrape + save
+ *   node explore-football-clubs.js --area=chelsea               # Chelsea/West London area
+ *   node explore-football-clubs.js --area=gm                    # Greater Manchester + East Cheshire (default)
+ *   node explore-football-clubs.js --area=original              # Original Bramhall + Poynton only
  */
 
 const path = require('path');
@@ -24,8 +27,7 @@ const API_KEY = credentials.outscraper.apiKey;
 // CLI flags
 const DRY_RUN = process.argv.includes('--dry-run');
 const SCRAPE_ONLY = process.argv.includes('--scrape-only');
-
-const CAMPAIGN = 'ufh-football-clubs';
+const AREA_ARG = (process.argv.find(a => a.startsWith('--area=')) || '').split('=')[1] || 'gm';
 
 // Search terms — targeting youth/kids football organisations
 const SEARCH_TERMS = [
@@ -37,11 +39,96 @@ const SEARCH_TERMS = [
   'mini soccer',
 ];
 
-// Locations to scrape — each gets all search terms
-const LOCATIONS = [
-  { name: 'Bramhall', postcode: 'SK7' },
-  { name: 'Poynton', postcode: 'SK12' },
-];
+// --- Area configurations ---
+
+const AREAS = {
+  original: {
+    campaign: 'ufh-football-clubs',
+    locations: [
+      { name: 'Bramhall', postcode: 'SK7' },
+      { name: 'Poynton', postcode: 'SK12' },
+    ],
+  },
+  gm: {
+    campaign: 'ufh-football-clubs',
+    locations: [
+      // Original
+      { name: 'Bramhall', postcode: 'SK7' },
+      { name: 'Poynton', postcode: 'SK12' },
+      // Stockport borough
+      { name: 'Stockport', postcode: 'SK1' },
+      { name: 'Cheadle', postcode: 'SK8' },
+      { name: 'Marple', postcode: 'SK6' },
+      { name: 'Romiley', postcode: 'SK6' },
+      { name: 'Hazel Grove', postcode: 'SK7' },
+      { name: 'Heaton Moor', postcode: 'SK4' },
+      // East Cheshire
+      { name: 'Macclesfield', postcode: 'SK10' },
+      { name: 'Wilmslow', postcode: 'SK9' },
+      { name: 'Alderley Edge', postcode: 'SK9' },
+      { name: 'Knutsford', postcode: 'WA16' },
+      { name: 'Congleton', postcode: 'CW12' },
+      { name: 'Sandbach', postcode: 'CW11' },
+      { name: 'Nantwich', postcode: 'CW5' },
+      // Tameside
+      { name: 'Ashton-under-Lyne', postcode: 'OL6' },
+      { name: 'Hyde', postcode: 'SK14' },
+      { name: 'Denton', postcode: 'M34' },
+      { name: 'Stalybridge', postcode: 'SK15' },
+      { name: 'Droylsden', postcode: 'M43' },
+      // Trafford
+      { name: 'Sale', postcode: 'M33' },
+      { name: 'Altrincham', postcode: 'WA14' },
+      { name: 'Stretford', postcode: 'M32' },
+      { name: 'Urmston', postcode: 'M41' },
+      { name: 'Timperley', postcode: 'WA15' },
+      // Other GM
+      { name: 'Salford', postcode: 'M5' },
+      { name: 'Bury', postcode: 'BL9' },
+      { name: 'Rochdale', postcode: 'OL11' },
+      { name: 'Oldham', postcode: 'OL1' },
+      { name: 'Bolton', postcode: 'BL1' },
+      { name: 'Wigan', postcode: 'WN1' },
+      { name: 'Leigh', postcode: 'WN7' },
+      // High Peak
+      { name: 'Glossop', postcode: 'SK13' },
+      { name: 'New Mills', postcode: 'SK22' },
+      { name: 'Buxton', postcode: 'SK17' },
+      { name: 'Chapel-en-le-Frith', postcode: 'SK23' },
+    ],
+  },
+  chelsea: {
+    campaign: 'ufh-chelsea-area-clubs',
+    locations: [
+      // Core Chelsea/Fulham area
+      { name: 'Fulham', postcode: 'SW6' },
+      { name: 'Chelsea', postcode: 'SW3' },
+      { name: 'Hammersmith', postcode: 'W6' },
+      { name: 'Wandsworth', postcode: 'SW18' },
+      { name: 'Battersea', postcode: 'SW11' },
+      { name: 'Putney', postcode: 'SW15' },
+      { name: 'Parsons Green', postcode: 'SW6' },
+      { name: 'Clapham', postcode: 'SW4' },
+      { name: 'Brixton', postcode: 'SW2' },
+      { name: 'Wimbledon', postcode: 'SW19' },
+      { name: 'Kingston upon Thames', postcode: 'KT1' },
+      { name: 'Richmond', postcode: 'TW9' },
+      { name: 'Hounslow', postcode: 'TW3' },
+      { name: 'Chiswick', postcode: 'W4' },
+      { name: 'Kensington', postcode: 'W8' },
+      { name: 'Earls Court', postcode: 'SW5' },
+    ],
+  },
+};
+
+const areaConfig = AREAS[AREA_ARG];
+if (!areaConfig) {
+  console.error(`ERROR: Unknown area "${AREA_ARG}". Use: ${Object.keys(AREAS).join(', ')}`);
+  process.exit(1);
+}
+
+const CAMPAIGN = areaConfig.campaign;
+const LOCATIONS = areaConfig.locations;
 
 async function searchOutscraper(query, location) {
   const fullQuery = `${query} ${location.name.toLowerCase()}, ${location.postcode.toLowerCase()}`;
@@ -97,7 +184,8 @@ async function searchOutscraper(query, location) {
 }
 
 async function main() {
-  console.log(`\n=== Football Clubs/Academies — ${CAMPAIGN} ===\n`);
+  console.log(`\n=== Football Clubs/Academies — ${CAMPAIGN} (${AREA_ARG}) ===\n`);
+  console.log(`Area: ${AREA_ARG} — ${LOCATIONS.length} locations`);
 
   const totalQueries = SEARCH_TERMS.length * LOCATIONS.length;
 
@@ -259,11 +347,12 @@ async function main() {
   console.log(`\n${CAMPAIGN} campaign now has: ${stats.total} businesses`);
 
   // Save raw results as JSON too
-  const outputPath = path.join(__dirname, 'exports', `${CAMPAIGN}-exploration.json`);
+  const outputPath = path.join(__dirname, 'exports', `${CAMPAIGN}-exploration-${AREA_ARG}.json`);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   const output = {
     timestamp: new Date().toISOString(),
     campaign: CAMPAIGN,
+    area: AREA_ARG,
     locations: LOCATIONS,
     searchTerms: SEARCH_TERMS,
     totalUnique: allResults.size,
@@ -272,7 +361,7 @@ async function main() {
     businesses: Array.from(allResults.values()),
   };
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
-  console.log(`Raw results saved to: exports/${CAMPAIGN}-exploration.json`);
+  console.log(`Raw results saved to: exports/${CAMPAIGN}-exploration-${AREA_ARG}.json`);
 
   // Print sample
   console.log('\n--- Sample clubs (first 15) ---\n');
@@ -285,9 +374,9 @@ async function main() {
   }
 
   console.log(`\nNext steps:`);
-  console.log(`  1. Review results in exports/${CAMPAIGN}-exploration.json`);
-  console.log(`  2. Export as CSV: node export-campaign.js --campaign=${CAMPAIGN} --format=csv`);
-  console.log(`  3. To enrich with website data: add --enrich flag (not yet implemented)\n`);
+  console.log(`  1. Enrich: node enrich-campaign.js --campaign=${CAMPAIGN}`);
+  console.log(`  2. Export CSV: node export-campaign.js --campaign=${CAMPAIGN} --has-email --clean`);
+  console.log(`  3. Mailead CSV: node export-campaign.js --campaign=${CAMPAIGN} --has-email --clean --format=mailead\n`);
 
   closeDatabase();
 }

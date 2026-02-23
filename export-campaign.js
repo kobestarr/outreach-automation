@@ -12,11 +12,126 @@
  *   node export-campaign.js --campaign=ksd-bramhall-SK7 --format=lemlist --campaign-id=cam_xxx
  *   node export-campaign.js --campaign=ufh-football-clubs --has-email   # Only with emails
  *   node export-campaign.js --campaign=ufh-football-clubs --has-phone   # Only with phones
+ *   node export-campaign.js --campaign=ufh-football-clubs --has-email --clean  # Filter junk emails + non-relevant businesses
+ *   node export-campaign.js --campaign=ufh-football-clubs --format=mailead --has-email --clean  # Mailead-ready CSV
  */
 
 const path = require('path');
 const fs = require('fs');
 const { initDatabase, loadBusinesses, listCampaigns, getBusinessStats, closeDatabase } = require('./ksd/local-outreach/orchestrator/modules/database');
+
+// --- Junk email / data quality filters ---
+
+const JUNK_EMAIL_PATTERNS = [
+  /@sentry-next\.wixpress\.com$/i,
+  /@sentry\.io$/i,
+  /@ingest\.\w+\.sentry\.io$/i,
+  /@group\.calendar\.google\.com$/i,
+  /^example@/i,
+  /\[emailprotected\]/i,
+  /@sentry\.wixpress\.com$/i,
+  /^noreply@/i,
+  /^no-reply@/i,
+  /^donotreply@/i,
+  /^skipped@/i,
+  /^6AEMail/i,  // broken Cloudflare email obfuscation
+  /^email@email\.com$/i,
+  /^test@/i,
+];
+
+const JUNK_NAME_PATTERNS = [
+  /^club app pitchero$/i,
+  /^wix get$/i,
+  /^official tyre$/i,
+  /^holiday courses$/i,
+  /^with powerleague$/i,
+  /^golf societies$/i,
+  /^club welfare$/i,
+  /pitchero/i,
+  /^smith welfare$/i,
+  /^lewis fox behind$/i,
+];
+
+// Keywords in business name that indicate non-football businesses
+const NON_FOOTBALL_NAME_KEYWORDS = [
+  'golf', 'cricket', 'rugby', 'chess', 'netball', 'cheer gym', 'cheerleading',
+  'gymnastics', 'miniature railway', 'leisure centre', 'leisure center',
+  'high school', 'performing arts college', 'workmen\'s club',
+  'chess challenge', 'coaching manual', 'argos', 'jd sports', 'sports direct',
+  'adidas', 'nike store', 'premier inn', 'marriott', 'travelodge',
+  'wetherspoon', 'bowling club', 'boxing', 'karate', 'judo', 'taekwondo',
+  'swimming', 'tennis club', 'basketball', 'padel', 'pickleball',
+];
+
+// Google Maps categories that are clearly not football clubs
+const NON_FOOTBALL_CATEGORIES = [
+  'primary school', 'secondary school', 'high school', 'middle school',
+  'college', 'university', 'community school', 'catholic school', 'general education',
+  'pub', 'restaurant', 'bar', 'sports bar', 'live music venue', 'pool hall',
+  'bed & breakfast', 'self-catering', 'hotel', 'guest house', 'serviced accommodation',
+  'sportswear store', 'sporting goods store', 'uniform store', 'clothing store',
+  'soccer store', 'golf shop', 'sports memorabilia',
+  'park', 'playground', 'zoo', 'tourist attraction', 'historical landmark',
+  'indoor playground', 'video arcade', 'shopping mall', 'print shop',
+  'rugby club', 'rugby league club', 'cricket club', 'bowling club',
+  'boxing club', 'martial arts school', 'martial arts club', 'gymnastics club',
+  'tennis club', 'basketball club', 'padel club', 'dance school',
+  'mosque', 'church', 'council', 'civic center',
+  'software company', 'corporate office', 'consultant', 'recruiter',
+  'physical therapist', 'sports injury clinic', 'fitness center',
+  'conservative club', 'social club', 'function room',
+  'event management', 'event venue', 'arena', 'stadium',
+  'store', 'shop', 'training provider', 'preschool',
+  'sportwear manufacturer', 'baseball',
+  'hockey club', 'miniature golf', 'equestrian', 'golf club',
+  'podiatrist', 'e-commerce', 'psychologist', 'entertainment agency',
+  'tennis instructor', 'sport tour agency', 'children\'s cafe',
+];
+
+function isJunkEmail(email) {
+  if (!email) return false;
+  return JUNK_EMAIL_PATTERNS.some(p => p.test(email));
+}
+
+function isJunkContactName(firstName, lastName) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  if (!fullName) return false;
+  return JUNK_NAME_PATTERNS.some(p => p.test(fullName));
+}
+
+function isNonFootballBusiness(name, category) {
+  const lowerName = (name || '').toLowerCase();
+  const lowerCat = (category || '').toLowerCase();
+
+  // Check name keywords
+  if (NON_FOOTBALL_NAME_KEYWORDS.some(kw => lowerName.includes(kw))) return true;
+
+  // Check category
+  if (NON_FOOTBALL_CATEGORIES.some(kw => lowerCat.includes(kw))) return true;
+
+  return false;
+}
+
+function cleanBusiness(b) {
+  const biz = b.business || {};
+  const email = biz.ownerEmail || biz.email || '';
+  const name = biz.name || biz.businessName || '';
+  const category = biz.category || '';
+
+  // Check for junk email
+  if (isJunkEmail(email)) return null;
+
+  // Check for non-football business
+  if (isNonFootballBusiness(name, category)) return null;
+
+  // Clean garbage contact names (blank them out rather than reject the business)
+  if (isJunkContactName(biz.ownerFirstName, biz.ownerLastName)) {
+    biz.ownerFirstName = '';
+    biz.ownerLastName = '';
+  }
+
+  return b;
+}
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -33,6 +148,7 @@ const LEMLIST_CAMPAIGN_ID = getArg('campaign-id');
 const HAS_EMAIL = hasFlag('has-email');
 const HAS_PHONE = hasFlag('has-phone');
 const CATEGORY = getArg('category');
+const CLEAN = hasFlag('clean');
 
 async function main() {
   initDatabase();
@@ -74,12 +190,40 @@ async function main() {
     businesses = businesses.filter(b => (b.business?.category || '').toLowerCase().includes(CATEGORY.toLowerCase()));
   }
 
+  // Apply data quality cleanup
+  let cleanedCount = 0;
+  let junkEmailCount = 0;
+  let nonRelevantCount = 0;
+  if (CLEAN) {
+    const beforeCount = businesses.length;
+    businesses = businesses.map(b => {
+      const biz = b.business || {};
+      const email = biz.ownerEmail || biz.email || '';
+      const name = biz.name || biz.businessName || '';
+      const category = biz.category || '';
+
+      if (isJunkEmail(email)) { junkEmailCount++; return null; }
+      if (isNonFootballBusiness(name, category)) { nonRelevantCount++; return null; }
+
+      // Clean garbage contact names
+      if (isJunkContactName(biz.ownerFirstName, biz.ownerLastName)) {
+        biz.ownerFirstName = '';
+        biz.ownerLastName = '';
+        cleanedCount++;
+      }
+      return b;
+    }).filter(Boolean);
+  }
+
   console.log(`\n=== Export: ${CAMPAIGN} ===`);
   console.log(`  Records: ${businesses.length} (of ${allBusinesses.length} in campaign)`);
   console.log(`  Format: ${FORMAT}`);
   if (HAS_EMAIL) console.log('  Filter: has email');
   if (HAS_PHONE) console.log('  Filter: has phone');
   if (CATEGORY) console.log(`  Filter: category contains "${CATEGORY}"`);
+  if (CLEAN) {
+    console.log(`  Clean mode: removed ${junkEmailCount} junk emails, ${nonRelevantCount} non-relevant businesses, blanked ${cleanedCount} garbage names`);
+  }
   console.log('');
 
   if (businesses.length === 0) {
@@ -90,6 +234,8 @@ async function main() {
 
   if (FORMAT === 'csv') {
     exportCSV(businesses);
+  } else if (FORMAT === 'mailead') {
+    exportMailead(businesses);
   } else if (FORMAT === 'lemlist') {
     if (!LEMLIST_CAMPAIGN_ID) {
       console.error('ERROR: --campaign-id=<lemlist_campaign_id> required for Lemlist export.');
@@ -97,7 +243,7 @@ async function main() {
     }
     await exportLemlist(businesses);
   } else {
-    console.error(`ERROR: Unknown format "${FORMAT}". Use csv or lemlist.`);
+    console.error(`ERROR: Unknown format "${FORMAT}". Use csv, mailead, or lemlist.`);
     process.exit(1);
   }
 
@@ -152,6 +298,43 @@ function exportCSV(businesses) {
   const withPhone = businesses.filter(b => b.business?.phone).length;
   const withName = businesses.filter(b => b.business?.ownerFirstName).length;
   console.log(`  With email: ${withEmail} | With phone: ${withPhone} | With contact name: ${withName}`);
+}
+
+function exportMailead(businesses) {
+  // Mailead uses simple CSV: email, first_name, last_name, company_name, custom fields
+  const headers = [
+    'email', 'first_name', 'last_name', 'company_name', 'phone', 'website', 'category', 'postcode'
+  ];
+
+  const rows = businesses.map(b => {
+    const biz = b.business || {};
+    return [
+      escapeCsv(biz.ownerEmail || biz.email || ''),
+      escapeCsv(biz.ownerFirstName || ''),
+      escapeCsv(biz.ownerLastName || ''),
+      escapeCsv(biz.name || biz.businessName || ''),
+      escapeCsv(biz.phone || ''),
+      escapeCsv(biz.website || ''),
+      escapeCsv(biz.category || ''),
+      escapeCsv(biz.postcode || b.postcode || ''),
+    ];
+  });
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const filename = `${CAMPAIGN}-mailead-${timestamp}.csv`;
+  const outputPath = path.join(__dirname, 'exports', filename);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, csv);
+
+  console.log(`Mailead CSV exported: exports/${filename}`);
+  console.log(`  ${businesses.length} rows`);
+
+  // Quick stats
+  const withName = businesses.filter(b => b.business?.ownerFirstName).length;
+  const withPhone = businesses.filter(b => b.business?.phone).length;
+  console.log(`  With contact name: ${withName} | With phone: ${withPhone}`);
 }
 
 function escapeCsv(val) {

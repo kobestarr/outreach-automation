@@ -20,6 +20,19 @@ const { initDatabase, loadBusinesses, saveBusiness, getBusinessStats, closeDatab
 const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/website-scraper');
 const { extractOwnersFromWebsite } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
 
+// Per-website timeout wrapper — auto-skips any site that takes too long
+const SCRAPE_TIMEOUT_MS = 60000; // 60s max per website
+const LLM_TIMEOUT_MS = 30000;    // 30s max per LLM call
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`TIMEOUT after ${ms / 1000}s: ${label}`)), ms)
+    ),
+  ]);
+}
+
 // CLI args
 const args = process.argv.slice(2);
 const getArg = (name) => {
@@ -102,7 +115,7 @@ async function main() {
       process.stdout.write(`  [${i + 1}/${toEnrich.length}] ${name.substring(0, 40).padEnd(40)} `);
 
       try {
-        const websiteData = await scrapeWebsite(website);
+        const websiteData = await withTimeout(scrapeWebsite(website), SCRAPE_TIMEOUT_MS, website);
         stats.websiteScraped++;
 
         // Extract contact info
@@ -196,7 +209,7 @@ async function main() {
     process.stdout.write(`  [${i + 1}/${llmBatch.length}] ${name.substring(0, 40).padEnd(40)} `);
 
     try {
-      const result = await extractOwnersFromWebsite(name, website);
+      const result = await withTimeout(extractOwnersFromWebsite(name, website), LLM_TIMEOUT_MS, website);
       stats.llmProcessed++;
 
       if (!result) {
