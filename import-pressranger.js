@@ -113,7 +113,7 @@ function parseCSV(text) {
 const COLUMN_MAP = {
   // Name fields
   name: ['name', 'full name', 'fullname', 'contact name', 'journalist name', 'host name', 'podcast name', 'show name', 'publisher name'],
-  firstName: ['first name', 'firstname', 'first_name', 'given name'],
+  firstName: ['first name', 'firstname', 'first_name', 'given name', 'first name / publisher name'],
   lastName: ['last name', 'lastname', 'last_name', 'surname', 'family name'],
 
   // Contact fields
@@ -122,7 +122,7 @@ const COLUMN_MAP = {
   website: ['website', 'url', 'site', 'web', 'website url', 'personal website', 'podcast url', 'show url'],
 
   // Organisation
-  publication: ['publication', 'outlet', 'media outlet', 'publisher', 'company', 'organization', 'organisation', 'network'],
+  publication: ['publication', 'outlet', 'media outlet', 'publisher', 'company', 'organization', 'organisation', 'network', 'outlet/author'],
   title: ['title', 'job title', 'role', 'position'],
 
   // Topic/category
@@ -330,7 +330,7 @@ async function main() {
   const verificationResults = new Map();
 
   if (VERIFY) {
-    const emailsToVerify = toImport.filter(c => c.email).map(c => c.email);
+    const emailsToVerify = [...new Set(toImport.filter(c => c.email).map(c => c.email))];
     console.log(`\n--- Email Verification (Reoon) ---\n`);
 
     const availability = checkAvailability();
@@ -398,7 +398,7 @@ async function main() {
       name: c.name,
       businessName: c.name,
       category: c.category || CONTACT_TYPE,
-      address: c.publication || '', // Use publication as address equivalent
+      address: c.publication ? `${c.name} — ${c.publication}` : '', // Unique per contact to prevent cross-journalist dedup
       postcode: '',
       phone: c.phone,
       website: c.website,

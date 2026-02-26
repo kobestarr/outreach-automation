@@ -1,8 +1,8 @@
 # Outreach Automation Platform — Product Requirements Document
 
-**Version:** 2.2.0
-**Last Updated:** February 21, 2026
-**Status:** Active — Bramhall SK7 + UFH Football Clubs campaigns
+**Version:** 2.3.0
+**Last Updated:** February 26, 2026
+**Status:** Active — KSD Bramhall + UFH Football Clubs (GM + Chelsea) + UFH Press campaigns
 
 ---
 
@@ -19,8 +19,9 @@ Enable hyper-personalized, multi-channel outreach at scale across multiple campa
 - **7 observation-driven personalization signals** for email hooks
 - **Tiered micro-offer pricing** based on revenue estimation
 - **Smart email verification** that preserves API credits
-- **Multi-channel export** — email (Lemlist) + SMS/phone (GoHighLevel) + CSV
+- **Multi-channel export** — email (Lemlist, Mailead) + SMS/phone (GoHighLevel) + CSV
 - **External data import** — PressRanger journalist/podcast CSV import with Reoon verification
+- **Mailead AI training docs** — auto-reply training for campaign-specific knowledge
 
 ### Target Market
 
@@ -158,10 +159,13 @@ Scrapes Google Maps business listings by category + location, returning:
 
 **Active Campaigns:**
 
-| Campaign | Type | Records | Description |
-|----------|------|---------|-------------|
-| `ksd-bramhall-SK7` | Local business outreach | ~1,370 | KSD agency services to Bramhall businesses |
-| `ufh-football-clubs` | Podcast/book promotion | ~125 | UFH podcast outreach to youth football clubs |
+| Campaign | Type | Records | Verified Leads | Platform | Description |
+|----------|------|---------|----------------|----------|-------------|
+| `ksd-bramhall-SK7` | Local business outreach | ~1,410 | ~591 | Lemlist | KSD agency services to Bramhall businesses |
+| `ufh-football-clubs` | Podcast/book promotion | 1,042 | 255 | Mailead | UFH voice notes pitch to GM + East Cheshire clubs |
+| `ufh-chelsea-area-clubs` | Podcast/book promotion | 504 | 144 | Mailead | UFH Lexi mascot story to Chelsea-area clubs |
+| `ufh-journalists` | Press outreach | 125 | 124 | Lemlist | Lexi/Chelsea mascot story for media coverage |
+| `ufh-podcasts` | Press outreach | 25 | 25 | Lemlist | UFH podcast cross-promotion |
 
 ### 2.8 External Data Import
 
@@ -242,7 +246,8 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 | Anthropic (Haiku) | LLM owner extraction | Unlimited | ~$0.001/business |
 | Reoon | Email verification (SMTP power mode) | 2,100/day | Lifetime deal |
 | Icypeas | Email discovery | 100/day | Per-credit |
-| Lemlist | Email campaign management | Unlimited | Subscription |
+| Lemlist | Email campaign management (press/journalist) | 150/day (kobi@kobestarr.io) | Subscription |
+| Mailead | Email campaign management (football clubs) | Pre-warmed accounts | Subscription |
 | GoHighLevel | CRM + SMS/phone | Unlimited | Subscription |
 | PressRanger | Journalist/podcast contact database | 2,000 CSV exports/mo | Lifetime deal (Tier 2) |
 
@@ -254,7 +259,7 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 
 | Metric | Value |
 |--------|-------|
-| Total businesses in DB | ~1,370 |
+| Total businesses in DB | ~1,410 |
 | Categories scraped | 70 |
 | Lemlist campaign leads | ~591 |
 | Emails found | ~684 (all auto-valid) |
@@ -263,17 +268,45 @@ scaffolders, skip hire, tyre fitters, garage door installers, aerial installers,
 | Total LLM extraction cost | ~$1.00 |
 | Campaign status | Paused |
 
-### UFH Football Clubs Campaign
+### UFH Football Clubs — GM + East Cheshire
 
 | Metric | Value |
 |--------|-------|
-| Total clubs/academies | 125 |
-| Locations scraped | Bramhall SK7 + Poynton SK12 |
-| With email | 76 (61%) |
-| With phone | 95 (76%) |
-| With contact name | 48 (38%) |
-| Enrichment LLM cost | ~$0.09 |
-| Campaign status | Email sequence drafted (4 emails) |
+| Total clubs/academies | 1,042 |
+| Areas scraped | Greater Manchester, Stockport, Tameside, Trafford, East Cheshire, High Peak |
+| With email | 516 (50%) |
+| Reoon verified leads | 255 (clean, exported to Mailead) |
+| Enrichment LLM cost | ~$0.50 |
+| Campaign status | Launched (Mailead, 3-email sequence) |
+
+### UFH Football Clubs — Chelsea Area
+
+| Metric | Value |
+|--------|-------|
+| Total clubs/academies | 504 |
+| Areas scraped | Fulham, Chelsea, Hammersmith, Wandsworth, Battersea, Putney, Kensington, Clapham, Brixton, Wimbledon, Kingston, Richmond |
+| With email | 267 (53%) |
+| Reoon verified leads | 144 (clean, exported to Mailead) |
+| Enrichment LLM cost | ~$0.37 |
+| Campaign status | Launched (Mailead, 3-email sequence) |
+
+### UFH Press / Journalist Campaign
+
+| Metric | Value |
+|--------|-------|
+| Total contacts | 150 (125 journalists + 25 podcasts) |
+| Source | PressRanger CSV import |
+| Reoon verified | 149 valid |
+| Pushed to Lemlist | 124 journalists |
+| Campaign status | Launched (Lemlist, 2-email sequence) |
+
+### Overall
+
+| Metric | Value |
+|--------|-------|
+| Total records in DB | ~2,749 |
+| Total LLM cost all-time | ~$1.87 |
+| Total Reoon credits used | ~550 (this phase) |
 
 ---
 

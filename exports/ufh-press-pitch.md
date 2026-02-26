@@ -1,42 +1,55 @@
-# UFH Press Pitch — Casual Email Version
+# UFH Press Pitch — Journalist Outreach via Lemlist
 
-**Target:** Local and national journalists (sports, kids/family, grassroots, education)
-**Delivery:** Via Lemlist (PressRanger import + manual targets)
+**Target:** Journalists + podcast hosts (sports, kids/family, grassroots, education)
+**Delivery:** Via Lemlist
+**From:** Kobi Omenaka | Ultimate Football Heroes (kobi@kobestarr.io)
+**Contacts:** 125 journalists + 25 podcasts (Reoon-verified)
 
 ---
 
-## Email
+## Email 1 — Initial (Day 0)
 
-**Subject:** Chelsea mascot started as a podcast voice note
+**Subject:** lexi's voice note
 
 **Body:**
 
 Hi {{firstName}},
 
-Quick story I thought you might like.
+An 8-year-old Chelsea fan called Lexi sent a voice note to the Ultimate Football Heroes podcast and ended up walking out as mascot at Stamford Bridge. Here's the voice note, and here's the full episode (Lexi's moment is at 5:15).
 
-An 8-year-old Chelsea fan called Lexi sent in a voice note to the Ultimate Football Heroes podcast — the one based on the bestselling kids book series (over 1 million copies sold). Her voice note got read out on an episode.
+I'm Kobi Omenaka, producer of the official tie-in podcast to the ultra-popular Ultimate Football Heroes book series (3m+ copies sold). The podcast is on Apple, Spotify and YouTube, and coming soon to Yoto. We're always looking for young fans to send in their voice notes. Every child whose message gets played on the show receives a free book.
 
-This weekend, Lexi was the mascot at Chelsea vs Burnley. She walked out onto the pitch at Stamford Bridge with Trevor Chalobah in front of 40,000 fans, high-fived Cole Palmer, and met the club mascots Stamford and Bridget. She said it was "the best day ever."
+Lexi's already asked for the Cole Palmer one.
 
-It's a lovely grassroots story — a kid who loves football, gets involved with a podcast that's getting children reading through the sport, and ends up living a dream day at a Premier League ground. And it all started with a 30-second voice note on a phone. (She's asked for the Cole Palmer book as her free copy — every kid who gets featured receives a UFH book.)
-
-We have the clip from the episode if you'd like to use it, and we're happy to chat about the podcast and how we're working with grassroots clubs across the country to get kids involved.
-
-We're currently running a campaign across Greater Manchester and East Cheshire — reaching out to local youth football clubs to get their players sending in voice notes — before taking it nationwide.
-
-Happy to send over more detail, photos, or set up a quick call if it's something you'd cover.
+If that's something worth sharing with your audience, happy to send photos, clips, or connect you with the UFH team. Worth a mention?
 
 Best,
-Kobi Omenaka
-Ultimate Football Heroes Podcast
+Kobi
+
+---
+
+## Email 2 — Follow-up (Day 3-4)
+
+**Subject:** re: lexi's voice note
+
+**Body:**
+
+Hi {{firstName}},
+
+Quick follow-up on Lexi's story. Since that email, we've had dozens more kids sending in voice notes wanting to be on the show. It's becoming a proper thing.
+
+If the timing isn't right for this one, no worries at all. What's the best way to keep you in the loop for future stories?
+
+Best,
+Kobi
 
 ---
 
 ## Notes
 
-- Merge variable: {{firstName}} for personalisation (from PressRanger data)
-- Keep subject line factual and intriguing — journalists scan hundreds of pitches
-- Offer concrete assets: audio clip, photos, interview availability
-- The regional angle works for local press; the grassroots/reading angle works for national
-- Don't oversell — let the story speak for itself
+- **Merge variable:** `{{firstName}}` from PressRanger data (journalist first name)
+- **Subject line:** Lowercase, personal, story-driven — passes the "internal email" test
+- **Follow-up subject:** "re:" prefix makes it look like a reply thread — higher open rate
+- **No breakup email** — 2-touch sequence only for press (journalists are busier, less is more)
+- **Links needed:** Voice note clip URL + full episode URL (with timestamp 5:15)
+- **Podcast contacts need different greeting** — firstName = show name, not a person

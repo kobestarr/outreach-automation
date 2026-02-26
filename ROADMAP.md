@@ -1,6 +1,6 @@
 # Outreach Automation — Roadmap
 
-**Last Updated:** February 20, 2026
+**Last Updated:** February 26, 2026
 
 ---
 
@@ -40,60 +40,74 @@
 - [x] Trades segmentation with `tradesLeadGen` observation signal
 - [x] Database `exported_to` JSON parse fix
 
+### Phase 4: UFH Campaign Launch (Feb 20–26)
+- [x] **Multi-area football club scrapes** — configurable area system in `explore-football-clubs.js`
+  - GM + East Cheshire: 1,042 clubs across 30+ areas
+  - Chelsea-area: 504 clubs across 16 areas near Stamford Bridge
+- [x] **Website enrichment + LLM extraction** — `enrich-campaign.js` with timeout protection
+  - Regex + Haiku 4.5 extraction, total LLM cost ~$0.87
+- [x] **Reoon batch verification** — `verify-football-clubs.js`
+  - 399 verified leads (323 valid + 63 risky, 26 invalid removed)
+- [x] **Category-based junk filtering** — 50+ non-football categories, junk email patterns, garbage names
+- [x] **Mailead CSV export** — `export-campaign.js --clean --format=mailead`
+  - First name fallback ("there" for empty fields)
+  - Two CSVs: GM (255 leads) + Chelsea (144 leads)
+- [x] **Email sequences written** — 3 emails each (Day 0/3/7)
+  - GM: voice notes + regional exclusivity
+  - Chelsea: Lexi mascot story as local hook
+- [x] **PressRanger import** — 182 contacts (38 podcasts + 144 journalists)
+  - Column mapping fixes, email dedup, cross-journalist dedup fix
+  - Reoon verified: 124 journalists + 25 podcasts
+- [x] **Lemlist journalist push** — 124 leads to campaign `cam_jA8fsD4fbZxv7GYjf`
+  - 2-email press sequence (Lexi's voice note story)
+- [x] **Mailead AI training doc** — comprehensive auto-reply knowledge base
+  - Books, podcast, voice notes, Lexi story, FAQ, all links
+- [x] **Press materials** — casual pitch + formal press release for Lexi/Chelsea mascot story
+
 ---
 
 ## In Progress
 
-### Phase 4: Multi-Channel (Feb 20–)
-- [ ] **GoHighLevel API integration** — push no-website contacts directly via REST API
-  - Location API key authentication
-  - Contact creation with intelligent tagging (9 tag categories)
-  - Tags: mobile/landline, trade/service/professional, category, quality, needs-website, source, campaign
-  - Dedup against existing GHL contacts
-  - ~273 contacts (168 mobile + 105 landline)
-
+### Phase 5: Campaign Monitoring + Optimisation
+- [ ] **Monitor Mailead campaigns** — track opens, replies, bounces across GM + Chelsea
+- [ ] **Monitor Lemlist press campaign** — track journalist engagement
 - [ ] **Lemlist activity pull** — fetch campaign performance data
   - New `--activity` flag on audit-lemlist-campaign.js
   - Pull bounces, opens, clicks, replies per lead
   - Cross-reference with DB for per-category/segment breakdowns
   - Flag bounced emails for removal or re-verification
+- [ ] **Podcast outreach** — 25 verified podcast contacts (not yet pushed to Lemlist)
+  - Needs different greeting format (firstName = show name)
+- [ ] **GoHighLevel API integration** — push no-website contacts directly via REST API
 
 ---
 
 ## Planned
 
-### Phase 5: Email Improvement at Scale
-- [ ] **Run `improve-emails.js` on full DB** — currently built but not run
+### Phase 6: KSD Campaign Relaunch
+- [ ] **Run `improve-emails.js` on full KSD DB** — currently built but not run
   - Stage 1: LLM extraction for ~700 businesses without personal emails
   - Stage 2: Pattern guessing + Reoon for ~200 businesses with owner names but no email
   - Stage 3: Icypeas for remaining high-priority leads
-  - Expected outcome: +100–200 new verified personal emails
-
-### Phase 6: Campaign Optimization
 - [ ] **Unpause Lemlist campaign** — 591 leads ready
 - [ ] **A/B test email templates** based on observation signal performance
 - [ ] **Bounce-based email cleanup** — auto-remove bounced leads, re-verify or find alternatives
-- [ ] **Reply tracking** — flag interested leads, update DB status
-- [ ] **Per-category performance analysis** — which categories have best open/reply rates
 
 ### Phase 7: Geographic Expansion
-- [ ] **Expand beyond Bramhall SK7** — Poynton, Cheadle Hulme, Hazel Grove, Stockport
-- [ ] **Parameterize location** in batch script (currently hardcoded to Bramhall)
+- [ ] **Expand KSD beyond Bramhall SK7** — Poynton, Cheadle Hulme, Hazel Grove, Stockport
+- [ ] **Expand UFH to more regions** — Midlands, North West, South East
 - [ ] **Cross-area deduplication** — businesses that serve multiple postcodes
-- [ ] **Location-specific intro text** generation
 
 ### Phase 8: Automation
 - [ ] **Scheduled pipeline runs** — cron/PM2 for periodic re-scraping
 - [ ] **New business detection** — flag businesses that appeared since last scrape
-- [ ] **Stale data refresh** — re-scrape websites older than 30 days
 - [ ] **Auto-export new leads** — push to Lemlist/GHL as they're enriched
 - [ ] **Webhook integration** — Lemlist reply → GHL task creation
 
 ### Phase 9: Advanced Personalization
 - [ ] **LinkedIn enrichment** via Icypeas (already built, not wired in)
-- [ ] **Competitor analysis** — identify businesses in same category/area
-- [ ] **Seasonal messaging** — adjust hooks based on time of year (Q1 tax for accountants, summer for landscapers)
 - [ ] **AI-generated first lines** — custom opening line per business using website context
+- [ ] **Seasonal messaging** — adjust hooks based on time of year
 
 ---
 

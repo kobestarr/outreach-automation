@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] — 2026-02-26
+
+### Added — UFH Launch: Football Clubs + Press Outreach
+
+**Date:** 2026-02-22 to 2026-02-26
+
+**1. Expanded Football Club Scrapes (2 campaigns):**
+- **Greater Manchester + East Cheshire** (`ufh-football-clubs`): Expanded from 125 to 1,042 clubs
+  - Added areas: Stockport borough, East Cheshire, Tameside, Trafford, Salford, Bury, Rochdale, Oldham, Bolton, Wigan, Leigh, High Peak
+  - 6 search terms per area, placeId dedup, website enrichment + LLM extraction
+- **Chelsea-area** (`ufh-chelsea-area-clubs`): 504 clubs (new campaign)
+  - Areas near Stamford Bridge: Fulham, Chelsea, Hammersmith, Wandsworth, Battersea, Putney, Kensington, Clapham, Brixton, Wimbledon, Kingston, Richmond, Hounslow, Chiswick
+  - Separate email sequence leveraging Lexi mascot story as local hook
+
+**2. Reoon Email Verification + Junk Filtering:**
+- Batch Reoon verification via `verify-football-clubs.js`
+- GM: 516 emails → 255 verified clean leads
+- Chelsea: 267 emails → 144 verified clean leads
+- Total: 323 valid + 63 risky (kept) + 26 invalid (removed) = **399 verified leads**
+- Category-based junk filtering in `export-campaign.js --clean`: 50+ non-football categories excluded, junk email patterns (Wix/Sentry/Google Calendar), garbage name detection
+
+**3. PressRanger Import + Journalist Campaign:**
+- Imported 182 PressRanger contacts (38 podcasts + 144 journalists)
+- Fixed column mapping for PressRanger headers (`First Name / Publisher name`, `Outlet/Author`)
+- Fixed cross-journalist dedup bug (address field made unique per contact)
+- Added email dedup in verification loop to prevent wasting Reoon credits on shared emails
+- Reoon verified: 124 valid journalists + 25 valid podcasts = **150 press contacts**
+- Pushed 124 journalist leads to Lemlist campaign (`cam_jA8fsD4fbZxv7GYjf`)
+- 2-email press sequence: Lexi mascot story as news hook
+
+**4. Email Sequences (3 per football campaign, 2 for press):**
+- **GM Sequence A:** Voice notes + free books pitch, regional exclusivity angle, 3-email cadence (Day 0/3/7)
+- **Chelsea Sequence B:** Lexi mascot story hook, local Chelsea angle, 3-email cadence (Day 0/3/7)
+- **Press pitch:** Lexi's voice note → mascot story, 2-email cadence (Day 0/3-4)
+- Press release: formal version for journalists who want to lift copy
+
+**5. Mailead Training Document:**
+- Created comprehensive AI auto-reply training doc (`exports/ufh-mailead-training-doc.md`)
+- Covers: About the Books, About the Podcast, Voice Notes how-to, Lexi Story, Key Facts, FAQ
+- Scoped exclusively to UFH enquiries
+- Includes all relevant links: heroesfootball.com, podcast page, Spotify, YouTube, Amazon buy link
+
+**6. Export & Launch Prep:**
+- Mailead CSVs with first_name fallback ("there" for empty fields → "Hi there")
+- GM CSV: 255 leads, Chelsea CSV: 144 leads
+- Merge variable: `{{company_name}}` for club name personalisation
+- Platform: Mailead for football clubs (pre-warmed), Lemlist for press (kobi@kobestarr.io)
+
+### Stats at Release
+- ~2,749 total contacts in DB
+- 4 active campaigns: `ksd-bramhall-SK7`, `ufh-football-clubs`, `ufh-chelsea-area-clubs`, `ufh-journalists` + `ufh-podcasts`
+- UFH: 399 verified football club leads + 150 verified press contacts
+- Total LLM cost all-time: ~$1.87
+- Reoon credits used this phase: ~550
+
+---
+
 ## [2.2.0] — 2026-02-21
 
 ### Added — Multi-Campaign System + UFH Football Clubs + PressRanger Import
