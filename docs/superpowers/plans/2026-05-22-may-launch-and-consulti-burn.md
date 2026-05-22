@@ -107,11 +107,13 @@ node -e "const c = require('./shared/outreach-core/email-verification/consulti-v
 ```
 Expected: `verification_credits` ~1,000–1,500 lower than Task 1.4 snapshot.
 
-- [ ] **Step 6: Commit checkpoint**
+- [ ] **Step 6: Commit credit log**
+
+The `.jsonl` and `.db` files are gitignored — leave them on disk only.
 
 ```bash
-git add ksd/local-outreach/orchestrator/data/consulti-verify.jsonl data/consulti-credit-log.txt verify-existing-emails-consulti.js
-git commit -m "feat(consulti): full DB email verification + credit log baseline"
+git add data/consulti-credit-log.txt
+git commit -m "chore(consulti): full DB email verification — credit log baseline"
 ```
 
 ---
@@ -157,8 +159,8 @@ Expected: re-verifies the cardiologist subset (~280 rows). Spend: ~280 verify cr
 
 ```bash
 node -e "const c = require('./shared/outreach-core/email-verification/consulti-verifier'); c.getCredits().then(r => console.log(new Date().toISOString(), JSON.stringify(r)))" >> data/consulti-credit-log.txt
-git add ksd/local-outreach/orchestrator/data/consulti-cardiologists-enrich.jsonl ksd/local-outreach/orchestrator/data/consulti-verify.jsonl data/consulti-credit-log.txt enrich-cardiologists-consulti.js
-git commit -m "feat(consulti): cardiologist LI→email lookup + reverify"
+git add data/consulti-credit-log.txt
+git commit -m "chore(consulti): cardiologist LI→email lookup — credit log update"
 ```
 
 ---
@@ -439,11 +441,14 @@ The DB module auto-backs up on init, but force one explicitly before enrichment 
 cp ksd/local-outreach/orchestrator/data/businesses.db ksd/local-outreach/orchestrator/data/backups/businesses-pre-wave2-enrich-$(date +%Y%m%d-%H%M).db
 ```
 
-- [ ] **Step 4: Commit checkpoint**
+- [ ] **Step 4: Log scrape outcome**
+
+The DB itself is gitignored. Capture the scrape outcome to a tracked log file instead.
 
 ```bash
-git add ksd/local-outreach/orchestrator/data/businesses.db
-git commit -m "data: Wave 2 local trades scrape (WA14/15/16 + SK9/10/12)"
+echo "$(date -Iseconds) wave2-scrape complete saved=N duplicates=N errored=N" >> data/scrape-log.txt
+git add data/scrape-log.txt
+git commit -m "chore(scrape): wave 2 local trades scrape outcome log"
 ```
 
 ---
@@ -494,8 +499,8 @@ Expected: status distribution across the trades campaign.
 
 ```bash
 node -e "const c = require('./shared/outreach-core/email-verification/consulti-verifier'); c.getCredits().then(r => console.log(new Date().toISOString(), JSON.stringify(r)))" >> data/consulti-credit-log.txt
-git add ksd/local-outreach/orchestrator/data/consulti-verify.jsonl ksd/local-outreach/orchestrator/data/businesses.db data/consulti-credit-log.txt
-git commit -m "data: Wave 2 trades enriched + Consulti-verified"
+git add data/consulti-credit-log.txt
+git commit -m "chore(consulti): wave 2 trades enrich+verify — credit log update"
 ```
 
 ---
@@ -633,10 +638,12 @@ In Lemlist + Mailead: add `kobi+test@kobestarr.io` to each sequence, send one em
 
 - [ ] **Step 7: Commit and log final credit balance**
 
+`exports/*.csv` is gitignored, so the Mailead CSV stays on disk only.
+
 ```bash
 node -e "const c = require('./shared/outreach-core/email-verification/consulti-verifier'); c.getCredits().then(r => console.log(new Date().toISOString(), 'pre-launch', JSON.stringify(r)))" >> data/consulti-credit-log.txt
-git add exports/local-trades-david-wood-2026-mailead-2026-05-25-verified.csv data/consulti-credit-log.txt
-git commit -m "data: tuesday launch exports + pre-launch credit log"
+git add data/consulti-credit-log.txt
+git commit -m "chore(launch): pre-launch credit log snapshot"
 ```
 
 ---
@@ -665,6 +672,8 @@ In Mailead UI: confirm pre-warmed sender pool active, daily cap honoured, 3-emai
 Tail bounce reports in both tools for the first 60 minutes. If bounce rate >10%, pause and re-check the verify pass. <5% is normal.
 
 - [ ] **Step 5: Log credit balance + commit**
+
+PNGs in `exports/` are NOT gitignored (only `.csv` and `.json` are), so the launch screenshots can be tracked.
 
 ```bash
 node -e "const c = require('./shared/outreach-core/email-verification/consulti-verifier'); c.getCredits().then(r => console.log(new Date().toISOString(), 'launch-day', JSON.stringify(r)))" >> data/consulti-credit-log.txt
@@ -699,12 +708,12 @@ Burn target: ~1,500 lead credits + ~1,200 verify credits per Wave 2 vertical.
 
 - [ ] **Step 4: Daily credit log + commit**
 
-End of each Wed/Thu/Fri/Sat:
+End of each Wed/Thu/Fri/Sat. `.jsonl` artefacts are gitignored.
 
 ```bash
 node -e "const c = require('./shared/outreach-core/email-verification/consulti-verifier'); c.getCredits().then(r => console.log(new Date().toISOString(), 'burn-day', JSON.stringify(r)))" >> data/consulti-credit-log.txt
-git add ksd/local-outreach/orchestrator/data/consulti-*.jsonl data/consulti-credit-log.txt
-git commit -m "consulti: burn-down day <date> — <vertical>"
+git add data/consulti-credit-log.txt
+git commit -m "chore(consulti): burn-down day <date> — <vertical>"
 ```
 
 - [ ] **Step 5: Sat 30 May spillover + final log**
