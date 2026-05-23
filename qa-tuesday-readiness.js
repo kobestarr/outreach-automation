@@ -5,6 +5,7 @@
  * Usage: node qa-tuesday-readiness.js
  */
 const path = require("path");
+const fs = require("fs");
 const Database = require("better-sqlite3");
 const DB_PATH = path.join(__dirname, "ksd", "local-outreach", "orchestrator", "data", "businesses.db");
 const db = new Database(DB_PATH, { readonly: true });
@@ -37,12 +38,19 @@ checks.push(check("No cleaning competitors in trades list", accidentalCleaners =
 const tradesUntiered = db.prepare("SELECT COUNT(*) n FROM businesses WHERE campaigns LIKE '%local-trades-david-wood-2026%' AND (assigned_tier IS NULL OR monthly_price IS NULL)").get().n;
 checks.push(check("Trades have tier + pricing", tradesUntiered === 0, `${tradesUntiered} missing`));
 
-// 5. Excluded LeadRocks emails NOT in cardiologist export pool
-const excluded = db.prepare("SELECT COUNT(*) n FROM businesses WHERE campaigns LIKE '%cardiologists-nigel-2026%' AND owner_email IN ('j.grapsa@rbht.nhs.uk','d.w.s.chong@gmail.com','dwschong@gmail.com')").get().n;
-checks.push(check("GDPR opt-outs / hard-bounces excluded", excluded === 0, `${excluded} should be 0`));
+// 5. Permanent exclusions (GDPR opt-outs + 2024 historical hard-bounces) must not be in clean pool
+const exclusionsFile = path.join(__dirname, "shared", "outreach-core", "exclusions", "cardiologist-do-not-send.json");
+const exclusionEmails = Object.keys(JSON.parse(fs.readFileSync(exclusionsFile, "utf8")).exclusions);
+const placeholders = exclusionEmails.map(() => "?").join(",");
+const excludedInCleanPool = db.prepare(`
+  SELECT COUNT(*) n FROM businesses
+  WHERE campaigns LIKE '%cardiologists-nigel-2026%'
+    AND consulti_status IN ('good','risky')
+    AND lower(owner_email) IN (${placeholders})
+`).get(...exclusionEmails).n;
+checks.push(check(`Cardiologist hard-bounce exclusions enforced (${exclusionEmails.length} on list)`, excludedInCleanPool === 0, `${excludedInCleanPool} still leaking through (must be 0)`));
 
 // 6. Consulti credit log exists and shows recent burn
-const fs = require("fs");
 const logPath = path.join(__dirname, "data", "consulti-credit-log.txt");
 const logExists = fs.existsSync(logPath);
 checks.push(check("Consulti credit log present", logExists, logExists ? "" : "data/consulti-credit-log.txt missing"));

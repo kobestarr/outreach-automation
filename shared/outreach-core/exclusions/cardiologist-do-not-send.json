@@ -1,0 +1,21 @@
+{
+  "_description": "Permanent hard-bounce / GDPR exclusions for the cardiologist outreach campaigns. Read by import-leadrocks-cardiologists.js, qa-tuesday-readiness.js, and any cardiologist export step. Single source of truth.",
+  "_lastUpdated": "2026-05-23",
+  "exclusions": {
+    "j.grapsa@rbht.nhs.uk": "GDPR opt-out 19-Feb-2024",
+    "d.w.s.chong@gmail.com": "Gmail hard-bounce, 550 5.7.26 (2024 manual send)",
+    "dwschong@gmail.com": "Gmail hard-bounce, 550 5.7.26 (2024 manual send)",
+    "c.monaco@imperial.ac.uk": "550 5.1.1 mailbox not found (2024 Gmail mine)",
+    "k.kotseva@imperial.ac.uk": "550 5.1.1 mailbox not found (2024 Gmail mine)",
+    "kkaloud@otenet.gr": "550 5.1.1 mailbox not found (2024 Gmail mine)",
+    "tscallaghan@aol.com": "550 5.1.1 mailbox not found (2024 Gmail mine)",
+    "john.silberbauer@kcl.ac.uk": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "sitara.khan@kcl.ac.uk": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "victoria.parish@kcl.ac.uk": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "laura.corsinovi@rbch.nhs.uk": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "xenofon.krinos@cmft.nhs.uk": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "tomasz.fryzlewicz@cardioanalytics.com": "550 5.4.1 institutional anti-spam reject (2024 Gmail mine)",
+    "jonathanbehar@gmail.com": "Google personal-blocklist 'Message blocked' (2024 Gmail mine)",
+    "olegsk@gmail.com": "Google personal-blocklist 'Message blocked' (2024 Gmail mine)"
+  }
+}
