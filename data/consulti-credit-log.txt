@@ -1,2 +1,3 @@
 2026-05-23T06:17:23.964Z baseline {"lead_credits":10064,"lead_rollover_credits":2434,"verification_credits":24061,"total_lead_credits":12498}
 2026-05-23T06:22:10.324Z after-full-verify {"lead_credits":10064,"lead_rollover_credits":2434,"verification_credits":24032,"total_lead_credits":12498}
+2026-05-23T07:23:49.472Z after-error-retry {"lead_credits":10064,"lead_rollover_credits":2434,"verification_credits":23704,"total_lead_credits":12498}
