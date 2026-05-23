@@ -37,18 +37,28 @@ const JSONL_PATH = path.join(__dirname, "ksd", "local-outreach", "orchestrator",
 
 const db = new Database(DB_PATH);
 
-// Build queue. Resume support: skip rows that already carry consulti_verified_at
+// Build queue. Resume support: skip rows that already carry an LI-lookup result
+// in business_data.consultiEnrichment. (We can't use consulti_verified_at as the
+// resume signal because the plain email verifier (verify-existing-emails-consulti.js)
+// also writes that column — using it here would make the LI-lookup script skip every
+// row that's ever been email-verified.)
 let queue = db.prepare(`
   SELECT id, name, owner_first_name AS first_name, owner_last_name AS last_name,
-         owner_email AS stale_email, linkedin_url, business_data, consulti_verified_at
+         owner_email AS stale_email, linkedin_url, business_data
   FROM businesses
   WHERE campaigns LIKE ?
     AND linkedin_url IS NOT NULL AND linkedin_url != ''
 `).all(`%"${CAMPAIGN}"%`);
 
+function hasLiLookupResult(row) {
+  if (!row.business_data) return false;
+  try { return !!JSON.parse(row.business_data).consultiEnrichment; }
+  catch { return false; }
+}
+
 const totalRows = queue.length;
-const alreadyDone = queue.filter(r => r.consulti_verified_at).length;
-queue = queue.filter(r => !r.consulti_verified_at);
+const alreadyDone = queue.filter(hasLiLookupResult).length;
+queue = queue.filter(r => !hasLiLookupResult(r));
 if (LIMIT) queue = queue.slice(0, LIMIT);
 
 console.log(`Cardiologists in campaign with LinkedIn URL: ${totalRows}`);
