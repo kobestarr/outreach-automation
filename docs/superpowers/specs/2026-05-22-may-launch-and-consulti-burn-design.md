@@ -50,8 +50,8 @@ Two campaigns, three Waves:
 |---|---|---|
 | **Lemlist** | Cardiologists (email + LI in one sequence) | Native multichannel; LeadRocks gave us LI URLs; `kobi@kobestarr.io` sender already warm |
 | **Mailead** | Local trades (3 emails) | Pre-warmed sender pool, 150/day per inbox, proven on UFH launch |
-| **Prosp** | Wave 2/3 LinkedIn DM lane for cardiologist non-responders | LinkedIn DM automation tool — kept out of Wave 1 to avoid double-tapping Lemlist's LI step |
-| **Kondo** | Wave 2/3 LinkedIn DM lane (A/B against Prosp on a second cohort) | Also a LinkedIn DM tool. Wave 1 uses Lemlist's native LI step; Prosp + Kondo split the follow-up work in Wave 2/3 |
+| **Prosp** | Wave 2/3 LinkedIn outbound for cardiologists (cold sequences + voice notes) | Bulk LinkedIn cold DM engine with voice-clone (`sendVoiceMessage`). API+MCP wired in `shared/outreach-core/prosp-integration/`. Held out of Wave 1 to avoid double-tapping Lemlist's LI step |
+| **Kondo** | LinkedIn **inbound** inbox triage across all Waves, both campaigns | Per Kondo's own FAQ they "aren't an automation tool" — it's a labelling/CRM-sync layer on top of LinkedIn DMs. Use it to triage cardiologist + trades replies, tag intent, sync engaged leads onward. MCP requires OAuth |
 | **Consulti** | Verifier of record + lead-lookup engine across both campaigns and all Waves | Beta credits expiring 31 May — must burn |
 | **Reoon** | Standby fallback if Consulti hits issues | Lifetime deal credits don't expire; defer use until next launch |
 
