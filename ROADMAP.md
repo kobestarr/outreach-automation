@@ -1,6 +1,22 @@
 # Outreach Automation — Roadmap
 
-**Last Updated:** February 26, 2026
+**Last Updated:** May 28, 2026
+
+---
+
+## May 2026 — Consulti B2B Sourcing Engine (NEW)
+
+A second sourcing route alongside Outscraper, using the Consulti `/leads/search` B2B contact database (returns name + email + LinkedIn + title directly; 1 lead credit per result, 0-result queries free).
+
+- [x] `source-consulti-leads.js` — keyword+city sourcing, campaign-tagged, flags `--cities/--terms/--tier/--start-page/--max-credits/--dry-run`
+- [x] `explore-area-businesses.js` — Outscraper area scraper (verticals + tiers + cleaning exclusion); parked in favour of Consulti for B2B
+- [x] **2,862 KSD B2B contacts sourced** (`ksd-local-2026`) — Manchester, Stockport, affluent NW, London — all email + LinkedIn
+- [x] Vertical coverage mapped: Consulti RICH for B2B professionals, THIN for trades (4) / medical (7) → those stay on Outscraper
+- [x] Geo limits documented (10,001 cap, no postcode/radius, UK<US granularity, town-name allowlist) — see memory `reference-consulti-coverage-gaps`
+- [x] Beta feedback sent to Consulti (7 findings + fixes)
+- [ ] **Verify + export + LAUNCH the 2,862 KSD B2B contacts** (not yet emailed) ← next session
+- [ ] **Burn remaining ~7,622 lead credits before 31 May** (Birmingham/Leeds/Bristol/Edinburgh/Glasgow + affluent-town allowlist)
+- [ ] Outscraper for postcode-precise affluent slices Consulti can't do (London boroughs)
 
 ---
 

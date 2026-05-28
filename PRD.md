@@ -1,8 +1,18 @@
 # Outreach Automation Platform — Product Requirements Document
 
-**Version:** 2.3.0
-**Last Updated:** February 26, 2026
-**Status:** Active — KSD Bramhall + UFH Football Clubs (GM + Chelsea) + UFH Press campaigns
+**Version:** 2.4.0
+**Last Updated:** May 28, 2026
+**Status:** Active — KSD Bramhall + KSD B2B (Consulti) + UFH Football Clubs (GM + Chelsea) + UFH Press campaigns
+
+---
+
+## May 2026 Addendum — Consulti as a second data-collection source
+
+In addition to Outscraper (Google Maps, postcode-precise), the platform can now source contacts from the **Consulti `/leads/search` B2B database** via `source-consulti-leads.js`. Consulti returns the decision-maker WITH email + LinkedIn + title in one call (1 lead credit per result; 0-result queries free), removing the scrape→enrich→find steps for the verticals it covers.
+
+- **Use Consulti for:** B2B professional services (accountants, solicitors, architects, estate agents, surveyors). Rich UK coverage by town/city name.
+- **Use Outscraper for:** trades, medical/healthcare, and any postcode/borough-precise targeting. Consulti is thin on trades/medics and has **no sub-city granularity in the UK** (no postcode/radius; `cities`/`states` only; `total` capped at 10,001). Full limits in memory `reference-consulti-coverage-gaps`.
+- New campaign: `ksd-local-2026` (KSD B2B). Rollout strategy in memory `project-ksd-b2b-sourcing-rollout`.
 
 ---
 

@@ -1,0 +1,1137 @@
+{
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/quick-export-from-db.js": {
+    "mtime": 1771239633.4733393,
+    "ast_hash": "d47aa4c4cb9ea2880633b77dbfa1a907",
+    "semantic_hash": "d47aa4c4cb9ea2880633b77dbfa1a907"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/llm-extract-comparison.js": {
+    "mtime": 1771484478.1725469,
+    "ast_hash": "5c851b6b2346c23368029dcb11e0aa5e",
+    "semantic_hash": "5c851b6b2346c23368029dcb11e0aa5e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/verify-existing-emails-reoon.js": {
+    "mtime": 1779053737.5499053,
+    "ast_hash": "26f474e33339acb4a5c98acce89b8a71",
+    "semantic_hash": "26f474e33339acb4a5c98acce89b8a71"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/improve-emails.js": {
+    "mtime": 1771491455.4783096,
+    "ast_hash": "03c35481ecd677241177909a04248fb9",
+    "semantic_hash": "03c35481ecd677241177909a04248fb9"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/extract-nigel-campaign.sh": {
+    "mtime": 1779046515.6122084,
+    "ast_hash": "0736e2b73f7153b0065d6ae1c503e5de",
+    "semantic_hash": "0736e2b73f7153b0065d6ae1c503e5de"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/compare-scrapers.js": {
+    "mtime": 1771239633.4683788,
+    "ast_hash": "281d019fb50d757f947a72d9ccec4ed7",
+    "semantic_hash": "281d019fb50d757f947a72d9ccec4ed7"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/source-consulti-leads.js": {
+    "mtime": 1779902912.7541263,
+    "ast_hash": "84db44048f043e8dde7ecac02140ecd4",
+    "semantic_hash": "84db44048f043e8dde7ecac02140ecd4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/find-tps-target-emails.js": {
+    "mtime": 1779193581.708444,
+    "ast_hash": "4847269f773db6f589a86cb9825ff907",
+    "semantic_hash": "4847269f773db6f589a86cb9825ff907"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-generic-email-fix.js": {
+    "mtime": 1771239633.4873605,
+    "ast_hash": "6cc542154dcc6d0df71775ebf6011402",
+    "semantic_hash": "6cc542154dcc6d0df71775ebf6011402"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-edge-cases.js": {
+    "mtime": 1771239633.4861395,
+    "ast_hash": "fb0596c77fb2719b521f3cc2102cc0db",
+    "semantic_hash": "fb0596c77fb2719b521f3cc2102cc0db"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/analyze-tps-commercial-speakers.js": {
+    "mtime": 1779132084.1916435,
+    "ast_hash": "6ec4427535cc1f02e98b9fd4b1cf6771",
+    "semantic_hash": "6ec4427535cc1f02e98b9fd4b1cf6771"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/scrape-tps-sessions.js": {
+    "mtime": 1779188546.022544,
+    "ast_hash": "686407d9bc040b5aa03063675775833e",
+    "semantic_hash": "686407d9bc040b5aa03063675775833e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/cleanup-bad-leads.js": {
+    "mtime": 1771239633.4680474,
+    "ast_hash": "760c59dd5619841859636f5d43ea9d2e",
+    "semantic_hash": "760c59dd5619841859636f5d43ea9d2e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/demo-name-fallback.js": {
+    "mtime": 1771239633.4692242,
+    "ast_hash": "30358495750ea9a06a6ed1f85e7c2aac",
+    "semantic_hash": "30358495750ea9a06a6ed1f85e7c2aac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-fallback-names.js": {
+    "mtime": 1771239633.4867232,
+    "ast_hash": "ed7d05cc9604090e335417da83555fe4",
+    "semantic_hash": "ed7d05cc9604090e335417da83555fe4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/rescrape-all-websites.js": {
+    "mtime": 1771239633.4737008,
+    "ast_hash": "0163a25609507e6316d89d047f7b7061",
+    "semantic_hash": "0163a25609507e6316d89d047f7b7061"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/reimport-cardiologists-direct.js": {
+    "mtime": 1779048636.1890137,
+    "ast_hash": "429e54a3926dcddfa7b173fb246edb81",
+    "semantic_hash": "429e54a3926dcddfa7b173fb246edb81"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/grep-lemlist-sequences.js": {
+    "mtime": 1779044521.1270654,
+    "ast_hash": "280aca915d92a99b0ed87cfb06bda2c7",
+    "semantic_hash": "280aca915d92a99b0ed87cfb06bda2c7"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/enrich-cardiologists-consulti.js": {
+    "mtime": 1779522001.9035983,
+    "ast_hash": "bc4e82ec523aed5664a965dcffcfaf3c",
+    "semantic_hash": "bc4e82ec523aed5664a965dcffcfaf3c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/list-lemlist-campaigns.js": {
+    "mtime": 1779044419.8953176,
+    "ast_hash": "e0365ae40961cdc7c856e218f8058606",
+    "semantic_hash": "e0365ae40961cdc7c856e218f8058606"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/verify-and-export.js": {
+    "mtime": 1771239633.4940248,
+    "ast_hash": "d5075db171206c0f65043c9ba0376cbf",
+    "semantic_hash": "d5075db171206c0f65043c9ba0376cbf"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/stress-test-email-sequence.js": {
+    "mtime": 1771239633.4838476,
+    "ast_hash": "2893c1f88254d07139611fe51d5353c6",
+    "semantic_hash": "2893c1f88254d07139611fe51d5353c6"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/explore-area-businesses.js": {
+    "mtime": 1779895077.3926027,
+    "ast_hash": "6db0e5d7de34444409078d1d56ca49f5",
+    "semantic_hash": "6db0e5d7de34444409078d1d56ca49f5"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/verify-existing-emails-consulti.js": {
+    "mtime": 1779033250.2043123,
+    "ast_hash": "4eed4d3a361d99db8d78743c77fe3097",
+    "semantic_hash": "4eed4d3a361d99db8d78743c77fe3097"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-small-sample.js": {
+    "mtime": 1771239633.490554,
+    "ast_hash": "e8ba701496746935026543c0a214627b",
+    "semantic_hash": "e8ba701496746935026543c0a214627b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/scrape-podcast-show-speakers.js": {
+    "mtime": 1779048813.3019772,
+    "ast_hash": "a8e22725185980ac0aca6c292d522eff",
+    "semantic_hash": "a8e22725185980ac0aca6c292d522eff"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-email-extraction.js": {
+    "mtime": 1771239633.4863794,
+    "ast_hash": "e0ef4763c3c863490c18f1bd923ac24d",
+    "semantic_hash": "e0ef4763c3c863490c18f1bd923ac24d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-claude-comparison.js": {
+    "mtime": 1771239633.4859722,
+    "ast_hash": "f374d1dbc8a1a71a2ed30a607c3684a7",
+    "semantic_hash": "f374d1dbc8a1a71a2ed30a607c3684a7"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-multiowner-note.js": {
+    "mtime": 1771239633.4887173,
+    "ast_hash": "59ec3cdc645ed7b501b7e64225e6a8a4",
+    "semantic_hash": "59ec3cdc645ed7b501b7e64225e6a8a4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/export-campaign.js": {
+    "mtime": 1771803820.418418,
+    "ast_hash": "20478ec4da8297c0f7272f4354f5b18e",
+    "semantic_hash": "20478ec4da8297c0f7272f4354f5b18e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-flow.js": {
+    "mtime": 1771239633.487256,
+    "ast_hash": "14424d30cbc236b05d80da2abb0581aa",
+    "semantic_hash": "14424d30cbc236b05d80da2abb0581aa"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/import-podcast-show-speakers.js": {
+    "mtime": 1779061134.003814,
+    "ast_hash": "2daebee0aec2250d6dc6dc685f0417c8",
+    "semantic_hash": "2daebee0aec2250d6dc6dc685f0417c8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-noname-note-fix.js": {
+    "mtime": 1771239633.489639,
+    "ast_hash": "097bf03dc0d1c79a17aae4c710bc0908",
+    "semantic_hash": "097bf03dc0d1c79a17aae4c710bc0908"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/reexport-clean-leads.js": {
+    "mtime": 1771328195.1686962,
+    "ast_hash": "6e58df5b02acb528317aa9e06aed3b16",
+    "semantic_hash": "6e58df5b02acb528317aa9e06aed3b16"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/check-outscraper-emails.js": {
+    "mtime": 1771239633.4678009,
+    "ast_hash": "f9b6e2e47743b062f6a8eba9a1024b01",
+    "semantic_hash": "f9b6e2e47743b062f6a8eba9a1024b01"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/delete-empty-leads.js": {
+    "mtime": 1771239633.468708,
+    "ast_hash": "548ada55e6d1ee23f091b91d87e9b519",
+    "semantic_hash": "548ada55e6d1ee23f091b91d87e9b519"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-live-generation.js": {
+    "mtime": 1771239633.4879277,
+    "ast_hash": "390c11e05d963d66e6e130bd37419d2c",
+    "semantic_hash": "390c11e05d963d66e6e130bd37419d2c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-gmail-filter-bug.js": {
+    "mtime": 1771239633.4874632,
+    "ast_hash": "e2ea91ae80b8954c031b4d644b75d05f",
+    "semantic_hash": "e2ea91ae80b8954c031b4d644b75d05f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/check-enriched.js": {
+    "mtime": 1771239633.467106,
+    "ast_hash": "de1aea019aef7815c462b08d10c31a2a",
+    "semantic_hash": "de1aea019aef7815c462b08d10c31a2a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/enrich-campaign.js": {
+    "mtime": 1771792621.7554438,
+    "ast_hash": "1f03ab9c3950439f27dd0752f561a8d5",
+    "semantic_hash": "1f03ab9c3950439f27dd0752f561a8d5"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/audit-lemlist-campaign.js": {
+    "mtime": 1771252433.684581,
+    "ast_hash": "6a8acb5063015169ee47b1f5359d134a",
+    "semantic_hash": "6a8acb5063015169ee47b1f5359d134a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/import-pressranger.js": {
+    "mtime": 1771921513.0558126,
+    "ast_hash": "66a4f6753abb13400d4da3b271ce662b",
+    "semantic_hash": "66a4f6753abb13400d4da3b271ce662b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-multi-owner.js": {
+    "mtime": 1771239633.488458,
+    "ast_hash": "4d9b8ee4bef27f453ae5cc7484baeeac",
+    "semantic_hash": "4d9b8ee4bef27f453ae5cc7484baeeac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-name-extraction.js": {
+    "mtime": 1771239633.4889302,
+    "ast_hash": "bfc86f4df1c9ae4abe7861c440e3bd29",
+    "semantic_hash": "bfc86f4df1c9ae4abe7861c440e3bd29"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-playwright.js": {
+    "mtime": 1771239633.490105,
+    "ast_hash": "a319db78c164cfca71c3e686c032dc96",
+    "semantic_hash": "a319db78c164cfca71c3e686c032dc96"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/package.json": {
+    "mtime": 1771484392.721576,
+    "ast_hash": "c92e9301b19cc719a23d58985cfbc932",
+    "semantic_hash": "c92e9301b19cc719a23d58985cfbc932"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-50-production-export.js": {
+    "mtime": 1771239633.4844785,
+    "ast_hash": "5e5d9da87fad8c2b61dc7101ebb9eb30",
+    "semantic_hash": "5e5d9da87fad8c2b61dc7101ebb9eb30"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-apis.js": {
+    "mtime": 1771239633.4851239,
+    "ast_hash": "e6e1c0ad5a156df146b741b9287aa746",
+    "semantic_hash": "e6e1c0ad5a156df146b741b9287aa746"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-hasdata-poll.js": {
+    "mtime": 1771239633.4876184,
+    "ast_hash": "fd3d57cfb6faf20d93c984d73e3389e3",
+    "semantic_hash": "fd3d57cfb6faf20d93c984d73e3389e3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tag-businesses.js": {
+    "mtime": 1779517204.94064,
+    "ast_hash": "232d6fa18c841743da174faee85c2610",
+    "semantic_hash": "232d6fa18c841743da174faee85c2610"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/explore-football-clubs.js": {
+    "mtime": 1771770547.8661966,
+    "ast_hash": "75a220fb2a076e5ab12f817a568fbdc1",
+    "semantic_hash": "75a220fb2a076e5ab12f817a568fbdc1"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/consulti-coverage-test.py": {
+    "mtime": 1779031635.4987588,
+    "ast_hash": "46db6560f6d9b3bd04e5ddd99d60931d",
+    "semantic_hash": "46db6560f6d9b3bd04e5ddd99d60931d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/demo-email-extraction.js": {
+    "mtime": 1771239633.4689686,
+    "ast_hash": "48d9762d508b98d3761052459573951f",
+    "semantic_hash": "48d9762d508b98d3761052459573951f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/peek-lemlist-campaign.js": {
+    "mtime": 1779044452.67686,
+    "ast_hash": "d2a04c25485d60835a73a914485298dd",
+    "semantic_hash": "d2a04c25485d60835a73a914485298dd"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/qa-tuesday-readiness.js": {
+    "mtime": 1779522567.6739109,
+    "ast_hash": "5e4faafc6034662c97176293edc53039",
+    "semantic_hash": "5e4faafc6034662c97176293edc53039"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/enrich-speakers-consulti.js": {
+    "mtime": 1779061223.3282824,
+    "ast_hash": "e970456832eeb75fd6b881856cf508b0",
+    "semantic_hash": "e970456832eeb75fd6b881856cf508b0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/check-generic-emails.js": {
+    "mtime": 1771239633.467182,
+    "ast_hash": "0988a9bf739533092cd71504915ef8d3",
+    "semantic_hash": "0988a9bf739533092cd71504915ef8d3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-new-rules.js": {
+    "mtime": 1771239633.489398,
+    "ast_hash": "c37d33962e952e456a72e26f6a6d0c48",
+    "semantic_hash": "c37d33962e952e456a72e26f6a6d0c48"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-email-extractor-fix.js": {
+    "mtime": 1771239633.486476,
+    "ast_hash": "6c39a792f29c6777419ec5a0f182dd1f",
+    "semantic_hash": "6c39a792f29c6777419ec5a0f182dd1f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-bramhall-fix-verification.js": {
+    "mtime": 1771239633.4855735,
+    "ast_hash": "8d8c6c57474151bbc1d363754c971317",
+    "semantic_hash": "8d8c6c57474151bbc1d363754c971317"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-proximity.js": {
+    "mtime": 1771239633.49032,
+    "ast_hash": "a95dc80bcfcdbb58b044817c9c2c7bf2",
+    "semantic_hash": "a95dc80bcfcdbb58b044817c9c2c7bf2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-paid-apis.js": {
+    "mtime": 1771239633.489866,
+    "ast_hash": "0319b04c25f747abcadadbca47df1bac",
+    "semantic_hash": "0319b04c25f747abcadadbca47df1bac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-validation-hardening.js": {
+    "mtime": 1771239633.490838,
+    "ast_hash": "4e5bdd177451a6e9f7eb47d0f7f16cf3",
+    "semantic_hash": "4e5bdd177451a6e9f7eb47d0f7f16cf3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/stress-test-names.js": {
+    "mtime": 1771239633.484025,
+    "ast_hash": "d49e5a411f100e1465bd7345f026a298",
+    "semantic_hash": "d49e5a411f100e1465bd7345f026a298"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-tier-pricing-fix.js": {
+    "mtime": 1771239633.4907641,
+    "ast_hash": "ead2479e8be9cff1e1b924b31e61a16a",
+    "semantic_hash": "ead2479e8be9cff1e1b924b31e61a16a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/find-tps-emails-by-pattern.js": {
+    "mtime": 1779193817.9394934,
+    "ast_hash": "224b441546f7a299acee47ad15ff80dd",
+    "semantic_hash": "224b441546f7a299acee47ad15ff80dd"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-hasdata-response.js": {
+    "mtime": 1771239633.4876966,
+    "ast_hash": "d3529968049c914db460bacffebebb3a",
+    "semantic_hash": "d3529968049c914db460bacffebebb3a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-short-names.js": {
+    "mtime": 1771239633.4904754,
+    "ast_hash": "c66689215d8025010aca6f7c37a4e740",
+    "semantic_hash": "c66689215d8025010aca6f7c37a4e740"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-without-scraping.js": {
+    "mtime": 1771239633.4909236,
+    "ast_hash": "2fe22799e7970667bfc31f12f81c351d",
+    "semantic_hash": "2fe22799e7970667bfc31f12f81c351d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-15-businesses-to-lemlist.js": {
+    "mtime": 1771239633.4841862,
+    "ast_hash": "8dc0834a985c51e87db0d2aa9b151edb",
+    "semantic_hash": "8dc0834a985c51e87db0d2aa9b151edb"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-bramhall-scraper.js": {
+    "mtime": 1771239633.4857056,
+    "ast_hash": "ddcd4fba02367c1f51585a41b3421e40",
+    "semantic_hash": "ddcd4fba02367c1f51585a41b3421e40"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-name-splitter.js": {
+    "mtime": 1771239633.4890542,
+    "ast_hash": "fdae79dfc5bab35fc5ec76d9f324168d",
+    "semantic_hash": "fdae79dfc5bab35fc5ec76d9f324168d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/find-brand-side-advertisers.js": {
+    "mtime": 1779132665.0264125,
+    "ast_hash": "563ff218dcebca3ef4b521b4905c3bd4",
+    "semantic_hash": "563ff218dcebca3ef4b521b4905c3bd4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-15-full-production-export.js": {
+    "mtime": 1771239633.4843042,
+    "ast_hash": "d04cd56fbfd0cdaaa0462cb5f3e6ebaf",
+    "semantic_hash": "d04cd56fbfd0cdaaa0462cb5f3e6ebaf"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-correct-endpoint.js": {
+    "mtime": 1771239633.4860616,
+    "ast_hash": "6ab5498a11f6787624f4c1eaf506aee8",
+    "semantic_hash": "6ab5498a11f6787624f4c1eaf506aee8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/consulti-coverage-test.js": {
+    "mtime": 1779031673.5283182,
+    "ast_hash": "cf3e90e60e721c3eda675f607ece0d6a",
+    "semantic_hash": "cf3e90e60e721c3eda675f607ece0d6a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/verify-football-clubs.js": {
+    "mtime": 1771804012.3228028,
+    "ast_hash": "eb226cc43c2be2b74f43a8011c5c05ac",
+    "semantic_hash": "eb226cc43c2be2b74f43a8011c5c05ac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-merge-variables-preview.js": {
+    "mtime": 1771239633.4882016,
+    "ast_hash": "4819a461e7c96a6c526580ddbcecb114",
+    "semantic_hash": "4819a461e7c96a6c526580ddbcecb114"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/api-keys.example.json": {
+    "mtime": 1771239633.4670265,
+    "ast_hash": "75d822824ffee71c5f0ebc7aa2b73b3a",
+    "semantic_hash": "75d822824ffee71c5f0ebc7aa2b73b3a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/import-leadrocks-cardiologists.js": {
+    "mtime": 1779048523.8336604,
+    "ast_hash": "0a299ff84ad013c349f72fe28d0d0f74",
+    "semantic_hash": "0a299ff84ad013c349f72fe28d0d0f74"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-reply-detection.js": {
+    "mtime": 1771239633.4903953,
+    "ast_hash": "5985c98b3fe77d8419acef958199c05f",
+    "semantic_hash": "5985c98b3fe77d8419acef958199c05f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/check-hasdata-credits.js": {
+    "mtime": 1771239633.4672725,
+    "ast_hash": "9d883fa34d66bab6e79f74044e4f20ea",
+    "semantic_hash": "9d883fa34d66bab6e79f74044e4f20ea"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-hasdata-endpoints.js": {
+    "mtime": 1771239633.4875462,
+    "ast_hash": "844b468b59579f4c8c71049d0fbdc882",
+    "semantic_hash": "844b468b59579f4c8c71049d0fbdc882"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/cleanup-bad-cardiologist-import.js": {
+    "mtime": 1779048478.0140004,
+    "ast_hash": "f81d5c72468ca2f7ce223ab042e359c8",
+    "semantic_hash": "f81d5c72468ca2f7ce223ab042e359c8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/batch-bramhall-all-categories.js": {
+    "mtime": 1771526742.852378,
+    "ast_hash": "0a2e99821d586f2bff9cc91cf03c2d5f",
+    "semantic_hash": "0a2e99821d586f2bff9cc91cf03c2d5f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-finished-job.js": {
+    "mtime": 1771239633.4870265,
+    "ast_hash": "b6bab2a992057f0e1a71cd49b8e1d428",
+    "semantic_hash": "b6bab2a992057f0e1a71cd49b8e1d428"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/retry-errored-consulti.js": {
+    "mtime": 1779517501.6839056,
+    "ast_hash": "9859cf108a731128a6176adf238e0f5a",
+    "semantic_hash": "9859cf108a731128a6176adf238e0f5a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/test-name-validation.js": {
+    "mtime": 1771239633.489308,
+    "ast_hash": "a39843f00e49054b4ea18243af37372f",
+    "semantic_hash": "a39843f00e49054b4ea18243af37372f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/check-lemlist-status.js": {
+    "mtime": 1771239633.467702,
+    "ast_hash": "13df84710bdd0d99fd10530c5f31e8d1",
+    "semantic_hash": "13df84710bdd0d99fd10530c5f31e8d1"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/main.js": {
+    "mtime": 1771239633.47031,
+    "ast_hash": "345fa78198e55ac6496c09186f6fbfb1",
+    "semantic_hash": "345fa78198e55ac6496c09186f6fbfb1"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/test-multi-owner.js": {
+    "mtime": 1771239633.4717157,
+    "ast_hash": "62fe12367ff3f1a15236e4b4a9602235",
+    "semantic_hash": "62fe12367ff3f1a15236e4b4a9602235"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/config/uk-chains.json": {
+    "mtime": 1771239633.4700484,
+    "ast_hash": "487d25ff2859504e54542383d94e094c",
+    "semantic_hash": "487d25ff2859504e54542383d94e094c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/config/tier-config.json": {
+    "mtime": 1771239633.4699667,
+    "ast_hash": "e0737b66b598e6f199264c56dba47ee3",
+    "semantic_hash": "e0737b66b598e6f199264c56dba47ee3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/migrate-to-db.js": {
+    "mtime": 1771239633.4726183,
+    "ast_hash": "638c5a96f7358ee7ae882c618bfdeba2",
+    "semantic_hash": "638c5a96f7358ee7ae882c618bfdeba2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/export-business.js": {
+    "mtime": 1771239633.4720852,
+    "ast_hash": "8fbda17a14c147c114cb02782e0bb52d",
+    "semantic_hash": "8fbda17a14c147c114cb02782e0bb52d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/export-businesses.js": {
+    "mtime": 1771239633.4721637,
+    "ast_hash": "2c11ce88a037b8957ac775ed8cd89843",
+    "semantic_hash": "2c11ce88a037b8957ac775ed8cd89843"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/view-businesses.js": {
+    "mtime": 1771239633.473089,
+    "ast_hash": "9a88c7738f4b348d631bc27e1f8654bb",
+    "semantic_hash": "9a88c7738f4b348d631bc27e1f8654bb"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/export-email-sequence.js": {
+    "mtime": 1771239633.4723842,
+    "ast_hash": "1992e89e050cf2f41cb1c825854d48c3",
+    "semantic_hash": "1992e89e050cf2f41cb1c825854d48c3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/export-to-prosp.js": {
+    "mtime": 1771239633.4725397,
+    "ast_hash": "ddc724d48ff0abef821ef66485ef7ed5",
+    "semantic_hash": "ddc724d48ff0abef821ef66485ef7ed5"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/resume-approval.js": {
+    "mtime": 1771239633.4728637,
+    "ast_hash": "0845f8c8544c357da95841344d3e305b",
+    "semantic_hash": "0845f8c8544c357da95841344d3e305b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/utils/business-stats.js": {
+    "mtime": 1771239633.471972,
+    "ast_hash": "dd56ec5be19f853ea15fea44c35f6525",
+    "semantic_hash": "dd56ec5be19f853ea15fea44c35f6525"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/database.js": {
+    "mtime": 1771614148.8418982,
+    "ast_hash": "4cf27f69b0f4234e716bba0a64203e37",
+    "semantic_hash": "4cf27f69b0f4234e716bba0a64203e37"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/revenue-estimator.js": {
+    "mtime": 1771239633.4715657,
+    "ast_hash": "3d33848926dbc8cd541ce438ba725934",
+    "semantic_hash": "3d33848926dbc8cd541ce438ba725934"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/google-maps-scraper-scrapula.js": {
+    "mtime": 1771239633.471363,
+    "ast_hash": "9df716a6fc744e7301557ef2a625a78b",
+    "semantic_hash": "9df716a6fc744e7301557ef2a625a78b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/google-maps-scraper.js": {
+    "mtime": 1771239633.4714801,
+    "ast_hash": "2e84fdca3606df4b5deb32f6d269d8f8",
+    "semantic_hash": "2e84fdca3606df4b5deb32f6d269d8f8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/barter-detector.js": {
+    "mtime": 1771239633.470525,
+    "ast_hash": "e05373fb9f7835b93ed510860791a221",
+    "semantic_hash": "e05373fb9f7835b93ed510860791a221"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/tier-assigner.js": {
+    "mtime": 1771239633.4716358,
+    "ast_hash": "6933c0346e624f4be294d8b927ef9f82",
+    "semantic_hash": "6933c0346e624f4be294d8b927ef9f82"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/google-maps-scraper-outscraper.js": {
+    "mtime": 1771239633.4712193,
+    "ast_hash": "ea14b56516560bd3cee8348cfaf056fd",
+    "semantic_hash": "ea14b56516560bd3cee8348cfaf056fd"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/chain-filter.js": {
+    "mtime": 1771239633.4706109,
+    "ast_hash": "a97c0d0b6b7b9e540134073e8473e9a3",
+    "semantic_hash": "a97c0d0b6b7b9e540134073e8473e9a3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/data-storage.js": {
+    "mtime": 1771239633.4709837,
+    "ast_hash": "e3f49a0a6e2e16b1e3b07b14d74a57b3",
+    "semantic_hash": "e3f49a0a6e2e16b1e3b07b14d74a57b3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/companies-house.js": {
+    "mtime": 1771239633.470757,
+    "ast_hash": "55d8d0be3827475024b491351f158f73",
+    "semantic_hash": "55d8d0be3827475024b491351f158f73"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/orchestrator/modules/barter-agreements.js": {
+    "mtime": 1771239633.4704382,
+    "ast_hash": "77695b87b85df3495f1ff81a16b79473",
+    "semantic_hash": "77695b87b85df3495f1ff81a16b79473"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/integration-test-bramhall.js": {
+    "mtime": 1771239633.4922273,
+    "ast_hash": "cbeb76cf317195d75eff1d39a8668f58",
+    "semantic_hash": "cbeb76cf317195d75eff1d39a8668f58"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/security-fixes.test.js": {
+    "mtime": 1771239633.4926295,
+    "ast_hash": "6202e06f615d718c400a4d2fe6143651",
+    "semantic_hash": "6202e06f615d718c400a4d2fe6143651"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/test-email-validation.js": {
+    "mtime": 1771239633.493125,
+    "ast_hash": "6e34cdf5088b1cf7223e81f08230fe00",
+    "semantic_hash": "6e34cdf5088b1cf7223e81f08230fe00"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/stress-test.js": {
+    "mtime": 1771239633.4928894,
+    "ast_hash": "da200141a7aebdc13fc459d687cfd114",
+    "semantic_hash": "da200141a7aebdc13fc459d687cfd114"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/demo-name-extraction.js": {
+    "mtime": 1771239633.491411,
+    "ast_hash": "b49223c868dddb19ed081a648dabb3a4",
+    "semantic_hash": "b49223c868dddb19ed081a648dabb3a4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/test-name-extraction.js": {
+    "mtime": 1771239633.493633,
+    "ast_hash": "a683301956c194ea48b2466b39ade444",
+    "semantic_hash": "a683301956c194ea48b2466b39ade444"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/preview-email-template.js": {
+    "mtime": 1771239633.4924731,
+    "ast_hash": "26e200a8d52f835479e044c9fbd7c872",
+    "semantic_hash": "26e200a8d52f835479e044c9fbd7c872"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/export-5-dentists.js": {
+    "mtime": 1771239633.491774,
+    "ast_hash": "2f1453f43e3ee8d4e904dfd57379c1f6",
+    "semantic_hash": "2f1453f43e3ee8d4e904dfd57379c1f6"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/test-lemlist-connection.js": {
+    "mtime": 1771239633.4933846,
+    "ast_hash": "96a4b2176004c19df6c7f43a332de8d0",
+    "semantic_hash": "96a4b2176004c19df6c7f43a332de8d0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/export-10-to-lemlist.js": {
+    "mtime": 1771239633.4915447,
+    "ast_hash": "4e03b3530610fe3a6c6de06f96751179",
+    "semantic_hash": "4e03b3530610fe3a6c6de06f96751179"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/test-system-context.js": {
+    "mtime": 1771239633.493838,
+    "ast_hash": "881621fe4ff65fb019c36df7687d2a1b",
+    "semantic_hash": "881621fe4ff65fb019c36df7687d2a1b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/stress-test-bramhall-full-pipeline.js": {
+    "mtime": 1771239633.4927514,
+    "ast_hash": "00fd4bebace56b3ea7149b2e4d3cf00b",
+    "semantic_hash": "00fd4bebace56b3ea7149b2e4d3cf00b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/compare-email-templates.js": {
+    "mtime": 1771239633.4911985,
+    "ast_hash": "74ca1ff3c30c4006a8c155e186d12088",
+    "semantic_hash": "74ca1ff3c30c4006a8c155e186d12088"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/tests/export-all-bramhall-to-lemlist.js": {
+    "mtime": 1771239633.4919991,
+    "ast_hash": "e99fb61cff7383b3fab604af9f72e109",
+    "semantic_hash": "e99fb61cff7383b3fab604af9f72e109"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/.claude/settings.json": {
+    "mtime": 1771928302.6336684,
+    "ast_hash": "8badf75b9da452a94eeb76b7654f83c2",
+    "semantic_hash": "8badf75b9da452a94eeb76b7654f83c2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/.claude/settings.local.json": {
+    "mtime": 1771805305.7004323,
+    "ast_hash": "9064a3e074c50f25e3cd04ff8e9923b0",
+    "semantic_hash": "9064a3e074c50f25e3cd04ff8e9923b0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/logger.js": {
+    "mtime": 1771239633.4808898,
+    "ast_hash": "3eba0c0b0798aac1359505e51304b1bf",
+    "semantic_hash": "3eba0c0b0798aac1359505e51304b1bf"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/system-loader.js": {
+    "mtime": 1771239633.4830053,
+    "ast_hash": "f26d876565c95208ca00504c40518c08",
+    "semantic_hash": "f26d876565c95208ca00504c40518c08"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/test-modules.js": {
+    "mtime": 1771239633.4832406,
+    "ast_hash": "0ae19daa284d301f31c7f69f016a53aa",
+    "semantic_hash": "0ae19daa284d301f31c7f69f016a53aa"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/SYSTEM_CONTEXT.json": {
+    "mtime": 1771239633.473913,
+    "ast_hash": "a866b553813a80a99fa56a9c68afc0e0",
+    "semantic_hash": "a866b553813a80a99fa56a9c68afc0e0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-verification/reoon-verifier.js": {
+    "mtime": 1771239633.4788542,
+    "ast_hash": "9017f18e0587dc9c440749c4e917da98",
+    "semantic_hash": "9017f18e0587dc9c440749c4e917da98"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-verification/consulti-verifier.js": {
+    "mtime": 1779033204.633333,
+    "ast_hash": "1c6a863529b792d43b0f2c6f3b26e5e9",
+    "semantic_hash": "1c6a863529b792d43b0f2c6f3b26e5e9"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/multi-owner-templates.js": {
+    "mtime": 1771239633.4764068,
+    "ast_hash": "20e7dd13c86ee320c98e34de5ade9a1b",
+    "semantic_hash": "20e7dd13c86ee320c98e34de5ade9a1b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/business-type-helper.js": {
+    "mtime": 1771239633.474674,
+    "ast_hash": "f0d98a11944a62d3dbcb9e2384d4b4ad",
+    "semantic_hash": "f0d98a11944a62d3dbcb9e2384d4b4ad"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/currency-localization.js": {
+    "mtime": 1771239633.4754725,
+    "ast_hash": "852b30838cc9d60b2703054ac5d357da",
+    "semantic_hash": "852b30838cc9d60b2703054ac5d357da"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/company-name-humanizer.js": {
+    "mtime": 1771239633.4752467,
+    "ast_hash": "1d34b6bfd7087c247b6ddd5297eaff21",
+    "semantic_hash": "1d34b6bfd7087c247b6ddd5297eaff21"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/observation-signals.js": {
+    "mtime": 1771327953.2614067,
+    "ast_hash": "f03d70dc8e0f80dd24edcdfa7167c444",
+    "semantic_hash": "f03d70dc8e0f80dd24edcdfa7167c444"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/index.js": {
+    "mtime": 1771239633.4760914,
+    "ast_hash": "059dd351dec5b375bd309eb47c37332c",
+    "semantic_hash": "059dd351dec5b375bd309eb47c37332c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/email-merge-variables.js": {
+    "mtime": 1771327973.1186419,
+    "ast_hash": "6a35b39d35cca6a57016016ef33896fa",
+    "semantic_hash": "6a35b39d35cca6a57016016ef33896fa"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/gpt-email-generator.js": {
+    "mtime": 1771239633.4757252,
+    "ast_hash": "b078625a211fe83822b434b51eaa8fcd",
+    "semantic_hash": "b078625a211fe83822b434b51eaa8fcd"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/linkedin-message-generator.js": {
+    "mtime": 1771239633.4761734,
+    "ast_hash": "168ac39b9aee4580a4fcf1bd323b37b2",
+    "semantic_hash": "168ac39b9aee4580a4fcf1bd323b37b2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/test-micro-offer.js": {
+    "mtime": 1771239633.4767594,
+    "ast_hash": "1e354ffaea64b2414f01a8f67ca4f80c",
+    "semantic_hash": "1e354ffaea64b2414f01a8f67ca4f80c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/claude-linkedin-generator.js": {
+    "mtime": 1771239633.4751067,
+    "ast_hash": "99790b5101df21a0de9fdc7452c712ac",
+    "semantic_hash": "99790b5101df21a0de9fdc7452c712ac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/claude-email-generator.js": {
+    "mtime": 1771239633.474964,
+    "ast_hash": "00692b0b1e4d5259173d6d0ac0b9ad65",
+    "semantic_hash": "00692b0b1e4d5259173d6d0ac0b9ad65"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/category-mapper.js": {
+    "mtime": 1771239633.4748213,
+    "ast_hash": "c0817ddeca9b87992eab8bcf043aab80",
+    "semantic_hash": "c0817ddeca9b87992eab8bcf043aab80"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/content-generation/gpt-linkedin-generator.js": {
+    "mtime": 1771239633.4758582,
+    "ast_hash": "2470636b7c2f4310b70a7dfd42d05a06",
+    "semantic_hash": "2470636b7c2f4310b70a7dfd42d05a06"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/security/smtp-rate-limiter.js": {
+    "mtime": 1771239633.482648,
+    "ast_hash": "74a842d9d5506e1bf22aeaf971f7996a",
+    "semantic_hash": "74a842d9d5506e1bf22aeaf971f7996a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/security/url-validator.js": {
+    "mtime": 1771239633.4827588,
+    "ast_hash": "620cf3224d4171aea297e6b1a653d712",
+    "semantic_hash": "620cf3224d4171aea297e6b1a653d712"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/linkedin-enrichment/decision-logic.js": {
+    "mtime": 1771239633.4804857,
+    "ast_hash": "cb6f3ea80a603fddb350df8f12c0e941",
+    "semantic_hash": "cb6f3ea80a603fddb350df8f12c0e941"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/linkedin-enrichment/index.js": {
+    "mtime": 1771239633.4806466,
+    "ast_hash": "7a64a72c3c616b5890212efcaa15a5ff",
+    "semantic_hash": "7a64a72c3c616b5890212efcaa15a5ff"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/linkedin-enrichment/icypeas-enricher.js": {
+    "mtime": 1771239633.480572,
+    "ast_hash": "6123ef2a099410527df6deead04cb700",
+    "semantic_hash": "6123ef2a099410527df6deead04cb700"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/export-managers/lemlist-exporter.js": {
+    "mtime": 1771239633.4798021,
+    "ast_hash": "6f4e97592e68440dbd1bfc9dbd95c2b9",
+    "semantic_hash": "6f4e97592e68440dbd1bfc9dbd95c2b9"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/export-managers/reply-detector.js": {
+    "mtime": 1771239633.4801998,
+    "ast_hash": "abb476cb4246ae078bf2b8abd9cc9c28",
+    "semantic_hash": "abb476cb4246ae078bf2b8abd9cc9c28"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/export-managers/check-replies.js": {
+    "mtime": 1771239633.4796662,
+    "ast_hash": "0393d6aa102924ed67af91ae437c8cf4",
+    "semantic_hash": "0393d6aa102924ed67af91ae437c8cf4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/export-managers/prosp-exporter.js": {
+    "mtime": 1771239633.4800427,
+    "ast_hash": "2af7adf8a923365d8880aeb5a783dae0",
+    "semantic_hash": "2af7adf8a923365d8880aeb5a783dae0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/exclusions/consolidate_bounces.py": {
+    "mtime": 1779522601.2311237,
+    "ast_hash": "ccaa8d0839b8bf6e090f994b4608a1e0",
+    "semantic_hash": "ccaa8d0839b8bf6e090f994b4608a1e0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/exclusions/cardiologist-do-not-send.json": {
+    "mtime": 1779522529.8138752,
+    "ast_hash": "b86d15ea500a1aed7cbb81d45d0d53ec",
+    "semantic_hash": "b86d15ea500a1aed7cbb81d45d0d53ec"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/utils/file-lock.js": {
+    "mtime": 1771239633.4833694,
+    "ast_hash": "9906fb7dfb5d6b5c6b9968a38e8f2d37",
+    "semantic_hash": "9906fb7dfb5d6b5c6b9968a38e8f2d37"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/approval-system/approve-cli.js": {
+    "mtime": 1771239633.4744086,
+    "ast_hash": "0904e1c88d8dc88506cc727b2393c133",
+    "semantic_hash": "0904e1c88d8dc88506cc727b2393c133"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/approval-system/approval-manager.js": {
+    "mtime": 1771239633.474185,
+    "ast_hash": "ddc7ba389328f8245cd1dd1d67b903a8",
+    "semantic_hash": "ddc7ba389328f8245cd1dd1d67b903a8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/resilience/circuit-breaker.js": {
+    "mtime": 1771239633.4822757,
+    "ast_hash": "d34c49197cbf61df4f87f59deb98e85a",
+    "semantic_hash": "d34c49197cbf61df4f87f59deb98e85a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/resilience/retry.js": {
+    "mtime": 1771239633.482513,
+    "ast_hash": "7b67bf4ff8f3b3e4dc5eab908ec5d46e",
+    "semantic_hash": "7b67bf4ff8f3b3e4dc5eab908ec5d46e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/social-media-email-extractor.js": {
+    "mtime": 1771239633.4784286,
+    "ast_hash": "0af09f5ef71552130e9da02b1a91b926",
+    "semantic_hash": "0af09f5ef71552130e9da02b1a91b926"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/index.js": {
+    "mtime": 1771239633.4782858,
+    "ast_hash": "564495e0c61e863d1c680c273c47b408",
+    "semantic_hash": "564495e0c61e863d1c680c273c47b408"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/hasdata-extractor.js": {
+    "mtime": 1771239633.477888,
+    "ast_hash": "abda74b9615c2d176420b9a9a76ae358",
+    "semantic_hash": "abda74b9615c2d176420b9a9a76ae358"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/pattern-generator.js": {
+    "mtime": 1771239633.4783554,
+    "ast_hash": "c8df69ffc9686598ec948a6bf54df70f",
+    "semantic_hash": "c8df69ffc9686598ec948a6bf54df70f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/email-pattern-matcher.js": {
+    "mtime": 1771239633.477784,
+    "ast_hash": "aa8b46119870ae4798a7c77481246732",
+    "semantic_hash": "aa8b46119870ae4798a7c77481246732"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/website-email-extractor.js": {
+    "mtime": 1771239633.4785757,
+    "ast_hash": "54bdc3d6365a12855095471941952023",
+    "semantic_hash": "54bdc3d6365a12855095471941952023"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/email-discovery/icypeas-finder.js": {
+    "mtime": 1771239633.4780562,
+    "ast_hash": "25324917c542c6c01a207768f615e35d",
+    "semantic_hash": "25324917c542c6c01a207768f615e35d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/prosp-integration/linkedin-outreach.js": {
+    "mtime": 1771239633.4813986,
+    "ast_hash": "a4fe4cca4e8891b9e5f855178c5dc75e",
+    "semantic_hash": "a4fe4cca4e8891b9e5f855178c5dc75e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/prosp-integration/webhook-handler.js": {
+    "mtime": 1771239633.4818304,
+    "ast_hash": "f9db4be379f481b5b82950897461160d",
+    "semantic_hash": "f9db4be379f481b5b82950897461160d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/prosp-integration/prosp-client.js": {
+    "mtime": 1771239633.4815242,
+    "ast_hash": "1a2710675022b6e6cae3ca35da196529",
+    "semantic_hash": "1a2710675022b6e6cae3ca35da196529"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/prosp-integration/index.js": {
+    "mtime": 1771239633.4812508,
+    "ast_hash": "2dfa7f20beb122fc427f092f8dea5a1a",
+    "semantic_hash": "2dfa7f20beb122fc427f092f8dea5a1a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/enrichment/tech-detector.js": {
+    "mtime": 1771239633.4792764,
+    "ast_hash": "9843fde316298c4ed3555b26fb45c9b2",
+    "semantic_hash": "9843fde316298c4ed3555b26fb45c9b2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/enrichment/website-scraper.js": {
+    "mtime": 1771445514.2969816,
+    "ast_hash": "a9a7544125b863009c27d84e406201a7",
+    "semantic_hash": "a9a7544125b863009c27d84e406201a7"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/enrichment/llm-owner-extractor.js": {
+    "mtime": 1771491367.3172028,
+    "ast_hash": "158bbb633e19c50fc16ee944015e8751",
+    "semantic_hash": "158bbb633e19c50fc16ee944015e8751"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/enrichment/browser-fetcher.js": {
+    "mtime": 1771239633.479126,
+    "ast_hash": "8d2491200e32798c06c997fc7f4528a9",
+    "semantic_hash": "8d2491200e32798c06c997fc7f4528a9"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/data/enrichment-stats.json": {
+    "mtime": 1771239633.477324,
+    "ast_hash": "1d0d69a5fc4613d6b52df4cf63cd060a",
+    "semantic_hash": "1d0d69a5fc4613d6b52df4cf63cd060a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/data/approved-templates.json": {
+    "mtime": 1771239633.4772499,
+    "ast_hash": "60919c035c61702fd5737199efbb8a89",
+    "semantic_hash": "60919c035c61702fd5737199efbb8a89"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/validation/common-first-names.js": {
+    "mtime": 1771445373.295425,
+    "ast_hash": "0d5a864cb9e7553abd15166ed7c89624",
+    "semantic_hash": "0d5a864cb9e7553abd15166ed7c89624"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/validation/data-quality.js": {
+    "mtime": 1771239633.483691,
+    "ast_hash": "e865358c3752fb9cd8f324520b9393b0",
+    "semantic_hash": "e865358c3752fb9cd8f324520b9393b0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/PRD.md": {
+    "mtime": 1780006018.381036,
+    "ast_hash": "3d296d85dd302a65135d314cd038dd42",
+    "semantic_hash": "3d296d85dd302a65135d314cd038dd42"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ARCHITECTURE.md": {
+    "mtime": 1771239633.4633613,
+    "ast_hash": "7dc4cc2315242e3acff42ba885af6bf0",
+    "semantic_hash": "7dc4cc2315242e3acff42ba885af6bf0"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST_SEQUENCE_SETUP.md": {
+    "mtime": 1771239633.465378,
+    "ast_hash": "dbb1d7deaafebfcfb7c99e362d50204c",
+    "semantic_hash": "dbb1d7deaafebfcfb7c99e362d50204c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST_SEQUENCE_READY.md": {
+    "mtime": 1771239633.4651446,
+    "ast_hash": "bf861d39040e2585f67cebbe301b3b80",
+    "semantic_hash": "bf861d39040e2585f67cebbe301b3b80"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/CHANGELOG.md": {
+    "mtime": 1772099636.8917785,
+    "ast_hash": "3f10c91e264d2f970f4586fa957149a3",
+    "semantic_hash": "3f10c91e264d2f970f4586fa957149a3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/TESTING-SUMMARY.md": {
+    "mtime": 1771805456.433396,
+    "ast_hash": "a21838251e6da0254ccd6bd52456c902",
+    "semantic_hash": "a21838251e6da0254ccd6bd52456c902"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/CREDIT_OPTIMIZATION.md": {
+    "mtime": 1771239633.4643521,
+    "ast_hash": "f0e43b89b247ffcdc52ad62ee7333ee2",
+    "semantic_hash": "f0e43b89b247ffcdc52ad62ee7333ee2"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/NAME_VALIDATION_FIX.md": {
+    "mtime": 1771239633.465722,
+    "ast_hash": "3979acb84f287d32f64c163bafeae06b",
+    "semantic_hash": "3979acb84f287d32f64c163bafeae06b"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/CLAUDE_SETUP.md": {
+    "mtime": 1771239633.4640484,
+    "ast_hash": "37d7fde580a33246664b6d1066c8e675",
+    "semantic_hash": "37d7fde580a33246664b6d1066c8e675"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST-TEST-REPORT.md": {
+    "mtime": 1771239633.4645786,
+    "ast_hash": "e23083f811f958d4bcb74214cf819476",
+    "semantic_hash": "e23083f811f958d4bcb74214cf819476"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/PRE_LAUNCH_CHECKLIST.md": {
+    "mtime": 1771239633.4663155,
+    "ast_hash": "51942144301166127e3c2bf90c3d01b8",
+    "semantic_hash": "51942144301166127e3c2bf90c3d01b8"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/analyze-credits.md": {
+    "mtime": 1771239633.4669533,
+    "ast_hash": "88cd4b38eff6adc65e02eda26f63774d",
+    "semantic_hash": "88cd4b38eff6adc65e02eda26f63774d"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/README.md": {
+    "mtime": 1771805428.0751748,
+    "ast_hash": "1eadd09ae77028875164278a2369ee40",
+    "semantic_hash": "1eadd09ae77028875164278a2369ee40"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/SCALING_TO_500_PER_DAY.md": {
+    "mtime": 1771239633.4665866,
+    "ast_hash": "8be72bba4934bfbb06d0cb399f9a0f75",
+    "semantic_hash": "8be72bba4934bfbb06d0cb399f9a0f75"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ROADMAP.md": {
+    "mtime": 1780006007.1804261,
+    "ast_hash": "57ac9fd52961b33fe1c66875a0284061",
+    "semantic_hash": "57ac9fd52961b33fe1c66875a0284061"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/MICRO_OFFER_OUTREACH_SYSTEM.md": {
+    "mtime": 1771239633.465491,
+    "ast_hash": "6f1dfb283df33b7509ad96d22d838b37",
+    "semantic_hash": "6f1dfb283df33b7509ad96d22d838b37"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST_SEQUENCE_FINAL.md": {
+    "mtime": 1771239633.4649868,
+    "ast_hash": "ae25d3ba4c19758ae29d017b0b15bc2c",
+    "semantic_hash": "ae25d3ba4c19758ae29d017b0b15bc2c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/TEST_RESULTS.md": {
+    "mtime": 1771239633.466877,
+    "ast_hash": "509096951c581371b39577b05bcf15a3",
+    "semantic_hash": "509096951c581371b39577b05bcf15a3"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST_FIX.md": {
+    "mtime": 1771239633.4647439,
+    "ast_hash": "8545d70474f1e26aeb25bd0bfd5a241c",
+    "semantic_hash": "8545d70474f1e26aeb25bd0bfd5a241c"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/BUILD_STATUS.md": {
+    "mtime": 1771239633.463462,
+    "ast_hash": "61f6a8bfd83136351e09eb152de4a5ae",
+    "semantic_hash": "61f6a8bfd83136351e09eb152de4a5ae"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/COMPLETE_SYSTEM_SUMMARY.md": {
+    "mtime": 1771239633.4642797,
+    "ast_hash": "d2450041e0ab14475eb8cf57106e61bc",
+    "semantic_hash": "d2450041e0ab14475eb8cf57106e61bc"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/LEMLIST_EMAIL_TEMPLATE.md": {
+    "mtime": 1771239633.464664,
+    "ast_hash": "2ba55ef828856b862fc46d040ba16fcc",
+    "semantic_hash": "2ba55ef828856b862fc46d040ba16fcc"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/OUTSCRAPER_API_ISSUE.md": {
+    "mtime": 1771239633.4659452,
+    "ast_hash": "a280ac56814194823a85635a54ea4799",
+    "semantic_hash": "a280ac56814194823a85635a54ea4799"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/PRODUCTION_FLOW.md": {
+    "mtime": 1771239633.4664373,
+    "ast_hash": "ad8dd489b5a9cf2741595164995a3379",
+    "semantic_hash": "ad8dd489b5a9cf2741595164995a3379"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/POSTCODE_VALIDATION.md": {
+    "mtime": 1771239633.466021,
+    "ast_hash": "bdb8c7b15cfb8d4c159bc8986233e66f",
+    "semantic_hash": "bdb8c7b15cfb8d4c159bc8986233e66f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/API_FIXES_SUMMARY.md": {
+    "mtime": 1771239633.4632022,
+    "ast_hash": "b5d825be3644d0171703ecc91f1d898f",
+    "semantic_hash": "b5d825be3644d0171703ecc91f1d898f"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/CLAUDE.md": {
+    "mtime": 1780006057.703415,
+    "ast_hash": "0cdade56339f5a4330907b8d00d9b962",
+    "semantic_hash": "0cdade56339f5a4330907b8d00d9b962"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/ksd/local-outreach/PROPOSAL.md": {
+    "mtime": 1771239633.4698038,
+    "ast_hash": "eeec472be37864a2642f77af6de91450",
+    "semantic_hash": "eeec472be37864a2642f77af6de91450"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/shared/outreach-core/prosp-integration/README.md": {
+    "mtime": 1771239633.4811733,
+    "ast_hash": "a0abb03a5fe233ae6f8a19b6d2953f55",
+    "semantic_hash": "a0abb03a5fe233ae6f8a19b6d2953f55"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/LEMLIST_MERGE_VARIABLES.md": {
+    "mtime": 1771239633.469496,
+    "ast_hash": "3d6d01ebd87534002400ca5cfbf3bf34",
+    "semantic_hash": "3d6d01ebd87534002400ca5cfbf3bf34"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/NEXT-STEPS.md": {
+    "mtime": 1780006045.9761822,
+    "ast_hash": "498cb5a25f9affa6c43f4497a7675397",
+    "semantic_hash": "498cb5a25f9affa6c43f4497a7675397"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/research/2026-05-23-cardiologist-2024-bounce-mine-report.md": {
+    "mtime": 1779522601.228532,
+    "ast_hash": "f847aaa4905852c11dcdc98bf7452e16",
+    "semantic_hash": "f847aaa4905852c11dcdc98bf7452e16"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/research/2026-05-23-linkedin-post-connection-playbook.md": {
+    "mtime": 1779517191.5859783,
+    "ast_hash": "2fa8b736e4ab69ddedfd2050e60af202",
+    "semantic_hash": "2fa8b736e4ab69ddedfd2050e60af202"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/research/2026-05-23-prosp-voice-notes-playbook.md": {
+    "mtime": 1779517117.540419,
+    "ast_hash": "7d39774a6f3c49caea5528bb29370b94",
+    "semantic_hash": "7d39774a6f3c49caea5528bb29370b94"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/superpowers/plans/2026-05-22-may-launch-and-consulti-burn.md": {
+    "mtime": 1779466838.4490347,
+    "ast_hash": "97a0e0a8fd321b435376dfff11a618e1",
+    "semantic_hash": "97a0e0a8fd321b435376dfff11a618e1"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/docs/superpowers/specs/2026-05-22-may-launch-and-consulti-burn-design.md": {
+    "mtime": 1779466974.3456466,
+    "ast_hash": "f3ee610666c7e8c70ac2d89e87f3a15a",
+    "semantic_hash": "f3ee610666c7e8c70ac2d89e87f3a15a"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/ufh-mailead-training-doc.md": {
+    "mtime": 1771928413.927495,
+    "ast_hash": "073bfc60bc94440d95ac85935e8e5aaf",
+    "semantic_hash": "073bfc60bc94440d95ac85935e8e5aaf"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/ufh-press-pitch.md": {
+    "mtime": 1771921804.3939364,
+    "ast_hash": "6dfc6f968e8bfc3705b5a2dde65e3ad4",
+    "semantic_hash": "6dfc6f968e8bfc3705b5a2dde65e3ad4"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/tps-2026-commercial-shortlist.md": {
+    "mtime": 1779132161.81553,
+    "ast_hash": "b25ae3b9ad5765957cf4a7a6a4417341",
+    "semantic_hash": "b25ae3b9ad5765957cf4a7a6a4417341"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/ufh-press-release.md": {
+    "mtime": 1771807733.0193138,
+    "ast_hash": "0ae8a63c16e0e7b9b27038f2f5c048a5",
+    "semantic_hash": "0ae8a63c16e0e7b9b27038f2f5c048a5"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/tps-2026-target-emails.md": {
+    "mtime": 1779193680.821904,
+    "ast_hash": "7a76b962523e43b443a9f058d9079388",
+    "semantic_hash": "7a76b962523e43b443a9f058d9079388"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/ufh-football-clubs-email-sequence.md": {
+    "mtime": 1771832795.7416482,
+    "ast_hash": "637bac2cc809beaf272ced002a403dac",
+    "semantic_hash": "637bac2cc809beaf272ced002a403dac"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/data/consulti-credit-log.txt": {
+    "mtime": 1779521029.473647,
+    "ast_hash": "d452db901474ab256045256eb53c420e",
+    "semantic_hash": "d452db901474ab256045256eb53c420e"
+  },
+  "/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/exports/ufh-mailead-training-doc.pdf": {
+    "mtime": 1771927791.3769693,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  }
+}
