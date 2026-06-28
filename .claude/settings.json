@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(export PATH=\"/opt/homebrew/bin:/usr/local/bin:/usr/bin:$PATH\")",
+      "Bash(open:*)",
+      "Bash(textutil:*)",
+      "Bash(/usr/sbin/cupsfilter:*)",
+      "Bash(osascript:*)",
+      "Bash(echo:*)",
+      "WebFetch(domain:heroesfootball.com)"
+    ]
+  }
+}
