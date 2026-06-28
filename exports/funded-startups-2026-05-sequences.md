@@ -86,7 +86,8 @@ Everyone gets the authority system underneath; the lead is just the easiest firs
 This is the approved `leadbyte-funded-sequence.md` base, reused verbatim for consistency.
 
 ### B1 — Day 0
-**Subject (draft):** `AI search for {{company_name}} {{first_name}}`
+**Subject (cold-reader audited 2026-06-28):** `{{company_name}} isn't showing up in AI search, {{first_name}}`
+*(Replaced draft `AI search for {{company_name}} {{first_name}}` — that jammed company+name with no comma and collided on AI-named firms e.g. "AI search for Atheni AI". A/B alt: `found {{company_name}} but ChatGPT hadn't, {{first_name}}`.)*
 
 > Hi {{first_name}},
 >
