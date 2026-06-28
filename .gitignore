@@ -61,3 +61,12 @@ temp/
 # Export data files (contain business contact data)
 exports/*.csv
 exports/*.json
+exports/*.tsv
+data/*.tsv
+data/outreach-allowlist.txt
+
+# Python / editor caches and local agent settings
+__pycache__/
+**/__pycache__/
+*.pyc
+.claude/settings.local.json
