@@ -35,7 +35,7 @@ const args = Object.fromEntries(process.argv.slice(2).flatMap(a => {
 }));
 const VERTICAL = args.vertical || 'trades';
 const TIER = args.tier || '1';
-const SIZE = parseInt(args.size || '25', 10);
+const SIZE = parseInt(args.size || '100', 10);
 const START_PAGE = parseInt(args['start-page'] || '1', 10);
 const MAX_PAGES = parseInt(args['max-pages'] || '4', 10);
 const MAX_CREDITS = parseInt(args['max-credits'] || '500', 10);
@@ -82,42 +82,76 @@ const TERMS = args.terms ? String(args.terms).split(',').map(s => s.trim()).filt
 // --cities=A,B,C overrides the tier list (avoids re-querying already-sourced cities)
 const CITIES = args.cities ? String(args.cities).split(',').map(s => s.trim()).filter(Boolean) : cities(TIER);
 
-async function searchPage(q, city, page) {
+// --- Structured filter mode (documented /leads/search filters) ---
+// industries/titles/states can contain commas (e.g. "Health, Wellness & Fitness"),
+// so these flags split on '|' not ','. Use exact canonical names (GET /meta/industries).
+const SENIORITY = ['Owner', 'Co-Owner', 'Founder', 'Co-Founder', 'Director', 'Managing Director',
+  'Partner', 'Managing Partner', 'Senior Partner', 'Principal', 'CEO', 'Chief Executive', 'President'];
+const pipe = v => (typeof v === 'string') ? v.split('|').map(s => s.trim()).filter(Boolean) : null;
+const num = v => (typeof v === 'string') ? parseInt(v, 10) : null;
+const INDUSTRIES = pipe(args.industries);
+const TITLES = pipe(args.titles) || (args['decision-makers'] ? SENIORITY : null);
+const EMP_MIN = num(args['emp-min']);
+const EMP_MAX = num(args['emp-max']);
+const EMAIL_STATUS = (typeof args['email-status'] === 'string') ? args['email-status'] : null;
+const STATES = pipe(args.states);
+
+const baseFilters = () => ({
+  ...(TITLES ? { titles: TITLES } : {}),
+  ...(EMP_MIN != null ? { empMin: EMP_MIN } : {}),
+  ...(EMP_MAX != null ? { empMax: EMP_MAX } : {}),
+  ...(EMAIL_STATUS ? { emailStatus: EMAIL_STATUS } : {}),
+});
+// One filter-body per industry (filtered mode) or per term (legacy q mode).
+const QUERIES = INDUSTRIES
+  ? INDUSTRIES.map(ind => ({ label: ind, filters: { industries: [ind], ...baseFilters() } }))
+  : TERMS.map(t => ({ label: t, filters: { q: t, ...baseFilters() } }));
+// Location dimension: cities (default) plus an optional states net (e.g. "North West").
+const LOCATIONS = [
+  ...CITIES.map(c => ({ kind: 'city', value: c })),
+  ...(STATES ? STATES.map(s => ({ kind: 'state', value: s })) : []),
+];
+
+async function searchPage(filters, loc, page) {
+  const locBody = loc.kind === 'state' ? { states: [loc.value] } : { cities: [loc.value] };
   const r = await fetch(`${BASE}/leads/search`, {
     method: 'POST', headers: H,
-    body: JSON.stringify({ q, cities: [city], countries: ['United Kingdom'], size: SIZE, page }),
+    body: JSON.stringify({ ...filters, ...locBody, countries: ['United Kingdom'], size: SIZE, page }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
   return r.json();
 }
 
-function toRecord(lead, term, city) {
+function toRecord(lead, label, location) {
   const domain = lead.company_domain || null;
+  const status = lead.email_status || null;
   return {
     name: lead.company_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown',
     ownerFirstName: lead.first_name || null,
     ownerLastName: lead.last_name || null,
     ownerEmail: lead.email || null,
     emailSource: 'consulti-search',
-    emailVerified: false,
+    emailVerified: ['good', 'valid', 'verified'].includes(status),
     linkedInUrl: lead.linkedin_url || null,
     website: domain ? (domain.startsWith('http') ? domain : `https://${domain}`) : null,
-    category: term,
-    location: lead.city || city,
+    category: label,
+    location: lead.city || location,
     phone: lead.phone || null,
     jobTitle: lead.job_title || null,
     consultiCompany: lead.company_name || null,
+    consultiIndustry: lead.industry || null,
+    consultiEmailStatus: status,
   };
 }
 
 async function main() {
   console.log(`\n=== Consulti sourcing — ${VERTICAL} → ${CAMPAIGN} (tier ${TIER}) ===`);
-  console.log(`Cities: ${CITIES.length} | Terms: ${TERMS.length} | size=${SIZE} maxPages=${MAX_PAGES} | cap=${MAX_CREDITS} credits\n`);
+  console.log(`Mode: ${INDUSTRIES ? 'industries' : 'q-terms'} | Queries: ${QUERIES.length} | Locations: ${LOCATIONS.length} | titles: ${TITLES ? TITLES.length : 'none'} | emailStatus: ${EMAIL_STATUS || 'any'} | size=${SIZE} maxPages=${MAX_PAGES} | cap=${MAX_CREDITS}\n`);
 
   if (DRY) {
     console.log('DRY RUN — query plan (no API calls):');
-    TERMS.forEach(t => CITIES.forEach(c => console.log(`  "${t}" in ${c}`)));
-    console.log(`\nTotal query slots: ${TERMS.length * CITIES.length} (each may page up to ${MAX_PAGES}×${SIZE})`);
+    LOCATIONS.forEach(l => QUERIES.forEach(qr => console.log(`  [${qr.label}] in ${l.value} (${l.kind}) | filters: ${JSON.stringify(qr.filters)}`)));
+    console.log(`\nTotal query slots: ${LOCATIONS.length * QUERIES.length} (each may page up to ${MAX_PAGES}×${SIZE})`);
     console.log('Cost: 1 credit per result returned; 0-result queries are free.');
     return;
   }
@@ -130,24 +164,24 @@ async function main() {
   let creditsUsed = 0, saved = 0, updated = 0, excluded = 0, emails = 0, withLi = 0;
 
   outer:
-  for (const city of CITIES) {
-    for (const term of TERMS) {
+  for (const loc of LOCATIONS) {
+    for (const query of QUERIES) {
       let page = START_PAGE, total = Infinity;
       while ((page - 1) * SIZE < total && page <= MAX_PAGES) {
         if (creditsUsed >= MAX_CREDITS) { console.log(`\n[CAP] Reached ${MAX_CREDITS}-credit cap. Stopping.`); break outer; }
         let res;
-        try { res = await searchPage(term, city, page); }
-        catch (e) { console.log(`  ERR "${term}"/${city} p${page}: ${e.message}`); break; }
+        try { res = await searchPage(query.filters, loc, page); }
+        catch (e) { console.log(`  ERR "${query.label}"/${loc.value} p${page}: ${e.message}`); break; }
         total = res.total || 0;
         creditsUsed += res.credits_used || 0;
         const leads = res.leads || [];
-        if (page === 1 && total > 0) console.log(`  "${term}" in ${city}: total=${total} (credits so far ${creditsUsed})`);
+        if (page === 1 && total > 0) console.log(`  "${query.label}" in ${loc.value}: total=${total} (credits so far ${creditsUsed})`);
         for (const lead of leads) {
           if (VERTICAL === 'trades' && (TRADES_EXCLUDE.test(lead.company_name || '') || TRADES_EXCLUDE.test(lead.job_title || ''))) { excluded++; continue; }
           const key = (lead.email || `${lead.first_name}_${lead.company_domain}`).toLowerCase();
           if (seen.has(key)) continue;
           seen.add(key);
-          const rec = toRecord(lead, term, city);
+          const rec = toRecord(lead, query.label, loc.value);
           const dupe = checkDuplicate({ name: rec.name, website: rec.website, postcode: null, address: null });
           const id = saveBusiness(rec, { campaigns: [CAMPAIGN], status: 'sourced', location: rec.location });
           if (id) addCampaignToBusiness(id, CAMPAIGN);
