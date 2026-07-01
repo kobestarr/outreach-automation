@@ -96,7 +96,8 @@ async function resolveRecentPostUrl(profileUrl) {
 // --- linkedapi.io (action): react to a post, poll to completion ---
 async function reactToPost(postUrl) {
   const headers = { 'linked-api-token': LINKED_API_TOKEN, 'identification-token': ID_TOKEN, 'Content-Type': 'application/json' };
-  const start = await req('POST', 'https://api.linkedapi.io/workflows', headers, { actionType: 'st.reactToPost', postUrl, reactionType: REACTION });
+  // linkedapi.io expects `type` (lowercase reaction), not `reactionType`.
+  const start = await req('POST', 'https://api.linkedapi.io/workflows', headers, { actionType: 'st.reactToPost', postUrl, type: REACTION.toLowerCase() });
   const wfId = start.json && (start.json.workflowId || (start.json.result && start.json.result.workflowId));
   if (!wfId) return { ok: false, detail: start.json };
   for (let i = 0; i < 20; i++) {
