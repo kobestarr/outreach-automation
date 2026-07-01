@@ -87,7 +87,7 @@ async function main() {
   }
   console.log('');
 
-  const month = (SRC.match(/(\d{4}-\d{2})/) || [])[1] || 'out';
+  const month = (typeof arg.tag === 'string' && arg.tag) || (SRC.match(/(\d{4}-\d{2})/) || [])[1] || 'out';
   for (const [b, list] of Object.entries(buckets)) {
     const out = path.join('exports', `funded-startups-${month}-${b}.csv`);
     fs.writeFileSync(out, [outHeader.map(esc).join(','), ...list.map(r => r.map(esc).join(','))].join('\n'));

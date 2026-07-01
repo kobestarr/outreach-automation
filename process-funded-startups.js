@@ -114,7 +114,7 @@ async function checkSite(url) {
   console.log(`\nHOT leads by bucket:`, JSON.stringify(byBucket));
 
   // Write CSV
-  const monthTag = (col(data[0], 'Data Month') || 'current').replace(/[^0-9-]/g, '') || 'current';
+  const monthTag = (typeof arg.tag === 'string' && arg.tag) || (col(data[0], 'Data Month') || 'current').replace(/[^0-9-]/g, '') || 'current';
   const outDir = path.join(__dirname, 'exports'); fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, `funded-startups-${monthTag}-checked.csv`);
   const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
