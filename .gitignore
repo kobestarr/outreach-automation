@@ -70,3 +70,4 @@ __pycache__/
 **/__pycache__/
 *.pyc
 .claude/settings.local.json
+data/linkedin-reacted-state.json
