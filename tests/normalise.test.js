@@ -35,3 +35,15 @@ test('drops rows with invalid email, reports them', () => {
   assert.strictEqual(skipped.length, 1);
   assert.strictEqual(skipped[0].reason, 'invalid_email');
 });
+
+test('single-column email CSV is processed, not silently dropped', () => {
+  const { leads, skipped } = normalise([['email'], ['ok@x.com'], ['also@y.com']]);
+  assert.strictEqual(leads.length, 2);
+  assert.strictEqual(skipped.length, 0);
+});
+
+test('genuinely blank lines are ignored without a skip record', () => {
+  const { leads, skipped } = normalise([['email', 'first_name'], ['', ''], ['ok@x.com', 'A']]);
+  assert.strictEqual(leads.length, 1);
+  assert.strictEqual(skipped.length, 0);
+});

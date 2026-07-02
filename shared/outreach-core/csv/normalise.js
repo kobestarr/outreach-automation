@@ -25,7 +25,7 @@ function normalise(rows) {
   const mappedIdx = new Set(Object.values(map));
   const leads = [], skipped = [];
   for (const r of rows.slice(1)) {
-    if (r.length < 2) continue; // blank/garbage line
+    if (r.every(c => String(c).trim() === '')) continue; // genuinely blank line
     const lead = { ref: {} };
     for (const [field, i] of Object.entries(map)) lead[field] = String(r[i] || '').trim();
     for (const field of Object.keys(CANONICAL)) if (!(field in lead)) lead[field] = '';
