@@ -6,8 +6,8 @@
 function fillTemplate(tpl, lead) {
   const out = tpl.replace(/\{(\w+)\}/g, (_, field) => {
     let v = lead[field];
-    if (v === undefined || v === null || v === '') throw new Error(`unresolved placeholder {${field}} for ${lead.email || lead.company_name || 'lead'}`);
-    v = String(v).trim();
+    v = v === undefined || v === null ? '' : String(v).trim();
+    if (v === '') throw new Error(`unresolved placeholder {${field}} for ${lead.email || lead.company_name || 'lead'}`);
     if (field === 'category') v = v.toLowerCase();
     return v;
   });

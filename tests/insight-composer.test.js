@@ -24,3 +24,11 @@ test('composeInsights returns one value per carrier, empty carriers = {}', () =>
   assert.strictEqual(out.last_name, 'ask for a good accountant in Stockport');
   assert.deepStrictEqual(composeInsights(lead, {}), {});
 });
+
+test('throws on whitespace-only field value (never renders blank)', () => {
+  assert.throws(() => fillTemplate('in {town}', { ...lead, town: '   ' }), /unresolved placeholder/i);
+});
+
+test('throws when a dash arrives via a substituted field value', () => {
+  assert.throws(() => fillTemplate('in {town}', { ...lead, town: 'Stock–port' }), /dash/i);
+});
