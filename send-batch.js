@@ -35,7 +35,7 @@ async function runBatch(opts, io) {
     } else {
       let createdMeta;
       try {
-        createdMeta = await io.sheets.createSpreadsheet(`Outreach ToSend — ${campaign}`, TAB, SHARE_WITH);
+        createdMeta = await io.sheets.createSpreadsheet(`Outreach ToSend - ${campaign}`, TAB, SHARE_WITH);
       } catch (e) {
         throw new Error(
           `Could not auto-create a sheet for '${campaign}' (${e.message}).\n` +
