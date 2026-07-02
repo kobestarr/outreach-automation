@@ -43,3 +43,16 @@ test('extra carrier adds its Title Case Mailead column', () => {
   assert.strictEqual(row[h.indexOf('Linkedin Url')], 'i2');
   assert.strictEqual(row[h.indexOf('linkedin_url')], 'https://li.com/sj'); // original preserved
 });
+
+test('extra ref column colliding with a Mailead label is prefixed and preserved', () => {
+  const h = buildHeader(['Email'], ['last_name']);
+  assert.ok(h.includes('ref_Email'));
+  const collideLead = { ...lead, ref: { Email: 'raw-scraped@x.com' } };
+  const row = buildRow(collideLead, h, { last_name: 'insight' });
+  assert.strictEqual(row[h.indexOf('ref_Email')], 'raw-scraped@x.com'); // preserved
+  assert.strictEqual(row[h.indexOf('Email')], 's@x.com'); // Mailead block intact
+});
+
+test('unknown carrier field with no Mailead label throws', () => {
+  assert.throws(() => buildHeader([], ['nonexistent_field']), /no Mailead label/);
+});
