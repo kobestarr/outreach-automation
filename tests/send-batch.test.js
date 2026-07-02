@@ -79,6 +79,17 @@ test('limit caps processed rows', async () => {
   assert.strictEqual(res.wouldPush, 1);
 });
 
+test('leads with no verify result (quota truncation) are skipped, not pushed', async () => {
+  const { io, appended, dir } = makeIo({ verifyEmails: async emails => emails.slice(0, 1).map(e => ({ email: e, status: 'safe', score: 90, isSafeToSend: true })) });
+  const csvPath = path.join(dir, 'in.csv');
+  fs.writeFileSync(csvPath, 'first_name,email,company,category,town\nAnn,q1@x.com,A,accountant,Sale\nBob,q2@x.com,B,solicitor,Sale\n');
+  const res = await runBatch({ csvPath, campaign: 'test-camp' }, io);
+  assert.strictEqual(res.pushed, 1); // only the verified lead
+  assert.ok(res.skipped.some(s => s.reason === 'reoon_no_result'));
+  const ledger = fs.readFileSync(io.ledgerFile, 'utf8');
+  assert.ok(!ledger.includes('q2@x.com')); // unverified lead NOT ledgered
+});
+
 test('unknown campaign with no sheet triggers createSpreadsheet and registry save', async () => {
   const created = [];
   const { io, dir } = makeIo({

@@ -18,6 +18,6 @@ const { extractSheetId, appendRows } = require('./shared/outreach-core/sheets/sh
   }
   const rows = parseCSV(fs.readFileSync(csvArg, 'utf8')).filter(r => r.length > 1);
   const res = await appendRows(sheetId, tab, rows[0], rows.slice(1));
-  console.log(`OK — appended ${res.appended} rows to '${tab}'${res.wroteHeader ? ' (with header)' : ''}.`);
+  console.log(`OK: appended ${res.appended} rows to '${tab}'${res.wroteHeader ? ' (with header)' : ''}.`);
   console.log('URL: https://docs.google.com/spreadsheets/d/' + sheetId);
 })().catch(e => { console.error('ERROR:', e.message); process.exit(3); });

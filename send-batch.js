@@ -70,12 +70,15 @@ async function runBatch(opts, io) {
     const results = await io.verifyEmails(kept.map(l => l.email));
     const byEmail = Object.fromEntries(results.map(r => [String(r.email).toLowerCase(), r]));
     survivors = [];
+    let noResult = 0;
     for (const lead of kept) {
       const r = byEmail[lead.email];
-      if (r && BAD_STATUSES.has(r.status)) { skipped.push({ email: lead.email, reason: 'reoon_' + r.status }); continue; }
-      if (r) { lead.reoonStatus = r.status; lead.reoonScore = String(r.score ?? ''); lead.reoonSafe = r.isSafeToSend ? '1' : '0'; }
+      if (!r) { noResult++; skipped.push({ email: lead.email, reason: 'reoon_no_result' }); continue; }
+      if (BAD_STATUSES.has(r.status)) { skipped.push({ email: lead.email, reason: 'reoon_' + r.status }); continue; }
+      lead.reoonStatus = r.status; lead.reoonScore = String(r.score ?? ''); lead.reoonSafe = r.isSafeToSend ? '1' : '0';
       survivors.push(lead);
     }
+    if (noResult) log(`WARNING: ${noResult} leads had no Reoon result (daily quota truncation?) - skipped, NOT pushed. Re-run tomorrow or use --limit.`);
   }
 
   // 5. Naturalise company names (batched; identity fallback)
@@ -114,8 +117,13 @@ if (require.main === module) {
       const [key, url] = [args[i + 1], args[i + 2]];
       const { extractSheetId } = require('./shared/outreach-core/sheets/sheets-client');
       if (!key || !url) { console.error('Usage: node send-batch.js --register <campaign> <sheet URL>'); process.exit(2); }
-      saveCampaign(registryFile, key, { sheetId: extractSheetId(url), sheetUrl: url, label: key, carriers: (getCampaign(registryFile, key) || {}).carriers || {} });
-      console.log(`Registered '${key}'.`); return;
+      const carriers = (getCampaign(registryFile, key) || {}).carriers || {};
+      saveCampaign(registryFile, key, { sheetId: extractSheetId(url), sheetUrl: url, label: key, carriers });
+      console.log(`Registered '${key}'.`);
+      if (Object.keys(carriers).length === 0) {
+        console.log(`NOTE: no carriers configured for '${key}' - real values will map straight through to Mailead. Add carriers to config/campaign-sheets.json before sending if this campaign needs insight personalisation.`);
+      }
+      return;
     }
 
     const csvPath = args.find(a => !a.startsWith('--') && a.endsWith('.csv'));
@@ -136,7 +144,12 @@ if (require.main === module) {
       naturalise: null, // v1: company_full/company_name from the CSV is already clean for KSD batches
       log: console.log,
     };
-    const res = await runBatch({ csvPath, campaign, dryRun: flag('dry-run'), limit: parseInt(val('limit') || '0', 10), skipVerify: flag('skip-verify') }, io);
+    const limitRaw = val('limit');
+    const limit = limitRaw === null ? 0 : parseInt(limitRaw, 10);
+    if (limitRaw !== null && (!Number.isInteger(limit) || limit <= 0)) {
+      console.error(`--limit must be a positive integer (got '${limitRaw}')`); process.exit(2);
+    }
+    const res = await runBatch({ csvPath, campaign, dryRun: flag('dry-run'), limit, skipVerify: flag('skip-verify') }, io);
     if (!flag('dry-run') && !flag('skip-verify')) console.log('Reoon quota remaining today:', getQuotaRemaining());
   })().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
 }

@@ -4,7 +4,11 @@ const fs = require('fs'), path = require('path');
 
 function loadRegistry(file) {
   if (!fs.existsSync(file)) return {};
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new Error(`Corrupt campaign registry at ${file}: ${e.message}. Fix the JSON by hand (it is committed to git, so 'git diff' shows what changed).`);
+  }
 }
 
 function getCampaign(file, key) {
