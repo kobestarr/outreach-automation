@@ -126,11 +126,17 @@ Mailead-facing copy carries the injected values.
 - `data/sent-ledger.txt` — every email ever pushed to any campaign sheet (one per line, lowercased).
   Committable, matching the existing `data/*.txt` convention.
 
-**New campaign with no registry entry:** the service account (`outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com`)
-auto-creates the spreadsheet, shares Editor with `kobi@kobestarr.io`, writes the registry entry, and
-prints the link. **Fallback** (if Workspace policy blocks SA file creation): the script stops and
-tells Kobi to create a blank sheet, share it with the SA, and paste the link — one manual step, once
-per new campaign. Existing campaigns just work.
+**New campaign with no registry entry:** the script attempts auto-create via the service account
+(`outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com`), but **as of 2026 Google denies
+service accounts Drive storage (403 storageQuotaExceeded, confirmed live 2026-07-02), so the manual
+path is the real path:** Kobi creates a blank sheet inside the shared "Lead Pipelines" Drive folder
+(which already grants the SA Editor), tab named `ToSend` (send-batch can rename the tab via API if
+forgotten), then `node send-batch.js --register <key> <sheet URL>`. One manual step, once per new
+campaign. Existing campaigns just work.
+
+**Verify note (implementation deviation):** `BAD_STATUSES` also drops `disabled` (a dead mailbox is
+a hard bounce) in addition to the spec's invalid/disposable/spamtrap. Leads with NO Reoon result
+(daily-quota truncation) are skipped with `reoon_no_result`, never pushed unverified.
 
 ## Google Sheets access
 
