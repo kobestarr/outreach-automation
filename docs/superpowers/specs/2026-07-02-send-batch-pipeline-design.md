@@ -107,9 +107,11 @@ enhancement, not in scope).
 
 Two column blocks:
 
-- **Reference block** (never mapped by TaskMagic — Kobi's source of truth): all originals —
-  `first_name, last_name, email, company_name, category, town, website, linkedin_url`, plus Reoon
-  annotations and any extra passthrough columns.
+- **Reference block** (never mapped by TaskMagic — Kobi's source of truth): all originals with an
+  unmistakable `real_` prefix — `real_first_name, real_last_name, real_email, real_company_name,
+  real_category, real_town, real_website, real_linkedin_url` — plus Reoon annotations and any extra
+  passthrough columns. (Prefix added 2026-07-02: `last_name` vs `Last Name` differed only by an
+  underscore, too easy to mis-map in TaskMagic.)
 - **Mailead block** (the only columns TaskMagic maps, named to match Mailead's field labels):
   real-use fields copied through; carrier fields filled with their packed insight. TaskMagic's rule
   is simply "map every column in the Mailead block to its like-named Mailead field."

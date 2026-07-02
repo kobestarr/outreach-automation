@@ -56,7 +56,7 @@ test('live run verifies, drops bad, appends, records ledger', async () => {
   assert.strictEqual(appended.length, 1);
   const { header, rows } = appended[0];
   const get = (r, name) => r[header.indexOf(name)];
-  assert.strictEqual(get(rows[0], 'last_name'), 'Ash'); // real surname preserved
+  assert.strictEqual(get(rows[0], 'real_last_name'), 'Ash'); // real surname preserved
   assert.strictEqual(get(rows[0], 'Last Name'), 'ask for a good accountant in Bramhall'); // insight injected
   const ledger = fs.readFileSync(io.ledgerFile, 'utf8').trim().split('\n');
   assert.deepStrictEqual(ledger, ['ann@x.com']);

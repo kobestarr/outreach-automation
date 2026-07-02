@@ -12,7 +12,7 @@ const lead = {
 test('header = reference block then Mailead block, extras included', () => {
   const h = buildHeader(['Industries'], ['last_name']);
   assert.deepStrictEqual(h, [
-    'first_name', 'last_name', 'email', 'company_name', 'category', 'town', 'website', 'linkedin_url',
+    'real_first_name', 'real_last_name', 'real_email', 'real_company_name', 'real_category', 'real_town', 'real_website', 'real_linkedin_url',
     'reoonStatus', 'reoonScore', 'reoonSafe', 'Industries',
     'First Name', 'Last Name', 'Email', 'Company Name',
   ]);
@@ -22,7 +22,7 @@ test('carrier value lands in the Mailead column; real value stays in reference',
   const h = buildHeader(['Industries'], ['last_name']);
   const row = buildRow(lead, h, { last_name: 'the insight text' });
   const get = name => row[h.indexOf(name)];
-  assert.strictEqual(get('last_name'), 'Jones');          // reference: real surname
+  assert.strictEqual(get('real_last_name'), 'Jones');     // reference: real surname
   assert.strictEqual(get('Last Name'), 'the insight text'); // Mailead: injected
   assert.strictEqual(get('First Name'), 'Sarah');
   assert.strictEqual(get('Email'), 's@x.com');
@@ -41,7 +41,7 @@ test('extra carrier adds its Title Case Mailead column', () => {
   assert.ok(h.includes('Linkedin Url'));
   const row = buildRow(lead, h, { last_name: 'i1', linkedin_url: 'i2' });
   assert.strictEqual(row[h.indexOf('Linkedin Url')], 'i2');
-  assert.strictEqual(row[h.indexOf('linkedin_url')], 'https://li.com/sj'); // original preserved
+  assert.strictEqual(row[h.indexOf('real_linkedin_url')], 'https://li.com/sj'); // original preserved
 });
 
 test('extra ref column colliding with a Mailead label is prefixed and preserved', () => {

@@ -50,7 +50,7 @@ async function runBatch(opts, io) {
 
   // 3. Dedup: file + ledger + target sheet
   const ledgerSet = readLedger(io.ledgerFile);
-  const sheetEmails = entry.sheetId ? await io.sheets.readColumn(entry.sheetId, TAB, 'email') : [];
+  const sheetEmails = entry.sheetId ? await io.sheets.readColumn(entry.sheetId, TAB, 'real_email') : [];
   const { kept, skipped: dupes } = dedupe(leads, ledgerSet, new Set(sheetEmails));
   const skipped = [...badRows, ...dupes];
 
