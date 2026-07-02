@@ -30,7 +30,7 @@ function parseCsv(t) {
   if (f !== '' || row.length) { row.push(f); rows.push(row); } return rows;
 }
 
-const GEO = new Set(['United Kingdom','United States','Canada','Australia','New Zealand','Ireland','Netherlands','Sweden','Denmark','Norway','Finland','Switzerland','Germany','Belgium','France','Spain','Italy']);
+const GEO = new Set(['United Kingdom','United States','Canada','Australia','New Zealand','Ireland','Netherlands','The Netherlands','Sweden','Denmark','Norway','Finland','Switzerland','Germany','Belgium','France','Spain','Italy']);
 const DM = /\b(founder|co-founder|ceo|cmo|coo|cto|chief|president|owner|director|head of|vp |vice president|managing)\b/i;
 const STRIP = /\b(media|entertainment|film|tv|television|broadcast|sports|gaming|video|music|publishing|streaming|content production|podcast)\b/i;
 const KSD = /\b(artificial intelligence|generative ai|machine learning|marketing|advertising|martech|saas|software|app|platform|e-commerce|fintech|health)\b/i;
