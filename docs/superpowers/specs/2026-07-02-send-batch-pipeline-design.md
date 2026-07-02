@@ -183,4 +183,3 @@ volume send.
 - No em dashes anywhere in generated copy; clickable links in all output.
 - First email of a sequence never sent on a Friday (a Mailead/TaskMagic scheduling concern, noted
   for the flow, not enforced by this script).
-```
