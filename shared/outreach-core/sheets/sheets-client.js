@@ -21,7 +21,8 @@ async function getToken(scope = 'https://www.googleapis.com/auth/spreadsheets') 
   const sig = b64url(crypto.createSign('RSA-SHA256').update(unsigned).sign(key().private_key));
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: unsigned + '.' + sig })
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: unsigned + '.' + sig }),
+    signal: AbortSignal.timeout(30_000)
   });
   const j = await r.json();
   if (!j.access_token) throw new Error('TOKEN ERROR: ' + JSON.stringify(j));
@@ -34,9 +35,11 @@ function extractSheetId(urlOrId) {
   return m ? m[1] : String(urlOrId);
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 async function api(url, opts = {}, scope) {
   const tok = await getToken(scope);
-  const r = await fetch(url, { ...opts, headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS), headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
   const j = await r.json();
   if (j.error) throw new Error(`Sheets API error: ${JSON.stringify(j.error)}`);
   return j;
@@ -50,6 +53,20 @@ async function readColumn(sheetId, tab, headerName) {
   const idx = values[0].indexOf(headerName);
   if (idx < 0) return [];
   return values.slice(1).map(r => r[idx] || '').filter(v => v !== '');
+}
+
+// Read a whole tab, return { header, rows } where each row is an object keyed by header name.
+async function readRows(sheetId, tab) {
+  const j = await api(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}`);
+  const values = j.values || [];
+  if (!values.length) return { header: [], rows: [] };
+  const header = values[0];
+  const rows = values.slice(1).map(r => {
+    const o = {};
+    header.forEach((h, i) => { o[h] = r[i] !== undefined ? r[i] : ''; });
+    return o;
+  });
+  return { header, rows };
 }
 
 // Append rows; write header first iff the tab is empty (A1 check).
@@ -74,4 +91,4 @@ async function createSpreadsheet(title, tab, shareWithEmail) {
   return { sheetId, url: 'https://docs.google.com/spreadsheets/d/' + sheetId };
 }
 
-module.exports = { getToken, extractSheetId, readColumn, appendRows, createSpreadsheet };
+module.exports = { getToken, extractSheetId, readColumn, readRows, appendRows, createSpreadsheet };
