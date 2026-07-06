@@ -20,8 +20,11 @@ const CSV = 'exports/cardiologists-2026-07-06-lemlist.csv';
 const CAMPAIGN_NAME = 'KSD Doctors - Cardiologists 2026-07';
 const SENT_LEDGER = path.join(__dirname, 'data/sent-ledger.txt');
 
-const SUBJECT_A = 'What do patients see when they type {{firstName}} {{lastName}}';
-const SUBJECT_B = '{{firstName}} {{lastName}}: what do patients see when they search?';
+// Subjects are PRE-RENDERED per lead at build time. Never put {{tokens}} inside a
+// variable's value: Lemlist substitutes variables in one pass, so nested tokens
+// would reach inboxes as literal text (caught 2026-07-06 before launch).
+const SUBJECT_A = (first, last) => `What do patients see when they type ${first} ${last}`;
+const SUBJECT_B = (first, last) => `${first} ${last}: what do patients see when they search?`;
 
 const p = lines => lines.join('<br><br>');
 const EMAILS = [
@@ -104,7 +107,7 @@ async function api(pathname, { method = 'GET', body } = {}) {
     jobTitle: r[col('jobTitle')],
     ColloquialSpecialtyPlural: r[col('ColloquialSpecialtyPlural')],
     subjectVariant: i % 2 === 0 ? 'A' : 'B',
-    subjectLine: i % 2 === 0 ? SUBJECT_A : SUBJECT_B,
+    subjectLine: (i % 2 === 0 ? SUBJECT_A : SUBJECT_B)(r[col('firstName')], r[col('lastName')]),
   }));
   if (LIMIT > 0) leads = leads.slice(0, LIMIT);
   const counts = leads.reduce((a, l) => ((a[l.subjectVariant] = (a[l.subjectVariant] || 0) + 1), a), {});
