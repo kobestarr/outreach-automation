@@ -6,5 +6,11 @@
     "carriers": {
       "last_name": "doesn't really come up in AI Search such as Google AI Overview or ChatGPT when people ask for a good {category} in {town}"
     }
+  },
+  "ksd-aisearch-leadbyte-funded": {
+    "sheetId": "1oL5TXfIBVXvdIIvu6ofrJjnCUMU9rmOzM8BoGbDQ9B8",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1oL5TXfIBVXvdIIvu6ofrJjnCUMU9rmOzM8BoGbDQ9B8/edit",
+    "label": "ksd-aisearch-leadbyte-funded",
+    "carriers": {}
   }
 }
