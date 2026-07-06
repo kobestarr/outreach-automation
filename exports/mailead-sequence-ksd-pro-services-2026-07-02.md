@@ -1,14 +1,18 @@
-# Mailead sequence — ksd-pro-services-2026-07-02 (PASTE-READY)
+# Mailead sequence — ksd-pro-services-2026-07-02 (PASTE-READY, v2 audit-first)
 
 Campaign id **8890**. Paste each email into the Mailead sequence editor.
-Adapted from the locked pilot copy (`pilot-ksd-pro-services-sequence.md`) for the **carrier upload**:
-the insight phrase is packed into each lead's **Last Name**, so `{{last_name}}` renders the insight, NOT a surname.
+v2 (2026-07-06, Kobi's call): the **free audit offer moves to Email 1** ("I've started your audit,
+want it when it's done?") instead of being held to Email 3. Cold-reader pass done 2026-07-06 —
+key rule: the specific insight line must come BEFORE the words "free audit" in Email 1, so the
+offer reads as evidence of work done, not a spam lure. Do not reorder.
+
+The insight phrase is packed into each lead's **Last Name**, so `{{last_name}}` renders the insight, NOT a surname.
 
 **Tokens available in this upload (only these 4 — anything else renders blank):**
 `{{first_name}}` · `{{last_name}}` (= insight phrase) · `{{email}}` · `{{company_name}}`
 
-> ⚠️ Two canary leads (peter@bevan.co.uk, nmistry@hurst.co.uk) have an EMPTY Last Name, so Email 1
-> would render "...saw Bevan & Co ." with a gap. **Delete these 2 from the campaign before starting the send.**
+The 2 empty-Last-Name canaries (peter@bevan.co.uk, nmistry@hurst.co.uk) were removed from the
+campaign via API on 2026-07-06. Campaign holds 814 leads, all with insight carriers.
 
 Send rules: first touch **Mon-Thu only** (never Friday), send from the KSD identity mailboxes.
 
@@ -22,11 +26,11 @@ Send rules: first touch **Mon-Thu only** (never Friday), send from the KSD ident
 >
 > I had a quick look and saw {{company_name}} {{last_name}}.
 >
-> Easily sorted though.
+> Easily sorted though. That look was actually the start of a free audit I'm pulling together for {{company_name}}: where you show up in AI search, where you don't, and the three things I'd fix first.
 >
-> I recently did exactly this for Twiggy (yes, that Twiggy), and also for my window cleaner near me in South Manchester. He's a lovely guy and now his phone won't stop ringing! I'm sure if I can get him found, I can definitely do the same for you and {{company_name}}.
+> I recently did exactly this for Twiggy (yes, that Twiggy), and also for my window cleaner near me in South Manchester. He's a lovely guy and now his phone won't stop ringing! If I can get him found, I can definitely do the same for {{company_name}}.
 >
-> Want me to share the three things I'd start with? No worries if not. I'm also happy to share the WhatsApp messages from the window cleaner telling me about all the phone calls if that helps...
+> Want me to send the audit over when it's done? No worries if not.
 >
 > Cheers,
 > Kobi
@@ -37,22 +41,20 @@ Send rules: first touch **Mon-Thu only** (never Friday), send from the KSD ident
 
 ## Email 2 — Day 3 (same thread, blank subject)
 
-**FIXED: removed `{{town}}` and `{{category}}` (not in this upload — would render blank).**
-
 > Hi {{first_name}},
 >
 > Just bumping this up your inbox in case it got buried.
 >
-> Quick version: a couple of firms near you are starting to show up when people ask AI for a recommendation, and most aren't yet. Much easier to be early than to play catch-up later.
+> That audit for {{company_name}} is still sitting here with your name on it. A couple of firms near you are starting to show up when people ask AI tools for a recommendation, and it's much easier to be early than to play catch-up later.
 >
-> Want me to show you where {{company_name}} sits right now?
+> Want it?
 >
 > Cheers,
 > Kobi
 
 ---
 
-## Email 3 — Day 6 (same thread, the real pitch)
+## Email 3 — Day 6 (same thread)
 
 > Hi {{first_name}},
 >
@@ -60,9 +62,9 @@ Send rules: first touch **Mon-Thu only** (never Friday), send from the KSD ident
 >
 > This is what I do for a living, most recently for Dr Nigel Stephens (a consultant cardiologist) and Twiggy, yes, that Twiggy. Nigel just wanted to control how he came across when people compared him to other consultants, and honestly that's all this is.
 >
-> For {{company_name}} I'd pull together a quick audit showing exactly where you're invisible in AI search and the three things I'd fix first. Takes me an hour, yours free, no strings.
+> The audit's free, takes you two minutes to read, and it's yours whether you ever work with me or not.
 >
-> Want it?
+> Want me to send it over?
 >
 > Cheers,
 > Kobi
@@ -75,10 +77,19 @@ Send rules: first touch **Mon-Thu only** (never Friday), send from the KSD ident
 >
 > I'll leave you in peace after this one.
 >
-> If getting {{company_name}} found in AI search is ever worth a look, just reply "audit" and I'll sort it. If not, no worries at all, I'll stop landing in your inbox.
+> The audit I started for {{company_name}} is just sitting here, so if you ever want it, reply "audit" and I'll finish it up and send it over. If not, no worries at all, I'll stop landing in your inbox.
 >
 > Either way, all the best with the firm.
 >
 > Cheers,
 > Kobi
 > Kobestarr Digital
+
+---
+
+## Reply playbook
+
+Every "yes" / "audit" reply needs an actual audit delivered same-day: where {{company_name}}
+shows up in ChatGPT / Google AI Overview for "good {category} in {town}", where competitors do,
+three fixes. Goal of every reply = booked call. Future build: auto-generate these per lead
+(pipeline already has name/category/town) so the audit exists before they even reply.
