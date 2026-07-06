@@ -1,0 +1,26 @@
+{
+  "receiver": "https://n8n.srv1244012.hstgr.cloud/mailead-hook/<secret on VPS unit + scratchpad>",
+  "registered": "2026-07-06",
+  "webhooks": [
+    {
+      "campaign_id": 8890,
+      "event": "email_answered",
+      "webhook_id": "789b1c10-2dc9-4571-bce2-7d292f8a58b0"
+    },
+    {
+      "campaign_id": 8890,
+      "event": "email_bounced",
+      "webhook_id": "de60e2d7-e278-478d-8868-0c6eb4871854"
+    },
+    {
+      "campaign_id": 8886,
+      "event": "email_answered",
+      "webhook_id": "ee524a8a-bbf0-4f26-a67a-1d9f4e961e34"
+    },
+    {
+      "campaign_id": 8886,
+      "event": "email_bounced",
+      "webhook_id": "19c37b38-5c45-4844-a494-1f44de78d4d6"
+    }
+  ]
+}
