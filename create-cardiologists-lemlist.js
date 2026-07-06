@@ -24,7 +24,7 @@ const SENT_LEDGER = path.join(__dirname, 'data/sent-ledger.txt');
 // variable's value: Lemlist substitutes variables in one pass, so nested tokens
 // would reach inboxes as literal text (caught 2026-07-06 before launch).
 const SUBJECT_A = (first, last) => `What do patients see when they Google "${first} ${last}"?`;
-const SUBJECT_B = (first, last) => `"${first} ${last}": what do patients see when they Google it?`;
+const SUBJECT_B = (first, last) => `"${first} ${last}": what do patients see when they Google your name?`;
 
 const p = lines => lines.join('<br><br>');
 const EMAILS = [
