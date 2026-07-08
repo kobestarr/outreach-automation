@@ -73,7 +73,18 @@ const OWN_DOMAIN_HINTS = ['kobestarr', 'dealflowmedia', 'stripped', 'trykobestar
 function leadEmail(ev) {
   const cands = [ev.from_email_account, ev.lead_email_account].filter(Boolean);
   for (const c of cands) if (!OWN_DOMAIN_HINTS.some(h => String(c).toLowerCase().includes(h))) return c;
-  return cands[0] || null;
+  return null; // both fields are our own mailboxes — never report our address as the lead
+}
+
+// Mailead re-fires events per retry/thread message: suppress repeat WhatsApp pings
+// for the same lead+event within 24h (in-memory; a restart just re-allows one ping).
+const recentPings = new Map();
+function shouldPing(key) {
+  const last = recentPings.get(key);
+  if (last && Date.now() - last < 24 * 60 * 60 * 1000) return false;
+  recentPings.set(key, Date.now());
+  if (recentPings.size > 5000) recentPings.clear();
+  return true;
 }
 
 async function handle(ev) {
@@ -96,9 +107,11 @@ async function handle(ev) {
   }
 
   if (ev.event_type === 'email_answered') {
-    console.log(`reply: ${email} (${campaign})`);
-    if (!DRY) {
-      await whatsapp(`REPLY from ${who} at ${company} ("${campaign}", step ${ev.step ?? '?'}): ${email}. If it's a real reply, audit needed same-day.`);
+    console.log(`reply: ${email || who} (${campaign})`);
+    const pingKey = `answered:${email || (ev.firstName + '@' + company)}`;
+    if (!DRY && shouldPing(pingKey)) {
+      const contact = email ? `: ${email}` : ' (check Gmail/Mailead for the address)';
+      await whatsapp(`REPLY from ${who} at ${company} ("${campaign}", step ${ev.step ?? '?'})${contact}. If it's a real reply, audit needed same-day.`);
     }
     return { action: 'reply-notified', email };
   }
