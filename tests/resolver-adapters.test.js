@@ -37,7 +37,7 @@ function jsonRes(body, ok = true) {
     try {
       const out = await A.companiesHouse('Acme Widgets Ltd', 'acmewidgets.co.uk');
       assert.strictEqual(out.length, 1); // resigned officer dropped
-      assert.strictEqual(out[0].name, 'BOYLE, Michael John');
+      assert.strictEqual(out[0].name, 'Michael John Boyle'); // CH "SURNAME, Forename" normalised to "Forename Surname"
       assert.strictEqual(out[0].title, 'Director');
       assert.strictEqual(out[0].source, 'companiesHouse');
     } finally { restoreFetch(); }

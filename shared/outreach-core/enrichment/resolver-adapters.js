@@ -79,10 +79,28 @@ async function companiesHouse(companyName) {
 
     return officers
       .filter(o => !o.resigned_on && /director|secretary/i.test(o.officer_role || ''))
-      .map(o => ({ name: o.name, title: 'Director', source: 'companiesHouse' }));
+      .map(o => ({ name: normaliseCompaniesHouseName(o.name), title: 'Director', source: 'companiesHouse' }));
   } catch {
     return [];
   }
+}
+
+// Companies House returns "SURNAME, Forename Middle, Title" (e.g. "BUTLER, Ross, Mr").
+// Downstream email-pattern generation needs "Forename Surname", so normalise it.
+// Falls back to the raw name if the format is unexpected.
+const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|sir|dame|lord|lady|mx|rev)\.?$/i;
+function titleCaseWord(w) { return w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w; }
+function normaliseCompaniesHouseName(raw) {
+  if (!raw || typeof raw !== 'string' || !raw.includes(',')) return raw;
+  const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length < 2) return raw;
+  const surname = parts[0];
+  // forenames = the first non-honorific segment after the surname
+  const forenames = (parts.slice(1).find(p => !HONORIFICS.test(p)) || parts[1] || '')
+    .split(/\s+/).filter(w => !HONORIFICS.test(w)).join(' ');
+  if (!forenames) return raw;
+  const tc = s => s.split(/\s+/).map(titleCaseWord).join(' ');
+  return `${tc(forenames)} ${tc(surname)}`.trim();
 }
 
 // ---------- linkedinPeople ----------

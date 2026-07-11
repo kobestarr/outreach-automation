@@ -261,21 +261,25 @@ async function gate(input, io = {}, opts = {}) {
 // Heuristic domain resolver: try companyname.com / .co.uk, confirm the page actually loads.
 // No search API wired here (keep-it-simple per spec) — returns null rather than guess-and-hope.
 async function resolveDomainReal(companyName, _location) {
-  const slug = String(companyName || '')
+  const cleaned = String(companyName || '')
     .toLowerCase()
     .replace(/\b(ltd|limited|plc|llp|inc|the|and|&|co|company|group|holdings)\b/g, '')
-    .replace(/[^a-z0-9]/g, '');
+    .trim();
+  const slug = cleaned.replace(/[^a-z0-9]/g, '');
   if (!slug) return null;
+  // distinctive name tokens (len>=4) used to sanity-check the fetched page is actually this company
+  const tokens = cleaned.split(/[^a-z0-9]+/).filter(t => t.length >= 4);
 
-  for (const tld of ['.com', '.co.uk']) {
+  for (const tld of ['.com', '.co.uk', '.io', '.co', '.agency', '.studio', '.uk']) {
     const domain = `${slug}${tld}`;
     try {
-      const res = await fetch(`https://${domain}`, {
-        method: 'GET',
-        redirect: 'follow',
-        signal: AbortSignal.timeout(IO_TIMEOUT_MS),
-      });
-      if (res.ok) return domain;
+      const res = await fetch(`https://${domain}`, { method: 'GET', redirect: 'follow', signal: AbortSignal.timeout(IO_TIMEOUT_MS) });
+      if (!res.ok) continue;
+      // Content check: page should mention a distinctive name token, else it's likely a wrong/parked
+      // domain that merely resolves. If we have no distinctive token, accept a loading page as-is.
+      if (!tokens.length) return domain;
+      const html = (await res.text().catch(() => '')).toLowerCase();
+      if (tokens.some(t => html.includes(t))) return domain;
     } catch {
       // try next candidate
     }
