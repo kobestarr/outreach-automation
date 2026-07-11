@@ -28,7 +28,10 @@ const COOLDOWN_DAYS = 21;
 const POLL_INTERVAL_MS = 15 * 1000;
 const POLL_CAP_MS = 10 * 60 * 1000;
 
-const BASE_FILTER = { location: 'United Kingdom', datePosted: 'pastWeek', experienceLevels: ['associate', 'mid'] };
+// NB: no experienceLevels — linkedapi's valid enum is internship/entryLevel/associate/midSeniorLevel/
+// director/executive ('mid' is invalid and rejects the whole workflow). Experience level is a weak
+// size proxy anyway; the gate does real size/lane classification.
+const BASE_FILTER = { location: 'United Kingdom', datePosted: 'pastWeek', limit: 25 };
 
 // Per-brand search config (docs/hiring-signals-architecture.md "Per-brand search config").
 const BRAND_CONFIG = {

@@ -124,5 +124,6 @@ if (require.main === module) {
   if (brands) opts.brands = brands;
   if (maxEnrich) opts.maxEnrich = maxEnrich;
   if (maxLeads) opts.maxLeads = maxLeads;
+  if (args.includes('--skip-linkedin')) opts.skipLinkedin = true;
   run(opts).then(r => console.log('DONE', r.dir)).catch(e => { console.error('FATAL', e); process.exit(1); });
 }

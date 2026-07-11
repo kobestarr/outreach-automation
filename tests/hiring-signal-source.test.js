@@ -47,10 +47,10 @@ function mkIo({ jobsByTerm = {}, ledgerFile = tmpLedger(), now = new Date('2026-
     assert.deepStrictEqual(S.BRAND_CONFIG.stripped, ['podcast producer', 'audio producer', 'content producer']);
     assert.deepStrictEqual(S.BRAND_CONFIG.dealflow, ['content marketing manager', 'content manager']);
   });
-  await test('BASE_FILTER pins UK / pastWeek / associate+mid experience', () => {
+  await test('BASE_FILTER pins UK / pastWeek, no experienceLevels (invalid enum rejects workflow)', () => {
     assert.strictEqual(S.BASE_FILTER.location, 'United Kingdom');
     assert.strictEqual(S.BASE_FILTER.datePosted, 'pastWeek');
-    assert.deepStrictEqual(S.BASE_FILTER.experienceLevels, ['associate', 'mid']);
+    assert.strictEqual(S.BASE_FILTER.experienceLevels, undefined);
   });
 
   // ---- record shape ----
