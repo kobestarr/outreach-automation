@@ -71,3 +71,7 @@ __pycache__/
 *.pyc
 .claude/settings.local.json
 data/linkedin-reacted-state.json
+
+# Signal Engine run outputs (contain lead PII)
+hiring-signals/runs/
+data/hiring-signals-seen.txt
