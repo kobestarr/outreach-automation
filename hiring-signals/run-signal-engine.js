@@ -84,7 +84,7 @@ async function run(opts = {}) {
       const r = await resolve({ ...record, companyHeadcount: record.estimatedHeadcount }, resolverAdapters);
       flattenResolver(record, r);
       if (record.dmName) resolved++;
-      await enrichDecisionMaker(record, {});
+      Object.assign(record, await enrichDecisionMaker(record, {})); // enrich returns a COPY; merge it back onto the record
       if (record.email) emailed++;
     } catch (e) {
       failed++; record.pipelineError = String(e.message || e).slice(0, 200);
