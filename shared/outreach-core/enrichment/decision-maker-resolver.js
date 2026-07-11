@@ -232,5 +232,5 @@ async function resolve(signal, io = {}) {
 
 module.exports = {
   roleSeniority, roleFunction, isLeadershipHire, classify, resolve,
-  isExternalRecruiter, nameMatchScore, personMatch, headTitlesFor, FOUNDER_TITLES,
+  isExternalRecruiter, nameMatchScore, personMatch, headTitlesFor, FOUNDER_TITLES, normName,
 };
