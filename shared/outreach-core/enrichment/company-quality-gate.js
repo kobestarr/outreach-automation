@@ -315,8 +315,13 @@ businessType: "business" = ordinary B2B/local company; "brand" = a household-nam
 
 async function companyProfileReal(domain) {
   try {
-    const { fetchWebsiteText } = require('./llm-owner-extractor');
-    const text = await withTimeout(fetchWebsiteText(`https://${domain}`), IO_TIMEOUT_MS, 'fetchWebsiteText');
+    // crawl4ai renders JS + defeats bot-blocks (returns clean markdown); fall back to simple fetch.
+    const { crawlText } = require('./crawl4ai-fetch');
+    let text = await crawlText(`https://${domain}`, 60000);
+    if (!text) {
+      const { fetchWebsiteText } = require('./llm-owner-extractor');
+      text = await withTimeout(fetchWebsiteText(`https://${domain}`), IO_TIMEOUT_MS, 'fetchWebsiteText');
+    }
     if (!text) return null;
 
     const client = getLLMClient();
