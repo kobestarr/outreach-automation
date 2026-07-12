@@ -84,6 +84,21 @@ function htmlToText(html) {
 async function fetchWebsiteText(url) {
   const texts = [];
 
+  // crawl4ai first: renders JS + defeats bot-blocks, returns clean markdown incl. contact/team pages.
+  // This is the reliable path (Playwright fallback below is often unavailable). Fall through on failure.
+  try {
+    const { crawlText } = require('./crawl4ai-fetch');
+    const base = new URL(url);
+    const md = await crawlText(url, 60000);
+    if (md && md.length > 100) {
+      texts.push(md);
+      const team = await crawlText(`${base.protocol}//${base.hostname}/team`, 45000)
+        || await crawlText(`${base.protocol}//${base.hostname}/about`, 45000);
+      if (team && team.length > 200) texts.push(`--- team/about ---\n${team}`);
+      return texts.join('\n\n').substring(0, 6000);
+    }
+  } catch (e) { /* fall through to simple/browser fetch */ }
+
   try {
     let html = await fetchWebsite(url, 8000);
     if (needsBrowserRendering(html)) {

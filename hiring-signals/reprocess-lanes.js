@@ -6,6 +6,7 @@ const { companyProfileReal, laneFromEnrichment, estimatedHeadcountFor } = requir
 const { enrichDecisionMaker } = require('../shared/outreach-core/enrichment/enrich-decision-maker');
 const { withVerdicts, splitBuckets, renderDigest } = require('./build-digest');
 const { normName } = require('../shared/outreach-core/enrichment/decision-maker-resolver');
+const { websiteEmailLookup } = require('../shared/outreach-core/enrichment/resolver-adapters');
 
 const dir = process.argv[2] || 'hiring-signals/runs/2026-07-11';
 const records = JSON.parse(fs.readFileSync(path.join(dir, '04-final.json'), 'utf8'));
@@ -32,12 +33,13 @@ const records = JSON.parse(fs.readFileSync(path.join(dir, '04-final.json'), 'utf
     r.estimatedHeadcount = estimatedHeadcountFor(r.sizeBand);
     const newLane = laneFromEnrichment({ businessType: r.businessType, sizeBand: r.sizeBand, roleTitle: r.roleTitle });
     if (newLane && newLane !== r.lane) { r.lane = newLane; relaned++; }
+    if (r.businessType === 'agency') r.dropReason = 'agency-competitor';
     r.gateConfidence = 0.7;
   }
   // re-enrich (website emails now work too via crawl4ai in websiteTeam's LLM path)
   const actionable = records.filter(r => ['small-direct', 'mid-augmentation', 'website-pitch', 'review'].includes(r.lane) && r.dmName && r.companyDomain);
   console.log(`re-enriching ${actionable.length} with dm+domain...`);
-  for (const r of actionable) { Object.assign(r, await enrichDecisionMaker(r, {})); if (r.email) emailed++; }
+  for (const r of actionable) { Object.assign(r, await enrichDecisionMaker(r, { websiteEmailLookup })); if (r.email) emailed++; }
 
   const wv = withVerdicts(records);
   const b = splitBuckets(wv);

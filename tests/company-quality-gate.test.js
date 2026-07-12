@@ -113,6 +113,11 @@ const test = (name, fn) => Promise.resolve().then(fn).then(() => { passed++; con
     assert.strictEqual(G.laneFromEnrichment({ businessType: 'brand', sizeBand: 'large' }), 'drop');
   });
 
+  await test('laneFromEnrichment: agency => drop (competitor, any size)', () => {
+    assert.strictEqual(G.laneFromEnrichment({ businessType: 'agency', sizeBand: 'small' }), 'drop');
+    assert.strictEqual(G.laneFromEnrichment({ businessType: 'agency', sizeBand: 'mid' }), 'drop');
+  });
+
   await test('laneFromEnrichment: consumer brand + in-person-ish role => review (kept as brand)', () => {
     const lane = G.laneFromEnrichment({ businessType: 'brand', sizeBand: 'mid', roleTitle: 'Retail Ambassador' });
     assert.strictEqual(lane, 'review');

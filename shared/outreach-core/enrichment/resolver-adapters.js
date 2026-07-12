@@ -202,10 +202,36 @@ async function jdReportingLine(jobDescription) {
   return [];
 }
 
+// websiteEmailLookup(signal) -> a website-scraped email for the resolved decision-maker, or null.
+// Uses crawl4ai-backed owner extraction (llm-owner-extractor now crawls with crawl4ai first). Matches
+// the extracted owner to signal.dmName; falls back to a single clearly-personal owner email. Project
+// rule: website-scraped emails are auto-valid (no Reoon spend). Never throws.
+const { personMatch } = require('./decision-maker-resolver');
+async function websiteEmailLookup(signal) {
+  try {
+    if (!signal || !signal.companyDomain) return null;
+    const url = `https://${signal.companyDomain}`;
+    const result = await ownerExtractor.extractOwnersFromWebsite(signal.companyName || signal.companyDomain, url);
+    const owners = (result && result.owners) || [];
+    // 1. owner whose name matches the resolved decision-maker, with an email
+    if (signal.dmName) {
+      const hit = owners.find(o => o.email && personMatch(o.name || '', signal.dmName) >= 0.6);
+      if (hit && hit.email) return hit.email;
+    }
+    // 2. else a single owner-with-email (a named person, not a generic inbox)
+    const withEmail = owners.filter(o => o.email && /@/.test(o.email));
+    if (withEmail.length === 1) return withEmail[0].email;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   companiesHouse,
   linkedinPeople,
   websiteTeam,
   jdReportingLine,
+  websiteEmailLookup,
   CH_NAME_MATCH_MIN,
 };

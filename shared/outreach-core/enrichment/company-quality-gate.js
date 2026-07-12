@@ -103,6 +103,7 @@ function estimatedHeadcountFor(sizeBand) {
 // businessType==='brand' AND sizeBand==='large' — a household-name consumer brand at real scale,
 // as opposed to a large-but-ordinary B2B business (which still gets 'mid-augmentation').
 function laneFromEnrichment({ businessType = 'unknown', sizeBand = 'unknown', roleTitle = null } = {}) {
+  if (businessType === 'agency') return 'drop';   // marketing/creative agency = competitor, can't pitch our services
   if (businessType === 'brand' && sizeBand === 'large') return 'drop';
   if (businessType === 'brand' && IN_PERSON_ROLE_RE.test(String(roleTitle || ''))) return 'review';
   if (sizeBand === 'small') return 'small-direct';
@@ -308,10 +309,12 @@ Website text:
 {TEXT}
 
 Return ONLY valid JSON, no other text:
-{"oneLiner":"<=15 words describing what this company does","sizeBand":"small|mid|large","businessType":"business|brand"}
+{"oneLiner":"<=15 words describing what this company does","sizeBand":"small|mid|large","businessType":"business|brand|agency"}
 
 sizeBand: "small" ~1-20 people, "mid" ~20-250 people, "large" 250+ people (best-effort from the text).
-businessType: "business" = ordinary B2B/local company; "brand" = a household-name consumer brand.`;
+businessType: "business" = ordinary B2B/local company; "brand" = a household-name consumer brand;
+"agency" = a marketing, creative, content, digital, advertising, SEO, PR, design or media agency, studio
+or consultancy (a company that SELLS marketing/content/creative services to other companies).`;
 
 async function companyProfileReal(domain) {
   try {
@@ -339,7 +342,7 @@ async function companyProfileReal(domain) {
     return {
       oneLiner: parsed.oneLiner || null,
       sizeBand: ['small', 'mid', 'large'].includes(parsed.sizeBand) ? parsed.sizeBand : 'unknown',
-      businessType: ['business', 'brand'].includes(parsed.businessType) ? parsed.businessType : 'unknown',
+      businessType: ['business', 'brand', 'agency'].includes(parsed.businessType) ? parsed.businessType : 'unknown',
     };
   } catch {
     return null;
