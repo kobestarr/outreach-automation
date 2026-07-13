@@ -47,3 +47,8 @@ test('genuinely blank lines are ignored without a skip record', () => {
   assert.strictEqual(leads.length, 1);
   assert.strictEqual(skipped.length, 0);
 });
+
+test('insight column maps to canonical insight field (carrier templates can use {insight})', () => {
+  const { leads } = normalise([['email', 'first_name', 'insight'], ['a@x.com', 'Al', 'I asked ChatGPT this week. You were not on the list']]);
+  assert.strictEqual(leads[0].insight, 'I asked ChatGPT this week. You were not on the list');
+});

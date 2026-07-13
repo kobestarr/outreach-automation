@@ -12,6 +12,7 @@ const CANONICAL = {
   town:         ['town', 'city', 'location'],
   website:      ['website', 'url', 'site'],
   linkedin_url: ['linkedin_url', 'linkedin', 'decision maker linkedin url', 'linkedin url'],
+  insight:      ['insight'], // pre-composed per-lead insight; carrier templates may reference {insight}
 };
 
 function normalise(rows) {

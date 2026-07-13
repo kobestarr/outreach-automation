@@ -12,5 +12,37 @@
     "sheetUrl": "https://docs.google.com/spreadsheets/d/1oL5TXfIBVXvdIIvu6ofrJjnCUMU9rmOzM8BoGbDQ9B8/edit",
     "label": "ksd-aisearch-leadbyte-funded",
     "carriers": {}
+  },
+  "hiring-ksd-founders": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "Hiring signals - KSD founders",
+    "carriers": {
+      "last_name": "{insight}"
+    },
+    "note": "sheet pending: Kobi creates blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
+  },
+  "hiring-ksd-mid": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "Hiring signals - KSD mid-market",
+    "carriers": {
+      "last_name": "{insight}"
+    },
+    "note": "sheet pending: Kobi creates blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
+  },
+  "hiring-stripped-mid": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "Hiring signals - Stripped mid-market",
+    "carriers": {},
+    "note": "sheet pending: Kobi creates blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
+  },
+  "hiring-dealflow-mid": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "Hiring signals - Dealflow mid-market",
+    "carriers": {},
+    "note": "sheet pending: Kobi creates blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
   }
 }
