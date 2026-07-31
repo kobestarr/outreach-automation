@@ -1,0 +1,70 @@
+{
+  "rampStartDate": "2026-07-21",
+  "base": 100,
+  "step": 10,
+  "ceiling": 450,
+  "maxPostAgeDays": 45,
+  "hopperStaleHours": 72,
+  "hopperMultiplier": 1.3,
+  "throttleMinMs": 35000,
+  "throttleMaxMs": 90000,
+  "resolveCallBudget": 6000,
+  "ksdFetchMultiplier": 15,
+  "prospCampaigns": [
+    {
+      "id": "6eb024a3-27d7-4fbd-bc51-517bd0b9a49b",
+      "name": "ICP Genie"
+    },
+    {
+      "id": "1bd6f6ce-a3d5-40d0-a992-2a7d70b1db55",
+      "name": "Medium Warm"
+    }
+  ],
+  "searchKeywords": [
+    "agency owner",
+    "agency founder",
+    "fractional CMO",
+    "marketing consultant",
+    "B2B SaaS founder",
+    "fintech founder",
+    "SaaS founder",
+    "startup founder",
+    "startup CEO",
+    "company founder",
+    "business owner",
+    "business coach",
+    "personal brand",
+    "LinkedIn creator",
+    "head of growth",
+    "growth marketing",
+    "demand generation",
+    "iGaming marketing",
+    "crypto founder",
+    "Web3 founder",
+    "aesthetics clinic owner",
+    "private clinic founder"
+  ],
+  "searchKeywordsPerRun": 10,
+  "searchPagesPerKeyword": 4,
+  "spreadEndHourUTC": 20,
+  "personCooldownDays": 7,
+  "refreshConnectionsDays": 7,
+  "gateBlockOn": [],
+  "minFollowers": 300,
+  "attributionEnabled": true,
+  "attributionWindowDays": 21,
+  "countriesAllow": [
+    "gb",
+    "no",
+    "au",
+    "nz",
+    "us",
+    "ca"
+  ],
+  "countriesEnglishOnly": [
+    "se",
+    "fi",
+    "dk",
+    "pt"
+  ]
+}

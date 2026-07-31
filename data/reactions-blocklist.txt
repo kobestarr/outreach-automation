@@ -1,0 +1,8 @@
+# LinkedIn usernames excluded from the daily reactions batch (one per line).
+# Recovered from the 2025 LeadsAutopilot blacklist emails to Eric Otten
+# (thread "No actions in 24 hrs", 11 Jun 2025). Add more as needed —
+# the username is the part after linkedin.com/in/ in the profile URL.
+jonathanmaharaj
+estefany-marte-bäckman-07a50252
+iainmorrison1
+rachelbyrneaudio
