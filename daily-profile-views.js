@@ -114,11 +114,23 @@ async function laReq(method, urlPath, body, tries = 3) {
 }
 const laPost = (p, b) => laReq("POST", p, b);
 
-/** POST a workflow and poll it. Generous budget: linkedapi queues per account. */
-async function runWorkflow(body, maxPolls = 60) {
+/**
+ * POST a workflow and poll it.
+ *
+ * linkedapi executes ONE workflow at a time per account. Measured 2026-08-20:
+ * a queued workflow reported "will start after 6 other pending" while the
+ * reactions engine was mid-run. Likes and views have SEPARATE rate-limit
+ * budgets but share a SINGLE execution queue, so a views workflow can sit
+ * pending for minutes. Hence the generous poll budget, and the queue depth is
+ * logged so a backlog is visible rather than looking like a hang.
+ */
+async function runWorkflow(body, maxPolls = 120) {
   const start = await laReq("POST", "/workflows", body);
-  const wfId = start.json && start.json.result && start.json.result.workflowId;
+  const res0 = (start.json && start.json.result) || {};
+  const wfId = res0.workflowId;
   if (!wfId) return { ok: false, error: JSON.stringify(start.json).slice(0, 300) };
+  const depth = /after (\d+) other/.exec(res0.message || "");
+  if (depth && Number(depth[1]) > 2) log(`  queued behind ${depth[1]} other workflows`);
   for (let i = 0; i < maxPolls; i++) {
     await sleep(6000);
     const p = await laReq("GET", `/workflows/${wfId}`);
@@ -130,7 +142,7 @@ async function runWorkflow(body, maxPolls = 60) {
     }
     if (st === "failed") return { ok: false, error: JSON.stringify(p.json.result).slice(0, 300) };
   }
-  return { ok: false, error: "poll timeout" };
+  return { ok: false, error: `poll timeout after ${maxPolls * 6}s (queue backlog?)` };
 }
 
 const openPersonPage = (personUrl) => runWorkflow({ actionType: "st.openPersonPage", personUrl, basicInfo: true });
