@@ -77,7 +77,7 @@ whole table. No accountId needed, read-only, free.
 
 ### The finding that reframes the whole PRD
 
-**`stReactions` default is 20/day. We fire 190/day.**
+**`stReactions` default is 20/day. We fire 190/day.** (Confirmed below: our account is set to 200.)
 
 So our account is NOT on defaults — someone raised the limits in the linkedapi.io
 dashboard. Which means the `limitExceeded` at 199 likes on 31 Jul was very likely
@@ -91,22 +91,52 @@ This does not mean raise it. It means we never actually found LinkedIn's wall, a
 the safety argument for the views engine (add volume in a separate category) stands
 on its own merits regardless.
 
-### Open: our account's ACTUAL limits
+### RESOLVED: our account's ACTUAL limits (accountId supplied by Kobi)
 
-`limits.get` and `limits.getUsage` both require an `accountId`:
+`accountId` is now stored in `~/.credentials/api-keys.json` under `linkedapi_io.accountId`.
+`limits.get` and `limits.getUsage` both work.
+
+| Category | daily | weekly | monthly |
+|---|---|---|---|
+| **`stPersonProfileViews`** | **200** | **560 (enabled)** | 2400 (off) |
+| `stReactions` | **200** | 140 (off) | 600 (off) |
+| `stConnectionRequests` | 20 | 50 | 200 (off) |
+| `stCompanyPageViews` | 100 | 700 | 3000 (off) |
+| `stSearchQueries` | 10 (off) | 70 (off) | 300 |
+| `stComments` | 10 | 70 (off) | 300 (off) |
+| `stPosts` | 1 | 7 (off) | 30 (off) |
+| `nvPersonProfileViews` | 1000 | 7000 | 30000 (off) |
+| `nvMessages` | 25 | 50 (off) | 50 |
+
+`limits.getUsage` returns live `currentUsage` vs `maxValue` per category. It read
+`stPersonProfileViews: currentUsage 1` immediately after this probe, i.e. it counts our
+actions in real time. **This is a free, live ramp governor and should be used in preference
+to the engine counting its own fires.**
+
+### Two conclusions this forces
+
+**1. The 31 Jul `limitExceeded` was linkedapi's number, not LinkedIn's.**
+`stReactions` daily is set to **200**. The engine halted after **199** likes. Exactly the
+configured value. PRD §1's claim that "190/day is a measured platform ceiling" is wrong:
+190 is one notch under a dashboard setting. **LinkedIn's real reaction ceiling has never
+been measured.** This does not argue for raising it, but the premise should not be repeated.
+
+**2. The views ceiling is 80/day, not 200.**
+Daily is 200 but weekly is **560 and enabled**, and 560/7 = 80. Whoever configured this
+raised the daily and left the weekly at linkedapi's default, so the daily 200 is decorative:
 
 ```
-401 {"type":"accountIdRequired","message":"Valid accountId is required"}
+at 200/day -> the 560 weekly budget is gone on Wednesday, then four dead days
+at  80/day -> exactly sustainable, no stutter
 ```
 
-Not in `~/.credentials/api-keys.json` (only `apiKey`, `identificationToken`).
-No `/admin/accounts.*` endpoint exists (all 404). **Needs a human to read it out of
-the linkedapi.io dashboard.** With it we get, for free and per-run:
+Any ramp must therefore be governed by a **rolling 7-day budget**, not a daily cap alone.
 
-- our real configured `stPersonProfileViews` ceiling, instead of guessing
-- `limits.getUsage`, i.e. a live spent-vs-remaining read, which is a far better
-  ramp governor than counting our own fires
+### Decision (Kobi, 2026-08-20)
 
+Ramp 10 `+5`/day to **80/day** and hold. That is 14 days and fits inside the 560 weekly
+budget at every step. Only after 14 clean days do we consider raising the weekly cap via
+`limits.set`, with `limits.getUsage` watching. Evidence before volume.
 ---
 
 ## 3. What this changes for the build
@@ -117,9 +147,9 @@ the linkedapi.io dashboard.** With it we get, for free and per-run:
 2. The gate runs on **cached data only** at targeting time. It cannot gate on
    `openPersonPage` output, because opening the page *is* the view. View first,
    enrich after, gate the *next* one better.
-3. Ramp target is **80/day** (the default) until the dashboard says otherwise, with
-   the weekly 560 as the real binding constraint. 80 x 7 = 560, so daily and weekly
-   bind at exactly the same point: no headroom for catch-up days.
+3. Ramp target is **80/day**, set by the weekly 560 (our account's daily is 200 but
+   is unreachable underneath it). 80 x 7 = 560 exactly: no headroom for catch-up days,
+   so the engine needs a rolling 7-day budget, not just a daily cap.
 4. `nvPersonProfileViews` at 1000/day is 12x the standard pool. Out of scope per
    PRD §4, but that is a large enough number to be worth a Sales Navigator seat
    conversation separately.
