@@ -148,25 +148,32 @@ async function runWorkflow(body, maxPolls = 120) {
 const openPersonPage = (personUrl) => runWorkflow({ actionType: "st.openPersonPage", personUrl, basicInfo: true });
 
 /**
- * Who viewed US back. This is the DIRECT measurement of the view-back loop the
- * whole engine bets on, far sharper than waiting 21 days for credited
- * connections. Appended daily, deduped by urn+viewedAt on read.
- * Note: without LinkedIn Premium, LinkedIn shows only part of the list.
+ * Do not crowd the reactions engine.
+ *
+ * PROVEN 2026-08-20, the hard way: ad-hoc probe workflows fired during a live
+ * reactions run queued ahead of its reactToPost workflows, pushed three of them
+ * past the reactions engine's 180s poll budget, and tripped its
+ * 3-consecutive-failure breaker. It halted at 83/190 and wrote a STOP file.
+ *
+ * linkedapi runs ONE workflow at a time per account. The reactions engine polls
+ * for only 180s and CANNOT be changed from here, so the whole obligation sits on
+ * this engine. Two cheap rules, neither of which costs an API call:
+ *
+ *   1. Never hold more than one workflow in flight. This engine is strictly
+ *      sequential, so the only way to breach that is to run two copies, which
+ *      the pgrep guard already prevents.
+ *   2. When the reactions engine is mid-run, space views out further so a view
+ *      never lands between a like being queued and that like being polled.
+ *
+ * Views are not time-critical. Likes are already in flight. Views yield.
  */
-async function trackProfileViewers(sinceISO) {
-  const res = await runWorkflow({ actionType: "st.retrieveProfileViewers", limit: 300, since: sinceISO }, 60);
-  if (!res.ok) { log(`profile viewers retrieval failed (non-fatal): ${String(res.error).slice(0, 200)}`); return 0; }
-  const rows = Array.isArray(res.data) ? res.data : (res.data && res.data.viewers) || [];
-  let n = 0;
-  for (const v of rows) {
-    try {
-      fs.appendFileSync(VIEWERS_PATH, JSON.stringify({ ts: new Date().toISOString(), ...v }) + "\n");
-      n++;
-    } catch { /* non-fatal */ }
+function reactionsEngineRunning() {
+  try {
+    const out = execFileSync("pgrep", ["-f", "daily-reactions-batch.js"], { encoding: "utf8" });
+    return out.split("\n").map((x) => x.trim()).filter(Boolean).length > 0;
+  } catch {
+    return false; // pgrep exits 1 when nothing matches
   }
-  const identified = rows.filter((v) => v.viewerType === "identified").length;
-  log(`Profile viewers since ${sinceISO.slice(0, 10)}: ${rows.length} (${identified} identified, ${rows.length - identified} anonymous)`);
-  return n;
 }
 
 // ---------- source loading (all local, zero discovery cost) ----------
@@ -403,7 +410,11 @@ async function main() {
     if (remaining > 0) {
       const msLeft = windowEnd.getTime() - Date.now();
       const spread = msLeft > 0 ? msLeft / remaining : cfg.throttleMinMs;
-      const delay = Math.min(cfg.throttleMaxMs, Math.max(cfg.throttleMinMs, spread));
+      // While reactions is mid-run we share its execution queue, so widen the
+      // gap. A like that waits behind a view for more than 180s is a failure
+      // for the reactions engine, and three of those halt it.
+      const busy = reactionsEngineRunning() ? cfg.yieldToReactionsFactor : 1;
+      const delay = Math.min(cfg.throttleMaxMs, Math.max(cfg.throttleMinMs * busy, spread * busy));
       await sleep(Math.round(delay * (0.85 + Math.random() * 0.3)));
     }
   }
@@ -424,4 +435,4 @@ async function main() {
 }
 
 if (require.main === module) main();
-module.exports = { buildCandidates, usernameOf, profileUrlFor, lastPostedByAuthor, csvUsernames };
+module.exports = { buildCandidates, usernameOf, profileUrlFor, lastPostedByAuthor, csvUsernames, reactionsEngineRunning };

@@ -32,5 +32,6 @@
     "fi",
     "dk",
     "pt"
-  ]
+  ],
+  "yieldToReactionsFactor": 2
 }

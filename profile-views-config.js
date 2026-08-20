@@ -42,6 +42,13 @@ const DEFAULT_CONFIG = {
 
   // Safety
   maxConsecutiveFailures: 3,
+
+  // Shared workflow queue. linkedapi runs ONE workflow at a time per account,
+  // and the reactions engine polls for only 180s before calling a timeout.
+  // Three timeouts trip its halt breaker and write a STOP file, which happened
+  // for real on 2026-08-20. While reactions is mid-run, space views out by this
+  // factor so a like never waits behind a view long enough to time out.
+  yieldToReactionsFactor: 2,
   usagePollEvery: 20,       // re-read limits.getUsage every N actions
 
   // Renidly: structurally zero. The linkdapi client is not wired into this
