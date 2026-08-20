@@ -23,3 +23,33 @@ write("pool-press.csv", db.prepare(`SELECT rowid, TRIM(COALESCE(owner_first_name
 write("pool-ksd.csv", db.prepare(`SELECT rowid, TRIM(COALESCE(owner_first_name,'') || ' ' || COALESCE(owner_last_name,'')) name, linkedin_url u
   FROM businesses WHERE campaigns LIKE '%ksd-local-2026%' AND linkedin_url LIKE '%linkedin.com/in/%'`).all());
 db.close();
+
+// pool-campaign.csv — contacts CURRENTLY in a sending email campaign, pulled
+// live from the campaign Google Sheets in config/campaign-sheets.json (every
+// entry with a sheetId). Add a campaign there and re-run to include it.
+(async () => {
+  const sc = require("./shared/outreach-core/sheets/sheets-client.js");
+  const registry = JSON.parse(fs.readFileSync(path.join(__dirname, "config", "campaign-sheets.json"), "utf8"));
+  const seen = new Set();
+  const out = [];
+  for (const [key, c] of Object.entries(registry)) {
+    if (!c.sheetId) continue;
+    try {
+      const { header, rows } = await sc.readRows(c.sheetId, "ToSend");
+      const liKey = header.find((h) => /linkedin/i.test(h));
+      if (!liKey) { console.log(`pool-campaign: ${key} has no linkedin column — skipped`); continue; }
+      let added = 0;
+      for (const r of rows) {
+        const u = (r[liKey] || "").trim();
+        if (!u.includes("linkedin.com/in/") || seen.has(u)) continue;
+        seen.add(u);
+        const name = `${r.real_first_name || r["First Name"] || ""} ${r.real_last_name || r["Last Name"] || ""}`.trim();
+        out.push({ rowid: out.length + 1, name, u });
+        added++;
+      }
+      console.log(`pool-campaign: ${key} +${added}`);
+    } catch (e) { console.log(`pool-campaign: ${key} FAILED (${e.message}) — skipped`); }
+  }
+  write("pool-campaign.csv", out);
+  console.log("Now: scp data/pool-*.csv clawdbot:/root/linkedin-reactions/data/");
+})();
