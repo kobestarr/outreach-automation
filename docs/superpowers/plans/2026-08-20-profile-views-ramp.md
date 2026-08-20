@@ -141,17 +141,45 @@ with:
 
 - [ ] **Step 5: Verify the edit did not change the paid path**
 
-Run: `PATH="/opt/homebrew/bin:$PATH" node -e "require('./daily-reactions-batch.js')" 2>&1 | head -5`
-Expected: no syntax error. (The script guards its main on being run directly, so a require is a parse check.)
+> **DANGER, learned the hard way on 2026-08-20.** `daily-reactions-batch.js` has **no
+> `require.main === module` guard** — it ends in a top-level async IIFE `})();`. So
+> `node -e "require('./daily-reactions-batch.js')"` **starts a real run**, fires real
+> linkedapi workflows, and races the live VPS run. Never require it. Use `node --check`,
+> which parses without executing.
+
+Run: `PATH="/opt/homebrew/bin:$PATH" node --check daily-reactions-batch.js`
+Expected: no output, exit 0.
 
 Then run the existing gate tests to confirm nothing regressed:
 Run: `PATH="/opt/homebrew/bin:$PATH" node tests/reaction-icp-gate.test.js`
-Expected: all existing assertions pass.
+Expected: `29 passed`.
 
-- [ ] **Step 6: Dry run against real state**
+- [ ] **Step 6: Prove the fix against the REAL cache, without running the engine**
 
-Run: `PATH="/opt/homebrew/bin:$PATH" node daily-reactions-batch.js --dry-run 2>&1 | head -40`
-Expected: a `Pools:` line, and `⊘ gated (banked) <name>: country=...` lines now appearing where previously every banked target fired. Confirm the gated count is non-zero.
+Do **not** dry-run the engine locally: `--dry-run` still calls `refreshFirstDegree()`, which
+fires a real `st.retrieveConnections` workflow, and `data/reaction-resolve-cache.json` in the
+repo is a **dead mirror** (10 entries) while the live one on the VPS holds 8,463.
+
+Instead run a read-only proof on the VPS. Write `/tmp/gate-proof.js`, `scp` it, and run it:
+it rebuilds the banked candidate set exactly as `bankedPool()` does, then reports how many
+are refused by the gate for free.
+
+```bash
+scp /tmp/gate-proof.js clawdbot:/tmp/ && ssh clawdbot '/usr/bin/node /tmp/gate-proof.js'
+```
+
+Expected shape (actual figures from 2026-08-20):
+
+```
+banked candidates (unreacted, inside 45d, 1 per author): 1323
+  profile cached, gate is FREE : 1198
+    PASS                       : 528
+    FAIL                       : 670
+    BLOCKED under gateBlockOn ["country"] : 455
+  no cached profile (unknown)  : 125
+```
+
+Confirm the BLOCKED count is non-zero and material (it was 34.4% of the pool).
 
 - [ ] **Step 7: Commit**
 
@@ -1458,8 +1486,12 @@ module.exports = { buildCandidates, usernameOf, lastPostedByAuthor };
 
 - [ ] **Step 2: Syntax check**
 
-Run: `PATH="/opt/homebrew/bin:$PATH" node -e "require('./daily-profile-views.js'); console.log('parsed ok')"`
-Expected: `parsed ok`
+Use `node --check`, never `node -e "require(...)"`. `daily-profile-views.js` *does* guard its
+main with `if (require.main === module)`, so a require would be safe here, but the reactions
+engine does not and the habit is what bit us on 2026-08-20. Parse, do not execute.
+
+Run: `PATH="/opt/homebrew/bin:$PATH" node --check daily-profile-views.js`
+Expected: no output, exit 0.
 
 - [ ] **Step 3: Run all four test files and confirm they still pass**
 
