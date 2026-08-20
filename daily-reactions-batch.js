@@ -49,6 +49,7 @@ const HOPPER_PATH = path.join(ROOT, "data/reactions-hopper.json");
 const STOP_PATH = path.join(ROOT, "data/reactions-daily.STOP");
 const ATTR_PATH = path.join(ROOT, "data/reaction-attribution.json"); // likes -> inbound invites ledger
 const BLOCKLIST_PATH = path.join(ROOT, "data/reactions-blocklist.txt"); // one LinkedIn username per line, # comments
+const POSTS_SEEN_PATH = path.join(ROOT, "data/posts-seen.jsonl"); // every post fetched (already paid for) — feeds the Friday top-posts report
 const FIRSTDEG_PATH = path.join(ROOT, "data/first-degree-connections.txt"); // auto-refreshed via st.retrieveConnections
 const CARDIO_CSV = path.join(ROOT, "data/lemlist-cardiologists-2026-07.csv");
 const DB_PATH = path.join(ROOT, "ksd/local-outreach/orchestrator/data/businesses.db");
@@ -67,7 +68,15 @@ const DEFAULT_CONFIG = {
   spreadEndHourUTC: 17,    // meter the day's cap out until ~this hour (17 UTC ≈ 18:00 BST)
   personCooldownDays: 7,   // never react to the same person more than once per this many days
   refreshConnectionsDays: 7, // re-pull 1st-degree connections list this often (excluded from targeting)
-  resolveCallBudget: 2500, // linkdapi calls per run (urn + posts + gate overview)
+  // 2026-08-20: was 2500 = ~2500 credits/DAY, which killed an 18,500 pack in 10
+  // days. This is a credit budget, not a nicety: 1 call ~= 1 credit.
+  resolveCallBudget: 400,  // linkdapi calls per run (urn + posts + gate overview)
+  // Zero-yield circuit breaker. On 2-4 Aug 2026 the engine fired 0 likes and
+  // still burned 495/1154/1366 calls walking pools where everything was on
+  // cooldown or had no recent post. Bail once we have spent this many calls
+  // with nothing to show for it (fires + hopper adds).
+  resolveYieldProbe: 120,  // calls to spend before demanding evidence of yield
+  resolveYieldMin: 1,      // ...at least this many fires+hopper adds by then
   // ICP gate. Company pages are always blocked. These signals start in SHADOW
   // mode: add a dial key ("country" | "followers" | "excluded-role" |
   // "not-decision-maker") to gateBlockOn to promote it to blocking.
@@ -76,7 +85,7 @@ const DEFAULT_CONFIG = {
   // Attribution: match received invites back to the like that earned them.
   attributionEnabled: true,
   attributionWindowDays: 21,
-  ksdFetchMultiplier: 15,  // DB rows fetched per run = cap × this (low post rate expected)
+  ksdFetchMultiplier: 4,   // DB rows fetched per run = cap × this (was 15: walked ~2,850 rows/run)
   prospCampaigns: [
     { id: "6eb024a3-27d7-4fbd-bc51-517bd0b9a49b", name: "ICP Genie" },
     { id: "1bd6f6ce-a3d5-40d0-a992-2a7d70b1db55", name: "Medium Warm" },
@@ -91,6 +100,19 @@ const DEFAULT_CONFIG = {
   ],
   searchKeywordsPerRun: 3,
   searchPagesPerKeyword: 2,
+  // linkdapi credit tracking (2026-08-05: balance hit 0 and the engine ground
+  // silently for 4 days). Balance is checked at run start/end and reported.
+  creditWarnFloor: 5000,   // WhatsApp warning below this (~4 days runway)
+  creditHardFloor: 150,    // below this, skip all resolution (hopper-only run)
+  // Weekly poll cadence (Kobi 2026-08-05): a person's posts are re-checked at
+  // most this often. Reactions accept posts up to maxPostAgeDays (45d) old and
+  // personCooldownDays (7d) blocks repeat likes anyway, so re-checking quiet
+  // profiles every 48h was pure credit burn (~2/3 of daily spend).
+  postsTtlHours: 168,
+  // Asymmetric TTL: a profile that HAD a recent post is worth re-checking
+  // weekly; one that did not is the bulk of the churn, so back it off. Most of
+  // the ~850 profiles resolved per day to land 190 likes were these.
+  postsTtlHoursDud: 504,   // 21 days for profiles with no post in maxPostAgeDays
 };
 
 const argv = process.argv.slice(2);
@@ -118,25 +140,48 @@ function whatsapp(message) {
   } catch (e) { log(`WhatsApp notify failed (non-fatal): ${e.message}`); }
 }
 
+// Last-resort crash guard: a stray socket error must never silently zero a run
+// (the 2026-07-30 EPIPE). Log + WhatsApp so we know; the hourly watchdog relaunches.
+process.on("unhandledRejection", (e) => { try { log(`FATAL unhandledRejection: ${String((e && (e.stack || e.message)) || e).slice(0, 240)}`); whatsapp(`linkedin-reactions CRASHED (unhandledRejection: ${e && (e.code || e.message)}). Watchdog will relaunch.`); } catch {} process.exit(1); });
+process.on("uncaughtException", (e) => { try { log(`FATAL uncaughtException: ${String((e && (e.stack || e.message)) || e).slice(0, 240)}`); whatsapp(`linkedin-reactions CRASHED (uncaughtException: ${e && (e.code || e.message)}). Watchdog will relaunch.`); } catch {} process.exit(1); });
+
 // ---------- linkedapi.io ----------
 const LA_HEADERS = {
   "linked-api-token": keys.linkedapi_io.apiKey,
   "identification-token": keys.linkedapi_io.identificationToken,
   "Content-Type": "application/json",
 };
-function laReq(method, urlPath, body) {
+const TRANSIENT_RE = /EPIPE|ECONNRESET|ETIMEDOUT|EAI_AGAIN|ECONNREFUSED|ENETUNREACH|socket hang up|timeout/i;
+function laReqOnce(method, urlPath, body) {
   return new Promise((resolve, reject) => {
-    const r = https.request({ method, hostname: "api.linkedapi.io", path: urlPath, headers: LA_HEADERS }, (res) => {
+    const r = https.request({ method, hostname: "api.linkedapi.io", path: urlPath, headers: LA_HEADERS, timeout: 30000 }, (res) => {
       const chunks = [];
       res.on("data", (c) => chunks.push(c));
       res.on("end", () => { try { resolve({ status: res.statusCode, json: JSON.parse(Buffer.concat(chunks).toString() || "{}") }); } catch { resolve({ status: res.statusCode, json: {} }); } });
     });
     r.on("error", reject);
-    if (body) r.write(JSON.stringify(body));
-    r.end();
+    r.on("timeout", () => r.destroy(new Error("ETIMEDOUT request timeout")));
+    try { if (body) r.write(JSON.stringify(body)); r.end(); } catch (e) { reject(e); }
   });
 }
-const RESTRICTION_RE = /limitExceeded|restrict|challenge|checkpoint|banned|unauthoriz|unauthenticated|invalidToken|accountNotConnected/i;
+// Retry transient network errors (EPIPE/ECONNRESET/timeout) so one dropped
+// socket cannot crash the whole run — the 2026-07-30 EPIPE that fired 0 likes.
+async function laReq(method, urlPath, body, tries = 3) {
+  for (let i = 1; i <= tries; i++) {
+    try { return await laReqOnce(method, urlPath, body); }
+    catch (e) {
+      const msg = (e && (e.code || e.message)) || "";
+      if (!TRANSIENT_RE.test(msg) || i === tries) throw e;
+      log(`laReq ${method} ${urlPath} transient (${msg}), retry ${i}/${tries - 1}`);
+      await sleep(2000 * i);
+    }
+  }
+}
+// linkapi's own daily action cap: benign, expected at the ceiling. Ends the day
+// CLEANLY and NEVER writes a STOP (must not block the next day / the watchdog). Kobi 2026-08-01.
+const LIMIT_RE = /limitExceeded|limit for this action|action category has been exceeded/i;
+// Genuine LinkedIn restrictions: auto-restarting into these would kill the seat, so these DO stop + alert.
+const RESTRICTION_RE = /restrict|challenge|checkpoint|banned|unauthoriz|unauthenticated|invalidToken|accountNotConnected/i;
 const usernameOf = (url) => { const m = (url || "").match(/linkedin\.com\/in\/([^/?#]+)/i); return m ? decodeURIComponent(m[1]).toLowerCase() : null; };
 
 async function refreshFirstDegree(cfg) {
@@ -186,6 +231,7 @@ async function reactToPost(postUrl) {
 
 // ---------- linkdapi (resolution, curl + browser UA for Cloudflare) ----------
 let resolveCalls = 0;
+let creditsExhausted = false; // flipped when linkdapi starts returning credit-error 403s
 // ICP gate telemetry — the daily readout we tune the dials from.
 const gateStats = { companyPagesDropped: 0, scored: 0, passed: 0, blocked: 0, reasons: {} };
 const gateReport = [];
@@ -196,18 +242,84 @@ const gateReport = [];
 function profileOverview(username, cache) {
   const entry = cache[username] || (cache[username] = {});
   if (entry.profile) return entry.profile;
-  const d = linkdapi(`/profile/overview?username=${encodeURIComponent(username)}`)?.data;
+  const r = linkdapi(`/profile/overview?username=${encodeURIComponent(username)}`);
+  if (!r) return { unresolved: true }; // transport/credit error: do NOT cache a negative
+  const d = r.data;
   entry.profile = d
     ? { countryCode: d.location?.countryCode || null, followers: d.followerCount || 0, industry: d.industryName || "", headline: d.headline || "" }
     : { unresolved: true };
   return entry.profile;
 }
+// Per-call credit ledger (2026-08-20). 17,630 credits burned 6-20 Aug with zero
+// per-call tracking; the only forensic trail was this script's own summary line.
+// Every billable response carries X-Credits-Consumed / X-Credits-Balance
+// (renidly.com/docs/account-credits) — capture them so burn is attributable to
+// an endpoint, and so the daily budget can be checked against reality.
+const LEDGER_PATH = path.join(ROOT, "data/credit-ledger.jsonl");
+let creditsConsumedRun = 0;
+function ledgerRow(row) {
+  try { fs.appendFileSync(LEDGER_PATH, JSON.stringify({ ts: new Date().toISOString(), ...row }) + "\n"); } catch {}
+}
 function linkdapi(urlPath) {
   resolveCalls++;
+  const hdrFile = path.join(ROOT, `data/.hdr-${process.pid}`);
+  const endpoint = urlPath.split("?")[0];
   try {
-    const out = execFileSync("curl", ["-s", "-m", "25", "-A", UA, "-H", `X-linkdapi-apikey: ${keys.linkdapi.apiKey}`, `https://linkdapi.com/api/v1${urlPath}`], { encoding: "utf8" });
-    return JSON.parse(out);
+    const out = execFileSync("curl", ["-s", "-m", "25", "-D", hdrFile, "-A", UA, "-H", `X-linkdapi-apikey: ${keys.linkdapi.apiKey}`, `https://linkdapi.com/api/v1${urlPath}`], { encoding: "utf8" });
+    let consumed = null, balance = null, status = null;
+    try {
+      const h = fs.readFileSync(hdrFile, "utf8");
+      status = parseInt((h.match(/^HTTP\/[\d.]+ (\d{3})/m) || [])[1], 10) || null;
+      const mc = h.match(/^x-credits-consumed:\s*([\d.]+)/im); if (mc) consumed = parseFloat(mc[1]);
+      const mb = h.match(/^x-credits-balance:\s*([\d.]+)/im); if (mb) balance = parseFloat(mb[1]);
+    } catch {}
+    if (consumed) creditsConsumedRun += consumed;
+    ledgerRow({ workstream: "reactions", endpoint, http: status, credits: consumed, balance_after: balance, call: resolveCalls });
+    const j = JSON.parse(out);
+    // Error responses (credit exhaustion, auth, 5xx) must be treated as
+    // transient — the 2026-08-01..05 outage cached 500+ of them as permanent
+    // "known-bad" entries and poisoned the resolve cache.
+    if (j && j.success === false) {
+      if (/credit/i.test(j.message || "")) creditsExhausted = true;
+      return null;
+    }
+    return j;
+  } catch (e) {
+    // Timeout/transport: the call may still have BILLED. Record credits:null so
+    // reconciliation drift is not misattributed to a rogue script.
+    ledgerRow({ workstream: "reactions", endpoint, http: null, credits: null, balance_after: null, call: resolveCalls, error: String(e.code || e.message).slice(0, 80) });
+    return null;
+  }
+}
+// Balance via the account endpoint (X-AUTHAPI-Key header, trailing slash
+// required — linkdapi.com/docs/account, fetched 2026-08-05). Not a resolveCall.
+function linkdapiBalance() {
+  try {
+    const out = execFileSync("curl", ["-s", "-m", "25", "-A", UA, "-H", `X-AUTHAPI-Key: ${keys.linkdapi.apiKey}`, "https://linkdapi.com/api/i/v1/credits/balance/k/"], { encoding: "utf8" });
+    const j = JSON.parse(out);
+    return j?.success && typeof j.data?.balance === "number" ? Math.round(j.data.balance) : null;
   } catch { return null; }
+}
+
+// Post-intelligence ledger: we already paid the credit to fetch these posts,
+// so persist what we saw. weekly-post-report.js turns it into the Friday
+// "which posts penetrated and why" report. Best-effort — never breaks a run.
+function seenPost(p, extra) {
+  try {
+    const e = p.engagements || {};
+    fs.appendFileSync(POSTS_SEEN_PATH, JSON.stringify({
+      seenAt: new Date().toISOString(),
+      postUrl: p.postURL || p.url || null,
+      author: p.author?.name || extra.authorName || null,
+      authorUrl: p.author?.url || extra.authorUrl || null,
+      postedAt: p.postedAt?.timestamp || null,
+      text: (p.text || "").slice(0, 280),
+      reactions: e.totalReactions ?? null,
+      comments: e.commentsCount ?? null,
+      reposts: e.repostsCount ?? null,
+      ...extra,
+    }) + "\n");
+  } catch {}
 }
 
 function resolveLatestPost(linkedinUrl, cache, cfg, state) {
@@ -217,15 +329,21 @@ function resolveLatestPost(linkedinUrl, cache, cfg, state) {
   if (!entry.urn) {
     if (entry.urnCheckedAt && Date.now() - entry.urnCheckedAt < 14 * 864e5) return null; // known-bad handle, don't re-burn
     const r = linkdapi(`/profile/username-to-urn?username=${encodeURIComponent(username)}`);
-    entry.urn = r?.data?.urn || null;
+    if (!r) return null; // transport/credit error: do NOT cache a negative
+    entry.urn = r.data?.urn || null;
     entry.urnCheckedAt = Date.now();
     cache[username] = entry;
     if (!entry.urn) return null;
   }
-  const postsFresh = entry.postsCheckedAt && Date.now() - entry.postsCheckedAt < 48 * 3600e3;
+  // Dud profiles (no post inside maxPostAgeDays last time) get a much longer
+  // TTL than productive ones — they are the majority of resolve spend.
+  const ttlHours = entry.lastPostUrl ? (cfg.postsTtlHours || 168) : (cfg.postsTtlHoursDud || cfg.postsTtlHours || 168);
+  const postsFresh = entry.postsCheckedAt && Date.now() - entry.postsCheckedAt < ttlHours * 3600e3;
   if (!postsFresh) {
     const r = linkdapi(`/posts/all?urn=${encodeURIComponent(entry.urn)}&count=3`);
-    const posts = r?.data?.posts || [];
+    if (!r) return null; // transport/credit error: do NOT cache a negative
+    const posts = r.data?.posts || [];
+    for (const p of posts) seenPost(p, { source: "pool", authorName: username, authorUrl: linkedinUrl });
     const cutoff = Date.now() - cfg.maxPostAgeDays * 864e5;
     const hit = posts.find((p) => p.url && (p.postedAt?.timestamp || 0) > cutoff);
     entry.lastPostUrl = hit ? hit.url : null;
@@ -297,6 +415,14 @@ function pressPool() {
   return csvPool("pool-press.csv", "press").map((r) => ({ ...r, rowid: undefined }));
 }
 
+// Contacts CURRENTLY in a sending email campaign (2026-08-06: 8890 ksd-pro-services,
+// 819 of 821 with LinkedIn URLs). A like landing days around an email touch is the
+// whole point of warming — this pool outranks the cold ksd sweep. Refresh by
+// re-running export-reaction-pools.js (pulls the campaign sheets) + scp up.
+function campaignPool() {
+  return csvPool("pool-campaign.csv", "campaign").map((r) => ({ ...r, rowid: undefined }));
+}
+
 function searchPool(cfg, state) {
   // Direct reactable posts by ICP keyword — 1 call ≈ 10-25 posts, no URN resolution.
   const out = [];
@@ -315,12 +441,46 @@ function searchPool(cfg, state) {
         // Company pages can't view back, can't accept a connect, can't buy.
         // 26% of the 2026-07-22 audit sample — the cheapest noise to kill.
         if (GATE.isCompanyAuthor(p.author)) { gateStats.companyPagesDropped++; continue; }
+        seenPost(p, { source: "search", keyword: kw });
         if (!url || state.reacted[url] || seenAuthors.has(authorKey) || !mostlyLatin(p.text)) continue;
         seenAuthors.add(authorKey);
         out.push({ pool: "search", name: p.author?.name || "(search)", postUrl: url, keyword: kw, linkedinUrl: p.author?.url || "" });
       }
     }
   }
+  return out;
+}
+
+// Posts we already paid to fetch (posts-seen.jsonl) that are still inside
+// maxPostAgeDays and were never reacted to. Costs ZERO linkdapi calls — the
+// post URL is already banked. Measured 2026-08-20: 637 fireable, ~3.4 days of
+// firing at cap 190, sitting unused because posts-seen only fed the Friday
+// report. This pool must run FIRST so free targets are always spent before paid
+// resolution starts.
+function bankedPool(cfg, state) {
+  if (!fs.existsSync(POSTS_SEEN_PATH)) return [];
+  const cutoff = Date.now() - cfg.maxPostAgeDays * 864e5;
+  const best = new Map(); // author handle -> most recent banked post
+  let lines = 0;
+  try {
+    for (const line of fs.readFileSync(POSTS_SEEN_PATH, "utf8").split("\n")) {
+      if (!line) continue;
+      lines++;
+      let p; try { p = JSON.parse(line); } catch { continue; }
+      const ts = p.postedAt || 0;
+      if (!ts || ts < cutoff || !p.postUrl) continue;
+      if (state.reacted[p.postUrl]) continue;
+      const m = (p.authorUrl || "").match(/linkedin\.com\/in\/([^/?#]+)/i);
+      if (!m) continue;
+      const u = m[1].toLowerCase();
+      const prev = best.get(u);
+      if (!prev || ts > prev.ts) best.set(u, { ts, postUrl: p.postUrl, name: p.author || u, linkedinUrl: p.authorUrl });
+    }
+  } catch { return []; }
+  // Most recent first: fresher posts are still in-feed and convert better.
+  const out = [...best.values()].sort((a, b) => b.ts - a.ts)
+    .map((v) => ({ pool: "banked", name: v.name, postUrl: v.postUrl, linkedinUrl: v.linkedinUrl }));
+  log(`Banked: ${out.length} unreacted posts inside ${cfg.maxPostAgeDays}d from ${lines} seen (0 credits)`);
   return out;
 }
 
@@ -334,6 +494,15 @@ function ksdPool(limit) {
 
 // ---------- main ----------
 (async () => {
+  // Single-instance guard (2026-07-27 + 2026-08-05 double-run incidents):
+  // linkedapi runs one workflow at a time per account, so a second instance
+  // just poisons the queue into poll-timeout halts. Shell-less pgrep; own pid
+  // and parent (the cron/ssh sh wrapper whose cmdline matches) filtered out.
+  try {
+    const others = execFileSync("pgrep", ["-f", "daily-reactions-batch.js"], { encoding: "utf8" })
+      .split("\n").map((p) => parseInt(p, 10)).filter((p) => p && p !== process.pid && p !== process.ppid);
+    if (others.length) { log(`another instance already running (pid ${others.join(",")}) — exiting.`); return; }
+  } catch {} // pgrep exits 1 when no other match — proceed
   if (fs.existsSync(STOP_PATH)) { log("STOP file present (data/reactions-daily.STOP) — skipping run."); return; }
   if (!fs.existsSync(CONFIG_PATH)) saveJson(CONFIG_PATH, DEFAULT_CONFIG);
   const cfg = { ...DEFAULT_CONFIG, ...loadJson(CONFIG_PATH, {}) };
@@ -349,6 +518,18 @@ function ksdPool(limit) {
     log(msg); whatsapp(msg); process.exit(1);
   }
   log(`Pre-flight OK: ${probe.json.result?.name} connected`);
+
+  // linkdapi credit check — resolution (and therefore ~all sourcing) dies
+  // without credits, so surface the balance every single run.
+  const startBalance = linkdapiBalance();
+  if (startBalance === null) log("linkdapi balance check failed (non-fatal)");
+  else {
+    log(`linkdapi credits: ${startBalance}`);
+    if (startBalance < cfg.creditHardFloor) {
+      creditsExhausted = true;
+      log(`linkdapi credits below hard floor (${startBalance} < ${cfg.creditHardFloor}) — hopper-only run, no resolution`);
+    }
+  }
 
   const state = loadJson(STATE_PATH, { reacted: {} });
   const cache = loadJson(CACHE_PATH, {});
@@ -385,8 +566,9 @@ function ksdPool(limit) {
   hopper = hopper.filter((h) => h.resolvedAt > staleCutoff && !state.reacted[h.postUrl]);
   log(`Hopper: ${hopper.length} ready (${preStale - hopper.length} stale/used dropped)`);
 
-  const done = { cardio: 0, prosp: 0, press: 0, ksd: 0, search: 0 };
-  let fired = 0, failures = 0, consecFail = 0, attempts = 0, halted = null;
+  const done = { banked: 0, cardio: 0, prosp: 0, campaign: 0, press: 0, ksd: 0, search: 0 };
+  let fired = 0, failures = 0, consecFail = 0, attempts = 0, halted = null, dailyLimit = null;
+  let hopperAdds = 0, yieldBreakerTripped = false;
 
   async function fire(target) {
     // ---- ICP gate. Company pages are already dropped at source; everything
@@ -400,7 +582,7 @@ function ksdPool(limit) {
       return true;
     }
     const gu = usernameOf(target.linkedinUrl);
-    if (gu && resolveCalls < cfg.resolveCallBudget) {
+    if (gu && !creditsExhausted && resolveCalls < cfg.resolveCallBudget) {
       const prof = profileOverview(gu, cache);
       if (!prof.unresolved) {
         const verdict = GATE.icpVerdict(prof, cfg);
@@ -434,7 +616,8 @@ function ksdPool(limit) {
     } else {
       failures++; consecFail++;
       log(`  ✗ (${target.pool}) ${target.name}: ${res.error}`);
-      if (RESTRICTION_RE.test(res.error)) halted = `restriction signal: ${res.error}`;
+      if (LIMIT_RE.test(res.error)) dailyLimit = `daily action limit reached at ${fired} fired`;
+      else if (RESTRICTION_RE.test(res.error)) halted = `restriction signal: ${res.error}`;
       else if (consecFail >= 3) halted = `3 consecutive failures (last: ${res.error})`;
       else if (attempts >= 12 && failures / attempts > 0.25) halted = `failure rate ${failures}/${attempts}`;
     }
@@ -452,7 +635,7 @@ function ksdPool(limit) {
   }
 
   // ---- fire phase 1: consume the hopper ----
-  while (hopper.length && fired < cap && !halted) {
+  while (hopper.length && fired < cap && !halted && !dailyLimit) {
     const t = hopper.shift();
     // re-check at fire time: person may have become 1st-degree or been reacted to since resolution
     if (state.reacted[t.postUrl] || isBlocked(t.linkedinUrl) || onCooldown(t)) continue;
@@ -464,11 +647,13 @@ function ksdPool(limit) {
   // Keeps resolving after the cap is hit to restock the hopper for tomorrow.
   const hopperTarget = NO_TOPUP ? 0 : Math.ceil(nextCap * cfg.hopperMultiplier);
   const pools = [
+    { name: "banked", items: bankedPool(cfg, state) },
     { name: "cardio", items: cardioPool() },
     { name: "prosp", items: await prospPool(cfg) },
+    { name: "campaign", items: campaignPool() },
     { name: "press", items: pressPool() },
     { name: "ksd", items: ksdPool(cap * cfg.ksdFetchMultiplier) },
-    { name: "search", items: searchPool(cfg, state) },
+    { name: "search", items: creditsExhausted ? [] : searchPool(cfg, state) },
   ];
   log(`Pools: ${pools.map((p) => `${p.name} ${p.items.length}`).join(", ")} | hopper target for tomorrow: ${hopperTarget}`);
   const inHopper = new Set(hopper.map((h) => h.postUrl));
@@ -476,9 +661,17 @@ function ksdPool(limit) {
   outer:
   for (const pool of pools) {
     for (const t of pool.items) {
-      if (halted) break outer;
+      if (halted || dailyLimit) break outer;
       if (fired >= cap && hopper.length >= hopperTarget) break outer;
+      if (creditsExhausted && !t.postUrl) continue; // no credits -> only pre-resolved targets can fire
       if (resolveCalls >= cfg.resolveCallBudget) { log(`linkdapi call budget (${cfg.resolveCallBudget}) reached.`); break outer; }
+      // Zero-yield breaker: if we have spent the probe budget and produced
+      // neither a like nor a hopper item, the pools are dry — stop paying.
+      if (!yieldBreakerTripped && resolveCalls >= cfg.resolveYieldProbe && (fired + hopperAdds) < cfg.resolveYieldMin) {
+        yieldBreakerTripped = true;
+        log(`zero-yield breaker: ${resolveCalls} calls, ${fired} fired + ${hopperAdds} hopper — pools dry, stopping resolution.`);
+        break outer;
+      }
       if (isBlocked(t.linkedinUrl) || onCooldown(t)) continue;
       const postUrl = t.postUrl || resolveLatestPost(t.linkedinUrl, cache, cfg, state);
       if (t.rowid !== undefined && !DRY) saveJson(CURSOR_PATH, { lastRowid: t.rowid, updatedAt: new Date().toISOString() }); // advance over CHECKED rows
@@ -488,7 +681,7 @@ function ksdPool(limit) {
         await fire({ ...t, postUrl });
       } else {
         hopper.push({ postUrl, name: t.name, pool: t.pool, linkedinUrl: t.linkedinUrl || "", resolvedAt: Date.now() });
-        inHopper.add(postUrl);
+        inHopper.add(postUrl); hopperAdds++;
         if (!DRY) saveJson(HOPPER_PATH, hopper);
       }
     }
@@ -497,8 +690,22 @@ function ksdPool(limit) {
   saveJson(CACHE_PATH, cache);
   if (!DRY) saveJson(HOPPER_PATH, hopper);
   const poolStr = Object.entries(done).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(", ") || "none";
-  const summary = `linkedin-reactions day ${days}: ${fired}/${cap} fired (${poolStr}), ${failures} failures, hopper ${hopper.length} stocked for tomorrow (target ${hopperTarget}), ${resolveCalls} linkdapi calls${halted ? ` — HALTED: ${halted}. STOP file created; runs paused until you delete data/reactions-daily.STOP` : ""}`;
+  // Credit readout: balance now, burned this run, runway at recent burn rate.
+  const endBalance = linkdapiBalance();
+  let creditStr = "credits ?";
+  if (endBalance !== null) {
+    const burned = startBalance !== null ? Math.max(startBalance - endBalance, 0) : null;
+    const dailyBurn = burned && burned > 200 ? burned : 1300; // observed avg ~1300/day at cap 190
+    const runway = Math.floor(endBalance / dailyBurn);
+    creditStr = `credits ${endBalance}${burned !== null ? ` (burned ${burned}, ledger ${creditsConsumedRun || "?"}, ~${runway}d runway)` : ` (~${runway}d runway)`}`;
+  }
+  const summary = `linkedin-reactions day ${days}: ${fired}/${cap} fired (${poolStr}), ${failures} failures, hopper ${hopper.length} stocked for tomorrow (target ${hopperTarget}), ${resolveCalls} linkdapi calls, ${creditStr}${halted ? ` — HALTED: ${halted}. STOP file created; runs paused until you delete data/reactions-daily.STOP` : dailyLimit ? ` — ${dailyLimit}, stopped clean (no STOP; watchdog tops up the rest next window)` : ""}`;
   log(summary);
+  if (creditsExhausted || (endBalance !== null && endBalance < cfg.creditHardFloor)) {
+    whatsapp(`linkedin-reactions: linkdapi credits EXHAUSTED (balance ${endBalance ?? "?"}). Engine cannot source or resolve targets until you top up at linkdapi.com. Reactions are effectively DEAD.`);
+  } else if (endBalance !== null && endBalance < cfg.creditWarnFloor) {
+    whatsapp(`linkedin-reactions: linkdapi credits LOW — ${creditStr}. Top up at linkdapi.com before it runs dry.`);
+  }
 
   // ---- ICP gate readout: the daily evidence for which dial to promote next ----
   if (gateStats.scored || gateStats.companyPagesDropped) {
@@ -514,5 +721,5 @@ function ksdPool(limit) {
 
   if (halted && !DRY) fs.writeFileSync(STOP_PATH, `${new Date().toISOString()} ${halted}\n`);
   if (!DRY || halted) whatsapp(summary);
-  if (!halted && fired < cap) whatsapp(`linkedin-reactions: under-filled ${fired}/${cap} — hopper + pools + budget exhausted. Consider raising resolveCallBudget or adding pools in data/reactions-daily-config.json`);
+  if (!halted && fired < cap && !creditsExhausted) whatsapp(`linkedin-reactions: under-filled ${fired}/${cap} — hopper + pools + budget exhausted. Consider raising resolveCallBudget or adding pools in data/reactions-daily-config.json`);
 })();
