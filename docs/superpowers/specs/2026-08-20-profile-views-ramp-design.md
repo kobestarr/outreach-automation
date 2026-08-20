@@ -81,11 +81,14 @@ we refuse to spend a slot on is someone already proven off-ICP.
 
 | Person | Priority | Rationale |
 |---|---|---|
-| cached PASS + posted within 14d | highest | live view-back candidate |
-| no profile + posted within 14d | high | active, and the view enriches for free |
+| cached PASS + posted within `activeWithinDays` | highest | live view-back candidate |
+| no profile + posted within `activeWithinDays` | high | active, and the view enriches for free |
 | cached PASS + dormant | medium | right person, may not see it |
 | no profile + dormant | low | enrichment tail, fills spare capacity |
 | cached FAIL | excluded | already proven unable to buy |
+
+`activeWithinDays` defaults to **14**. The reactions engine uses 45 for post *eligibility*;
+here it is an *activity* signal, so it is deliberately tighter.
 
 Early runs are dominated by unknowns, so the engine behaves as the enrichment crawl.
 As the cache fills it self-converts into a view-back engine. No mode switch needed.
@@ -93,10 +96,14 @@ As the cache fills it self-converts into a view-back engine. No mode switch need
 ## 5. Ramp and the weekly budget
 
 ```
-base 10, step 5  ->  day 0 = 10, day 14 = 80, then hold
-safetyCeiling 400  (runaway guard, must never bind)
-weeklyBudget 560   (matches the live linkedapi setting)
+base 10, step 5   ->  day 0 = 10, day 14 = 80, then hold
+ceiling      80   the operating hold point, set by the weekly budget
+weeklyBudget 560  matches the live linkedapi setting
+hardMax     200   absolute backstop if the config is mis-edited; must never bind
 ```
+
+`ceiling` is the number we intend to hold at. `hardMax` exists only so that a fat-fingered
+config edit cannot produce a 500-view day; it is not a ramp target.
 
 **The daily cap is not the binding constraint. The weekly one is.** 560/7 = 80 exactly, so
 there is zero slack. A naive daily ramp past 80 spends the week's allowance by Wednesday
@@ -177,7 +184,7 @@ Each exists because of a specific incident (PRD §8):
 | single-instance `pgrep` | filters own pid and ppid only; a `timeout` wrapper makes the shell a *grandparent* and false-positives |
 | STOP file | own path, never shared with reactions |
 | 3-consecutive-failure halt | plus WhatsApp alert |
-| throttle between actions | 80/day over a 12h window = ~540s apart; randomise 300-800s |
+| throttle between actions | **computed, not fixed**: `remaining window / remaining views`, clamped to `[throttleMinMs, throttleMaxMs]` and jittered. Mirrors how the reactions engine treats `throttleMaxMs` as a fallback past the spread window. A fixed range does not fit: 80 views across 08:15-20:00 is 529s apart with zero slack for retries, so any stall would silently truncate the day. |
 | spread window | 08:15-20:00 UTC, staggered 30 min after the reactions cron |
 | person cooldown | **30 days.** 106 days of unique supply, so no need to repeat in cycle one |
 | `unhandledRejection` / `uncaughtException` | plus WhatsApp (the 30 Jul EPIPE) |
