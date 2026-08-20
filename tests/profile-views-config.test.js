@@ -39,5 +39,18 @@ const test = (name, fn) => Promise.resolve().then(fn).then(() => { passed++; con
     assert.strictEqual(C.DEFAULT_CONFIG.renidlyCallBudget, 0);
   });
 
+  await test('gateBlockOn is non-empty, or the gate excludes NOTHING', () => {
+    // reaction-icp-gate.js is shadow-only unless a dial is named. An absent or
+    // empty gateBlockOn silently disables every ICP exclusion.
+    assert.ok(Array.isArray(C.DEFAULT_CONFIG.gateBlockOn));
+    assert.ok(C.DEFAULT_CONFIG.gateBlockOn.length > 0, 'empty gateBlockOn disables the gate');
+    assert.ok(C.DEFAULT_CONFIG.gateBlockOn.includes('country'));
+  });
+
+  await test('the gate has the inputs it needs to judge', () => {
+    assert.strictEqual(typeof C.DEFAULT_CONFIG.minFollowers, 'number');
+    assert.ok(C.DEFAULT_CONFIG.countriesAllow.includes('gb'));
+  });
+
   console.log(`\n${passed} passed`);
 })();

@@ -13,5 +13,24 @@
   "throttleMaxMs": 900000,
   "maxConsecutiveFailures": 3,
   "usagePollEvery": 20,
-  "renidlyCallBudget": 0
+  "renidlyCallBudget": 0,
+  "gateBlockOn": [
+    "country",
+    "excluded-role"
+  ],
+  "minFollowers": 300,
+  "countriesAllow": [
+    "gb",
+    "no",
+    "au",
+    "nz",
+    "us",
+    "ca"
+  ],
+  "countriesEnglishOnly": [
+    "se",
+    "fi",
+    "dk",
+    "pt"
+  ]
 }

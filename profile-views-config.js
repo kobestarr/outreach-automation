@@ -22,6 +22,18 @@ const DEFAULT_CONFIG = {
   activeWithinDays: 14,     // activity signal; the reactions engine's 45 is post eligibility
   personCooldownDays: 30,   // 8,496 addressable / 80 a day = 106 days of unique supply
 
+  // ICP gate. reaction-icp-gate.js is SHADOW-ONLY unless a dial is named here,
+  // so an empty/absent gateBlockOn means NOTHING is ever excluded. Measured on
+  // the live cache 2026-08-20, of 670 gate fails in the banked pool:
+  // country 455, not-decision-maker 391, followers 112, excluded-role 71.
+  // We block country (proven, and they cannot buy) and excluded-role (explicit
+  // service-boundary violations: PR, student, video editor). followers and
+  // not-decision-maker stay shadow: both are noisy and a view is cheap.
+  gateBlockOn: ["country", "excluded-role"],
+  minFollowers: 300,
+  countriesAllow: ["gb", "no", "au", "nz", "us", "ca"],
+  countriesEnglishOnly: ["se", "fi", "dk", "pt"],
+
   // Pacing
   spreadStartHourUTC: 8,
   spreadEndHourUTC: 20,
