@@ -1,0 +1,17 @@
+{
+  "rampStartDate": null,
+  "base": 10,
+  "step": 5,
+  "ceiling": 80,
+  "hardMax": 200,
+  "weeklyBudget": 560,
+  "activeWithinDays": 14,
+  "personCooldownDays": 30,
+  "spreadStartHourUTC": 8,
+  "spreadEndHourUTC": 20,
+  "throttleMinMs": 120000,
+  "throttleMaxMs": 900000,
+  "maxConsecutiveFailures": 3,
+  "usagePollEvery": 20,
+  "renidlyCallBudget": 0
+}
