@@ -88,10 +88,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Gate a batch. Only UK rows hit Companies House; everything else passes through as 'not-uk'.
 // pauseMs keeps us well under the Companies House limit (600 requests per 5 minutes, up to 2 per lead).
-async function gateLeads(leads, { check = checkCompany, cache = null, pauseMs = 1100, nameKey = 'name', countryKey = 'country' } = {}) {
+async function gateLeads(leads, { check = checkCompany, cache = null, pauseMs = 1100, nameKey = 'name', countryKey = 'country', assumeUk = false } = {}) {
   const kept = [], dropped = [];
   for (const lead of leads) {
-    if (!UK.test(String(lead[countryKey] || '').trim())) { kept.push({ ...lead, chSize: 'not-uk', chReason: '' }); continue; }
+    if (!assumeUk && !UK.test(String(lead[countryKey] || '').trim())) { kept.push({ ...lead, chSize: 'not-uk', chReason: '' }); continue; }
     const r = await check({ name: lead[nameKey], companyNumber: lead.companyNumber }, { cache });
     const out = { ...lead, chSize: r.size, chReason: r.reason || '', chNumber: r.companyNumber || '' };
     (r.drop ? dropped : kept).push(out);

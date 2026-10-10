@@ -107,3 +107,45 @@ test('unknown campaign with no sheet triggers createSpreadsheet and registry sav
   const reg = JSON.parse(fs.readFileSync(io.registryFile, 'utf8'));
   assert.strictEqual(reg['brand-new'].sheetId, 'NEW1');
 });
+
+// ---- UK size gate (no micro-entities for local-services lists) ----
+
+const GATE_CSV = 'first_name,email,company,category,town\n' +
+  'Ann,ann@x.com,Tiny Plumbing Ltd,plumber,Sale\n' +
+  'Bob,bob@x.com,Big Accountants Ltd,accountant,Bramhall\n';
+const fakeCheck = (log = []) => async ({ name }) => { log.push(name); return /^Tiny/.test(name) ? { size: 'micro', drop: true, reason: 'micro-entity' } : { size: 'small', drop: false }; };
+
+test('sizeGate drops micro-entities before Reoon spends a credit on them', async () => {
+  const verified = [];
+  const { io, dir } = makeIo({ sizeCheck: fakeCheck(), verifyEmails: async es => { verified.push(...es); return es.map(e => ({ email: e, status: 'safe', score: 90, isSafeToSend: true })); } });
+  const csvPath = path.join(dir, 'in.csv'); fs.writeFileSync(csvPath, GATE_CSV);
+  const res = await runBatch({ csvPath, campaign: 'test-camp', sizeGate: true }, io);
+  assert.strictEqual(res.pushed, 1);
+  assert.deepStrictEqual(verified, ['bob@x.com']);
+  assert.ok(res.skipped.some(s => s.email === 'ann@x.com' && s.reason === 'size_micro-entity'));
+});
+
+test('sizeGate off by default: Companies House is never called', async () => {
+  const calls = [];
+  const { io, dir } = makeIo({ sizeCheck: fakeCheck(calls) });
+  const csvPath = path.join(dir, 'in.csv'); fs.writeFileSync(csvPath, GATE_CSV);
+  const res = await runBatch({ csvPath, campaign: 'test-camp' }, io);
+  assert.strictEqual(calls.length, 0);
+  assert.strictEqual(res.pushed, 2);
+});
+
+test('campaign registry sizeGate:true switches the gate on without a flag', async () => {
+  const { io, dir } = makeIo({ sizeCheck: fakeCheck() });
+  const reg = JSON.parse(fs.readFileSync(io.registryFile, 'utf8')); reg['test-camp'].sizeGate = true;
+  fs.writeFileSync(io.registryFile, JSON.stringify(reg));
+  const csvPath = path.join(dir, 'in.csv'); fs.writeFileSync(csvPath, GATE_CSV);
+  const res = await runBatch({ csvPath, campaign: 'test-camp' }, io);
+  assert.strictEqual(res.pushed, 1);
+});
+
+test('sizeGate runs on dry-run so the counts are honest', async () => {
+  const { io, dir } = makeIo({ sizeCheck: fakeCheck() });
+  const csvPath = path.join(dir, 'in.csv'); fs.writeFileSync(csvPath, GATE_CSV);
+  const res = await runBatch({ csvPath, campaign: 'test-camp', sizeGate: true, dryRun: true }, io);
+  assert.strictEqual(res.wouldPush, 1);
+});

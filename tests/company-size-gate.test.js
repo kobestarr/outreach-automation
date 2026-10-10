@@ -169,3 +169,10 @@ test('gateLeads accepts UK spellings (UK, GB, England, Scotland)', async () => {
   await G.gateLeads(leads, { check: async () => { n++; return { size: 'small', drop: false }; }, pauseMs: 0 });
   assert.strictEqual(n, 5);
 });
+
+test('gateLeads assumeUk checks rows that have no country column', async () => {
+  let n = 0;
+  const { kept } = await G.gateLeads([{ name: 'A' }, { name: 'B' }], { assumeUk: true, check: async () => { n++; return { size: 'small', drop: false }; }, pauseMs: 0 });
+  assert.strictEqual(n, 2);
+  assert.strictEqual(kept.length, 2);
+});

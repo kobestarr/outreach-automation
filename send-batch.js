@@ -3,7 +3,8 @@
 // compose insights -> append to the campaign's Google Sheet (tab ToSend) -> ledger.
 // Spec: docs/superpowers/specs/2026-07-02-send-batch-pipeline-design.md
 //
-// Usage: node send-batch.js <csv> --campaign <key> [--dry-run] [--limit N] [--skip-verify]
+// Usage: node send-batch.js <csv> --campaign <key> [--dry-run] [--limit N] [--skip-verify] [--size-gate]
+// --size-gate (or registry sizeGate:true): UK local-services lists only, drops Companies House micro-entities.
 const fs = require('fs'), path = require('path');
 const { parseCSV } = require('./shared/outreach-core/csv/csv-util');
 const { normalise } = require('./shared/outreach-core/csv/normalise');
@@ -18,7 +19,7 @@ const SHARE_WITH = 'kobi@kobestarr.io';
 const BAD_STATUSES = new Set(['invalid', 'disabled', 'disposable', 'spamtrap']); // project rule: keep risky
 
 async function runBatch(opts, io) {
-  const { csvPath, campaign, dryRun = false, limit = 0, skipVerify = false } = opts;
+  const { csvPath, campaign, dryRun = false, limit = 0, skipVerify = false, sizeGate = false } = opts;
   const log = io.log || console.log;
 
   // 1. Load + normalise
@@ -51,8 +52,22 @@ async function runBatch(opts, io) {
   // 3. Dedup: file + ledger + target sheet
   const ledgerSet = readLedger(io.ledgerFile);
   const sheetEmails = entry.sheetId ? await io.sheets.readColumn(entry.sheetId, TAB, 'real_email') : [];
-  const { kept, skipped: dupes } = dedupe(leads, ledgerSet, new Set(sheetEmails));
+  const { kept: deduped, skipped: dupes } = dedupe(leads, ledgerSet, new Set(sheetEmails));
   const skipped = [...badRows, ...dupes];
+
+  // 3b. UK local-services lists: drop micro-entities (Companies House) before Reoon spends credits.
+  // On per campaign via registry `sizeGate: true`, or per run via --size-gate. Never for funded lists.
+  let kept = deduped;
+  if (sizeGate || entry.sizeGate) {
+    const SIZE = require('./shared/outreach-core/enrichment/company-size-gate');
+    const gated = await SIZE.gateLeads(deduped, {
+      assumeUk: true, nameKey: 'company_name', check: io.sizeCheck || SIZE.checkCompany,
+      cache: io.sizeCache || null, pauseMs: io.sizeCheck ? 0 : undefined,
+    });
+    for (const d of gated.dropped) skipped.push({ email: d.email, reason: 'size_' + d.chReason });
+    kept = gated.kept;
+    log(`Size gate: ${deduped.length} checked, ${gated.dropped.length} dropped (micro/dormant/dissolved)`);
+  }
 
   if (dryRun) {
     log(`DRY-RUN [${campaign}] input:${leads.length} would-verify:${skipVerify ? 0 : kept.length} would-push(before verify):${kept.length}`);
@@ -129,7 +144,7 @@ if (require.main === module) {
     const csvPath = args.find(a => !a.startsWith('--') && a.endsWith('.csv'));
     const campaign = val('campaign');
     if (!csvPath || !fs.existsSync(csvPath) || !campaign) {
-      console.error('Usage: node send-batch.js <csv> --campaign <key> [--dry-run] [--limit N] [--skip-verify]');
+      console.error('Usage: node send-batch.js <csv> --campaign <key> [--dry-run] [--limit N] [--skip-verify] [--size-gate]');
       process.exit(2);
     }
 
@@ -144,12 +159,15 @@ if (require.main === module) {
       naturalise: null, // v1: company_full/company_name from the CSV is already clean for KSD batches
       log: console.log,
     };
+    const sizeCacheFile = path.join(__dirname, 'data/companies-house-size-cache.json');
+    io.sizeCache = fs.existsSync(sizeCacheFile) ? JSON.parse(fs.readFileSync(sizeCacheFile, 'utf8')) : {};
     const limitRaw = val('limit');
     const limit = limitRaw === null ? 0 : parseInt(limitRaw, 10);
     if (limitRaw !== null && (!Number.isInteger(limit) || limit <= 0)) {
       console.error(`--limit must be a positive integer (got '${limitRaw}')`); process.exit(2);
     }
-    const res = await runBatch({ csvPath, campaign, dryRun: flag('dry-run'), limit, skipVerify: flag('skip-verify') }, io);
+    const res = await runBatch({ csvPath, campaign, dryRun: flag('dry-run'), limit, skipVerify: flag('skip-verify'), sizeGate: flag('size-gate') }, io);
+    fs.writeFileSync(sizeCacheFile, JSON.stringify(io.sizeCache));
     if (!flag('dry-run') && !flag('skip-verify')) console.log('Reoon quota remaining today:', getQuotaRemaining());
   })().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
 }

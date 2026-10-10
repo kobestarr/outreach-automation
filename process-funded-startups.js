@@ -79,18 +79,6 @@ async function checkSite(url) {
   if (ONLY_BUCKET) cands = cands.filter(c => c.bucket === ONLY_BUCKET);
   if (cands.length > LIMIT) cands = cands.slice(0, LIMIT);
 
-  // UK only: drop micro-entities / dormant / dead companies (Companies House). Unmatched UK rows are kept.
-  if (!arg['no-size-gate']) {
-    const SIZE = require('./shared/outreach-core/enrichment/company-size-gate');
-    const cacheFile = path.join(__dirname, 'data', 'companies-house-size-cache.json');
-    const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
-    const { kept, dropped } = await SIZE.gateLeads(cands, { cache });
-    fs.writeFileSync(cacheFile, JSON.stringify(cache));
-    const why = {}; dropped.forEach(d => why[d.chReason] = (why[d.chReason] || 0) + 1);
-    console.log(`Size gate: ${kept.filter(k => k.chSize !== 'not-uk').length + dropped.length} UK checked, ${dropped.length} dropped ${JSON.stringify(why)}`);
-    cands = kept;
-  }
-
   console.log(`Checking ${cands.length} ICP candidates' websites (truth-check + AI-search score)...\n`);
   const results = [];
   const CONC = 8;
@@ -130,10 +118,10 @@ async function checkSite(url) {
   const outDir = path.join(__dirname, 'exports'); fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, `funded-startups-${monthTag}-checked.csv`);
   const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-  const headers = ['name','website','country','dm','pos','email','li','bucket','round','fundUsd','flagNeedsWeb','siteStatus','realNeed','aiScore','aiInvisible','signals','hot','chSize','chNumber'];
+  const headers = ['name','website','country','dm','pos','email','li','bucket','round','fundUsd','flagNeedsWeb','siteStatus','realNeed','aiScore','aiInvisible','signals','hot'];
   const lines = [headers.join(',')];
   results.sort((a,b)=> b.hot - a.hot || a.check.aiScore - b.check.aiScore);
-  for (const r of results) lines.push([r.name,r.website,r.country,r.dm,r.pos,r.email,r.li,r.bucket,r.round,r.fundUsd,r.flagNeedsWeb,r.check.status,r.realNeed,r.check.aiScore,r.aiInvisible,r.check.signals,r.hot,r.chSize || '',r.chNumber || ''].map(esc).join(','));
+  for (const r of results) lines.push([r.name,r.website,r.country,r.dm,r.pos,r.email,r.li,r.bucket,r.round,r.fundUsd,r.flagNeedsWeb,r.check.status,r.realNeed,r.check.aiScore,r.aiInvisible,r.check.signals,r.hot].map(esc).join(','));
   fs.writeFileSync(outPath, lines.join('\n'));
   console.log(`\nWrote ${outPath}`);
   console.log(`\nTop 12 hot leads:`);
