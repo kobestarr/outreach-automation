@@ -44,5 +44,36 @@
     "label": "Hiring signals - Dealflow mid-market",
     "carriers": {},
     "note": "sheet pending: Kobi creates blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
+  },
+  "local-trades-wave1": {
+    "sheetId": "1DVYY6m8I9ZCSnbixF5UDC2xWkEyliAuSYt4so_AUYUc",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1DVYY6m8I9ZCSnbixF5UDC2xWkEyliAuSYt4so_AUYUc/edit",
+    "label": "local-trades-wave1",
+    "mailead": {
+      "campaignId": 8985,
+      "title": "local-trades-wave1-2026-10 (window cleaner)"
+    },
+    "sequence": "exports/local-established-sequence-2026-10.md",
+    "sizeGate": true,
+    "route": {
+      "listType": "local-established",
+      "region": "South Manchester / East Cheshire",
+      "trades": [
+        "a landscaper",
+        "a roofer",
+        "a window company",
+        "a glazier",
+        "a painter and decorator",
+        "a driveway company",
+        "a fencing company",
+        "a joiner",
+        "a gardener",
+        "a window fitter",
+        "a kitchen fitter"
+      ]
+    },
+    "carriers": {
+      "last_name": "{category} in {town}"
+    }
   }
 }

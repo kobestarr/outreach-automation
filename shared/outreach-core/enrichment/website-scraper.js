@@ -9,6 +9,7 @@ const { isValidPersonName } = require('../validation/data-quality');
 const { COMMON_FIRST_NAMES_SET } = require('../validation/common-first-names');
 const { needsBrowserRendering, fetchWithBrowser, closeBrowser } = require('./browser-fetcher');
 const logger = require('../logger');
+const { decodeObfuscated } = require('./owner-email');
 
 /**
  * Fetch website content with timeout and redirects
@@ -161,7 +162,8 @@ function extractEmails(html) {
   if (!html) return [];
 
   const emailPattern = /\b[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-  const emails = html.match(emailPattern) || [];
+  // Plain matches plus addresses hidden from bots (Cloudflare data-cfemail, [at]/[dot], &#64;, %40 in mailto)
+  const emails = [...(html.match(emailPattern) || []), ...decodeObfuscated(html)];
 
   // Identify generic emails (we'll keep them but de-prioritize)
   const genericEmails = /^(info|contact|hello|support|admin|enquiries|mail)@/i;
