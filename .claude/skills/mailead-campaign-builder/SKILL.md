@@ -12,7 +12,8 @@ The Mailead **API** (personal key) can only list campaigns, add leads and remove
 1. Lead file ready and checked (see Leads).
 2. UI build (steps A to F), leave as **Draft**.
 3. Register in `config/campaign-sheets.json`, make the tracking sheet, load leads by API.
-4. Reconcile the count, then hand Kobi the launch checklist.
+4. Register reply + bounce webhooks for the new campaign id: `M.req('create_webhook', {body:{campaign_id, enabled_events:['email_answered'], url: receiver}})`, then the same for `email_bounced`; receiver URL and ids live in `config/mailead-webhooks.json`. Without them replies are never WhatsApped and bounces never removed.
+5. Reconcile the count, then hand Kobi the launch checklist.
 
 ## UI methods that persist (verified 2026-10-15; re-verify if a step reverts)
 - **A. Create:** Campaigns, New Campaign, type name (must be unique), Continue.
