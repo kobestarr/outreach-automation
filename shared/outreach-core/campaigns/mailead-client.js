@@ -38,11 +38,17 @@ async function listCampaigns() {
 
 // Resolve an exact campaign title to its integer id (the dashboard-URL id is a
 // Bubble id and is rejected by the API — must be the small integer).
+// Exactly one campaign may carry the title. Duplicating a campaign in the UI creates a twin,
+// so taking the first match could load leads into the wrong (old) campaign.
+function pickCampaignId(campaigns, title) {
+  const hits = campaigns.filter(c => c.title === title);
+  if (!hits.length) throw new Error(`No Mailead campaign titled '${title}'. Have: ${campaigns.map(c => c.title).join(', ')}`);
+  if (hits.length > 1) throw new Error(`${hits.length} Mailead campaigns titled '${title}' (ids ${hits.map(h => h.id).join(', ')}). Rename the old one first.`);
+  return hits[0].id;
+}
+
 async function resolveCampaignId(title) {
-  const campaigns = await listCampaigns();
-  const hit = campaigns.find(c => c.title === title);
-  if (!hit) throw new Error(`No Mailead campaign titled '${title}'. Have: ${campaigns.map(c => c.title).join(', ')}`);
-  return hit.id;
+  return pickCampaignId(await listCampaigns(), title);
 }
 
 // Add one lead. Returns { ok, status, json }. NOTE: the API returns success even
@@ -66,4 +72,4 @@ async function removeLead(campaignId, email) {
   return req('remove_lead', { body: { campaign_id: campaignId, email_to_remove: email } });
 }
 
-module.exports = { BASE, listCampaigns, resolveCampaignId, addLead, removeLead, req };
+module.exports = { BASE, listCampaigns, pickCampaignId, resolveCampaignId, addLead, removeLead, req };

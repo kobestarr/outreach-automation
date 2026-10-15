@@ -50,8 +50,12 @@
     "sheetUrl": "https://docs.google.com/spreadsheets/d/1DVYY6m8I9ZCSnbixF5UDC2xWkEyliAuSYt4so_AUYUc/edit",
     "label": "local-trades-wave1",
     "mailead": {
-      "campaignId": 8985,
-      "title": "local-trades-wave1-2026-10 (window cleaner)"
+      "campaignId": 8986,
+      "title": "local-trades-wave1-2026-10b (window cleaner)",
+      "replaces": {
+        "campaignId": 8985,
+        "why": "lead count drifted to 55 after remove_lead no-ops; rebuilt clean via Duplicate + exact 53"
+      }
     },
     "sequence": "exports/local-established-sequence-2026-10.md",
     "sizeGate": true,
@@ -74,6 +78,7 @@
     },
     "carriers": {
       "last_name": "{category} in {town}"
-    }
+    },
+    "heldBack": "data/ai-visible-held-back-8985.txt"
   }
 }
