@@ -17,5 +17,6 @@
       "match": "doctify",
       "source": "your public Doctify profile"
     }
-  ]
+  ],
+  "replyEngineLive": true
 }

@@ -63,7 +63,7 @@ function bounceKind(ev) {
  * record  = the plain bounce list (bounced.txt); new imports are added to it too
  * backlog = addresses from the old bounced.txt that were never imported; imported once, idempotently
  */
-async function handleEvents(events, { post, importBounce, ledger, queue, record = null, backlog = [], dryRun = false, log = () => {} }) {
+async function handleEvents(events, { post, importBounce, ledger, queue, record = null, backlog = [], dryRun = false, skipReplies = false, log = () => {} }) {
   const out = { posted: 0, imported: 0, queued: 0, skipped: 0 };
 
   // 1. Drain the queue and the never-imported backlog first (a finder that was down earlier may be back).
@@ -94,7 +94,8 @@ async function handleEvents(events, { post, importBounce, ledger, queue, record 
         }
       }
     }
-    const msg = formatEvent(ev);
+    // Replies belong to the reply engine once it is live (config/harvey.json replyEngineLive); bounces always alert here.
+    const msg = skipReplies && ev && ev.event_type === 'email_answered' ? null : formatEvent(ev);
     if (msg) { await post(msg); out.posted++; }
   }
 

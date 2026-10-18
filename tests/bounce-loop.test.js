@@ -240,3 +240,10 @@ test('opt-out lines in bounced.txt are not offered as bounces (they are suppress
   assert.deepStrictEqual(led.bounces(), ['alex@aleran.com']);
   assert.ok(led.has('harrison@taccs.co.uk'));
 });
+
+test('skipReplies: replies are left to the reply engine, bounces still alert', async () => {
+  const t = setup({ skipReplies: true });
+  await handleEvents([{ event_type: 'email_answered', lead_email_account: 'a@b.co.uk', firstName: 'A', companyName: 'B', campaign_name: 'c' }, bounce('x@y.co.uk')], t.deps);
+  assert.strictEqual(t.posts.length, 1);
+  assert.match(t.posts[0], /Bounce/);
+});

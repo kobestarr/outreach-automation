@@ -67,6 +67,7 @@ async function main() {
   try {
     res = await handleEvents(parseNewEvents(chunk), {
       post, importBounce, dryRun: DRY, log: console.log,
+      skipReplies: !!(JSON.parse(fs.readFileSync(path.join(__dirname, 'config/harvey.json'), 'utf8')).replyEngineLive),
       ledger: fileLedger(path.join(dataDir, 'bounces-imported.txt')),
       record: bouncedList,
       backlog: bouncedList.bounces(),
