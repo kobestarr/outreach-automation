@@ -80,5 +80,28 @@
       "last_name": "{category} in {town}"
     },
     "heldBack": "data/ai-visible-held-back-8985.txt"
+  },
+  "local-trades-wave2": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "local-trades-wave2",
+    "carriers": {
+      "last_name": "{category} in {town}"
+    },
+    "finderRoutes": {
+      "inbox": "local-trades-wave2-inbox"
+    },
+    "sequence": "exports/local-established-sequence-2026-10.md",
+    "note": "sheet pending: Kobi creates a blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>. Probable (Icypeas low-confidence) rows are HELD in data/held-local-trades-wave2-probable.csv until Icypeas is topped up."
+  },
+  "local-trades-wave2-inbox": {
+    "sheetId": null,
+    "sheetUrl": null,
+    "label": "local-trades-wave2-inbox",
+    "carriers": {
+      "last_name": "{category} in {town}"
+    },
+    "sequence": "exports/local-established-sequence-2026-10.md (inbox variant: line 1 tweaked, Kobi approves the line first)",
+    "note": "sheet pending: Kobi creates a blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
   }
 }

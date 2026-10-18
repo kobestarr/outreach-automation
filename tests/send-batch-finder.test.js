@@ -111,6 +111,15 @@ test('pre-flight: a configured route whose sheet is missing aborts with NOTHING 
   assert.strictEqual(fs.existsSync(t.io.ledgerFile), false);
 });
 
+test('a main campaign that is registered but has no sheet yet is refused live, never pushed to a null sheet', async () => {
+  const t = setup({ registry: { main: { sheetId: null, sheetUrl: null, carriers: {}, note: 'sheet pending' } } });
+  await assert.rejects(t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk' })), /'main'/);
+  assert.deepStrictEqual(t.appended, {});
+  const dry = await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk' }), { dryRun: true });
+  assert.deepStrictEqual(dry.missingSheets, ['main']);
+  assert.strictEqual(dry.wouldPush, 1);
+});
+
 test('pre-flight only blocks on routes that actually have rows', async () => {
   const t = setup({ registry: {
     main: { sheetId: 'S_MAIN', sheetUrl: 'u', carriers: {}, finderRoutes: { inbox: 'inbox' } }, inbox: { sheetId: null, carriers: {} } } });

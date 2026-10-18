@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// send-batch.js — CSV -> normalise -> dedup -> Reoon verify -> naturalise ->
+// send-batch.js: CSV -> normalise -> dedup -> Reoon verify -> naturalise ->
 // compose insights -> append to the campaign's Google Sheet (tab ToSend) -> ledger.
 // Spec: docs/superpowers/specs/2026-07-02-send-batch-pipeline-design.md
 //
@@ -75,6 +75,7 @@ async function runBatch(opts, io) {
   const routeKeys = (entry && entry.finderRoutes) || {};
   const targets = { main: { key: campaign, entry } };
   const held = {}, missingSheets = [];
+  if (entry && !entry.sheetId) missingSheets.push(campaign); // registered but no sheet yet (e.g. 'sheet pending')
   for (const route of ROUTES.slice(1)) {
     const items = gated.filter(x => x.route === route);
     if (!items.length) continue;
