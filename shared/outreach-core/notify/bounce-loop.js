@@ -51,7 +51,7 @@ function fileQueue(file) {
 function bounceKind(ev) {
   const hint = [ev && ev.bounce_type, ev && ev.bounceType, ev && ev.type, ev && ev.bounce_reason, ev && ev.reason, ev && ev.error]
     .filter(x => typeof x === 'string').join(' ');
-  return /soft|temporar|transient|mailbox full|over quota|\b4\.\d\.\d\b|\b4\d\d\b/i.test(hint) ? 'soft' : 'hard';
+  return /soft|temporar|transient|mailbox full|over quota|\b4\.\d\.\d\b/i.test(hint) ? 'soft' : 'hard';
 }
 
 /**
