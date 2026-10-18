@@ -24,7 +24,8 @@ Goal: no reply ever sits unanswered again, every live conversation sits in one G
 - Draft shows in the dashboard and in Buzz ~outreach with a link.
 - v1 send: Kobi clicks "Copy + open thread", pastes into the Unibox and sends. Same mailbox, same thread, no credentials needed.
 - v2 send (later, only if Kobi wants): one-click send from the dashboard, which needs app passwords for the 27 mailboxes stored in the vault.
-- Unsubscribes and hard noes go straight to the Mailead blocklist. OOO replies get a resume date.
+- Unsubscribes, hard noes, retired and left-company replies are blocked everywhere automatically (Mailead blocklist, `email-finder suppress`, `data/do-not-contact.txt` + ledger). Kobi standard, 18 Oct. OOO replies get a resume date.
+- Reply source: replies forward into Kobi's Gmail, where he answers, but not reliably (one 16 Jul reply exists only in the Mailead Unibox). The handler reads both and treats a thread as answered only if Gmail Sent or the Unibox shows Kobi's reply.
 
 ### 3. GHL funnel, one pipeline per brand
 - New pipeline "Cold Email" in each of the Kobestarr, Stripped Media and Dealflow Media sub-accounts, with identical stages:
