@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Enriched local list -> send-batch.js input for the "my window cleaner" local sequence.
- * Output columns: first_name, last_name (REAL surname), email, company, category, town, website, email_rule
+ * Output columns: first_name, last_name (REAL surname), email, company, category, town, website, email_rule, company_number
+ * (+ email_status, email_confidence, email_source when the input has them; never email_suggested)
  * The campaign carrier (config/campaign-sheets.json) then packs "{category} in {town}" into Mailead's Last Name,
  * e.g. "a roofer in Sale", read by the emails as {{last_name}}.
  *
@@ -49,6 +50,9 @@ const niceCompany = (r) => {
 const rows = parseCSV(fs.readFileSync(IN, 'utf8'));
 const claimed = fs.existsSync(CLAIMED) ? JSON.parse(fs.readFileSync(CLAIMED, 'utf8')) : []; // [{category:"a roofer", town:"Sale", client:"..."}]
 const isClaimed = (cat, town) => claimed.some(c => c.category === cat && c.town === town);
+// Finder columns ride along so send-batch can route by how the address was found. email_suggested (a guess) never does.
+// A file with no email_status column is a legacy file and stays that way; one WITH the column keeps it even when blank (send-batch then fails closed).
+const HAS_STATUS = rows.length > 0 && 'email_status' in rows[0];
 const out = [], skipped = {};
 const skip = why => { skipped[why] = (skipped[why] || 0) + 1; };
 for (const r of rows) {
@@ -62,11 +66,12 @@ for (const r of rows) {
   // Greet by the name they use: tony@ for owner Anthony -> "Hi Tony"
   let first = r.owner_first;
   const local = (r.email.split('@')[0] || '').split(/[._-]/)[0].toLowerCase();
-  if (r.email_rule === 'owner-match' || r.email_rule === 'owner-guess-verified') {
+  if (['owner-match', 'owner-guess-verified', 'finder-found'].includes(r.email_rule)) {
     if (local !== first.toLowerCase() && nameVariants(first).includes(local)) first = local[0].toUpperCase() + local.slice(1);
   }
   out.push({ first_name: first, last_name: r.owner_last, email: r.email, company: niceCompany(r), category, town,
-    website: r.website, email_rule: r.email_rule, company_number: r.company_number });
+    website: r.website, email_rule: r.email_rule, company_number: r.company_number,
+    ...(HAS_STATUS ? { email_status: r.email_status || '', email_confidence: r.email_confidence || '', email_source: r.email_source || '' } : {}) });
 }
 const H = Object.keys(out[0] || { first_name: '' });
 fs.writeFileSync(OUT, [H.join(','), ...out.map(o => H.map(h => esc(o[h])).join(','))].join('\n'));

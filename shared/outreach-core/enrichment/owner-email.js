@@ -33,6 +33,9 @@ const JUNK_DOMAIN = /(^|\.)(sentry\.io|sentry-next\.wixpress\.com|wixpress\.com|
 const JUNK_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|abuse|webmaster|privacy|gdpr|dpo|unsubscribe)$/i;
 const ROLE_LOCAL = /^(info|enquiries|enquiry|sales|office|hello|contact|mail|admin|accounts|bookings|booking|quotes|quote|team|reception|service|services|support|general|estimates)$/i;
 
+// Stricter than FREEMAIL: a free-mail provider is "<name>.<tld>", so mail.acme.co.uk is a company, not a free mailbox.
+const FREE_TLD = /^(com|co\.uk|org\.uk|net|org|uk|co|me|fr|de|es|it|ie|ca|com\.au|co\.nz|in)$/;
+const isFreemailDomain = d => { const x = lc(d); return FREEMAIL.test(x) && FREE_TLD.test(x.slice(x.indexOf('.') + 1)); };
 const lc = s => String(s || '').toLowerCase().trim();
 const siteDomain = w => lc(w).replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#:]/)[0];
 const rootLabel = d => (d.split('.')[0] || '').replace(/-/g, '');
@@ -96,6 +99,39 @@ async function resolveOwnerEmail(input, { verify = null, maxGuesses = 3 } = {}) 
   return hit ? { ...pick, email: hit, rule: 'owner-guess-verified', fallback: pick.email } : pick;
 }
 
+// ---- Status-driven choice between the scraped pick and the email finder's answer ----
+// Precedence: scraped owner, finder personal, scraped role, finder generic, scraped staff, Icypeas probable, nothing.
+// Chosen by finder STATUS, never by "email is non-empty": left_company carries a (disabled) address and is never used.
+const SCRAPED_STATUS = { 'owner-match': 'scraped_owner', 'owner-freemail': 'scraped_owner', role: 'scraped_role', staff: 'scraped_staff' };
+const CATCH_ALL_FOUND = new Set(['catch_all_found', 'icypeas_found']);
+
+function chooseOwnerEmail({ pick, finderResult }) {
+  const p = pick && pick.email ? pick : { email: null, rule: (pick && pick.rule) || 'none' };
+  const f = finderResult || null;
+  const fStatus = f ? lc(f.status) : '';
+  const fEmail = f ? lc(f.email) : '';
+  const fConf = f ? lc(f.confidence) : '';
+  const suggested = f ? lc(f.suggested_email) : '';
+
+  const scrapedStatus = p.email ? SCRAPED_STATUS[p.rule] : undefined; // freemail (non-owner) and 'none' are dropped
+  const personal = !!fEmail && (fStatus === 'found' || fStatus === 'found_flagged' || (CATCH_ALL_FOUND.has(fStatus) && fConf === 'high'));
+  const generic = !!fEmail && fStatus === 'found_generic';
+  const probable = !!fEmail && CATCH_ALL_FOUND.has(fStatus) && fConf === 'low';
+
+  const scraped = () => ({ email: p.email, email_rule: p.rule, email_source: 'scraped', email_status: scrapedStatus, email_confidence: '', email_suggested: suggested });
+  const found = rule => ({ email: fEmail, email_rule: rule, email_source: 'finder', email_status: fStatus, email_confidence: fConf, email_suggested: suggested });
+
+  // Suppressed at this firm: the row goes, whatever else we scraped there.
+  if (fStatus === 'suppressed') return { email: '', email_rule: 'suppressed', email_source: 'finder', email_status: 'suppressed', email_confidence: '', email_suggested: '' };
+  if (scrapedStatus === 'scraped_owner') return scraped();
+  if (personal) return found('finder-found');
+  if (scrapedStatus === 'scraped_role') return scraped();
+  if (generic) return found('finder-generic');
+  if (scrapedStatus === 'scraped_staff') return scraped();
+  if (probable) return found('finder-found');
+  return { email: '', email_rule: p.rule || 'none', email_source: '', email_status: fStatus || 'not_found', email_confidence: fConf, email_suggested: suggested };
+}
+
 function decodeObfuscated(html) {
   if (!html) return [];
   const found = new Set();
@@ -114,4 +150,4 @@ function decodeObfuscated(html) {
   return [...found];
 }
 
-module.exports = { pickBestEmail, resolveOwnerEmail, decodeObfuscated, ownerGuesses, nameVariants };
+module.exports = { pickBestEmail, resolveOwnerEmail, chooseOwnerEmail, isFreemailDomain, decodeObfuscated, ownerGuesses, nameVariants };

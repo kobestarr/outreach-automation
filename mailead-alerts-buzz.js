@@ -4,6 +4,8 @@
  * Run every 5 min by LaunchAgent com.kobestarr.mailead-alerts-buzz.
  * Reads new lines of clawdbot:/opt/mailead-webhook/events.jsonl since the saved line offset.
  * First run (no offset file) starts at the current end: old events are never re-posted.
+ * Each bounce is also imported into the email finder's memory (once, ledgered in data/bounced.txt); if the finder
+ * cannot be reached the address waits in data/bounces-queue.txt and one Buzz notice says so (shared/outreach-core/notify/bounce-loop.js).
  *
  * Usage: node mailead-alerts-buzz.js [--dry-run] [--post "message"]
  */
@@ -11,7 +13,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { formatEvent, parseNewEvents } = require('./shared/outreach-core/notify/buzz-alerts');
+const { parseNewEvents } = require('./shared/outreach-core/notify/buzz-alerts');
+const { handleEvents, fileLedger, fileQueue } = require('./shared/outreach-core/notify/bounce-loop');
+const { resolveDataDir } = require('./shared/outreach-core/campaigns/send-guards');
 
 const CHANNEL = '22517fe0-56ff-48d6-96a6-e2c668032c6f'; // Buzz ~outreach
 const LOG = '/opt/mailead-webhook/events.jsonl';
@@ -37,7 +41,7 @@ function post(content) {
 
 const ssh = cmd => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', 'clawdbot', cmd], { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
 
-function main() {
+async function main() {
   const t = Math.max(process.argv.indexOf('--post'), process.argv.indexOf('--test'));
   if (t >= 0) { post(process.argv[t + 1] || 'Outreach alerts test'); console.log('posted'); return; }
 
@@ -51,15 +55,32 @@ function main() {
   if (total === offset) return;
 
   const chunk = ssh(`sed -n '${offset + 1},${total}p' ${LOG}`);
-  let posted = 0;
-  for (const ev of parseNewEvents(chunk)) {
-    const msg = formatEvent(ev);
-    if (!msg) continue;
-    post(msg);
-    posted++;
+  const dataDir = resolveDataDir({ dryRun: DRY });
+  // The finder opens lazily, only if there is a bounce to import; a load failure surfaces as an import failure (queued, one notice).
+  let finder = null;
+  const importBounce = (email, why) => {
+    if (!finder) finder = require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits: 0, maxIcypeas: 0 });
+    return finder.importBounce(email, why);
+  };
+  const bouncedList = fileLedger(path.join(dataDir, 'bounced.txt'));
+  let res;
+  try {
+    res = await handleEvents(parseNewEvents(chunk), {
+      post, importBounce, dryRun: DRY, log: console.log,
+      ledger: fileLedger(path.join(dataDir, 'bounces-imported.txt')),
+      record: bouncedList,
+      backlog: bouncedList.bounces(),
+      queue: fileQueue(path.join(dataDir, 'bounces-queue.txt')),
+    });
+  } finally {
+    try { if (finder) finder.close(); } catch { /* best effort */ }
   }
-  if (!DRY) fs.writeFileSync(OFFSET_FILE, String(total));
-  console.log(`${new Date().toISOString()} lines ${offset + 1}-${total}, posted ${posted}`);
+  if (!DRY) fs.writeFileSync(OFFSET_FILE, String(total)); // only after every import-or-queue and every post succeeded
+  console.log(`${new Date().toISOString()} lines ${offset + 1}-${total}, posted ${res.posted}, bounces imported ${res.imported}, queued ${res.queued}`);
 }
 
-try { main(); } catch (e) { console.error(`${new Date().toISOString()} ${e.message}`); process.exit(1); }
+module.exports = { handleEvents };
+
+if (require.main === module) {
+  main().catch(e => { console.error(`${new Date().toISOString()} ${e.message}`); process.exit(1); });
+}

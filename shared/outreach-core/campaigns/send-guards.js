@@ -1,0 +1,189 @@
+// shared/outreach-core/campaigns/send-guards.js
+// The last gates before an address reaches a sheet: where the ledgers live (pinned), do-not-contact,
+// firm-level dedupe (one firm, one touch) and the company ledger. Pure functions plus tiny file readers.
+const fs = require('fs'), path = require('path'), os = require('os');
+const { isFreemailDomain } = require('../enrichment/owner-email');
+
+// The live ledgers sit in the MAIN checkout (git-ignored). A worktree has its own stale copy of data/, so every
+// ledger, do-not-contact and load file resolves from here instead of __dirname.
+const DEFAULT_DATA_DIR = path.join(os.homedir(), 'Development/One Hour Vibe Coder/outreach-automation/data');
+const ROUTE_RANK = { main: 0, inbox: 1, probable: 2 };
+// Hosts that carry many unrelated firms: never a firm identity.
+const PLATFORM_DOMAINS = ['facebook.com', 'instagram.com', 'linkedin.com', 'twitter.com', 'x.com', 'tiktok.com', 'youtube.com', 'wixsite.com', 'wix.com',
+  'squarespace.com', 'godaddysites.com', 'business.site', 'google.com', 'sites.google.com', 'linktr.ee', 'yell.com', 'checkatrade.com', 'trustpilot.com',
+  'mybuilder.com', 'ratedpeople.com', 'bark.com', 'weebly.com', 'wordpress.com', 'blogspot.com', 'webs.com', 'jimdosite.com', 'carrd.co', 'ueniweb.com'];
+
+// Shared, multi-firm domains (NHS trusts, universities, franchises, ISP mail) are never a firm identity.
+// Data-driven: config/shared-domains.json. The fallback only applies if that file is missing or unreadable.
+const FALLBACK_SHARED = ['nhs.net', 'nhs.uk', 'ac.uk', 'doctors.org.uk', 'taxassist.co.uk', 'btconnect.com', 'btinternet.com'];
+const SHARED_FILE = path.join(__dirname, '../../../config/shared-domains.json');
+let sharedCache = null;
+function loadSharedDomains(file) {
+  const f = file || SHARED_FILE;
+  try {
+    const list = JSON.parse(fs.readFileSync(f, 'utf8')).domains;
+    if (Array.isArray(list)) return list.map(x => String(x).trim().toLowerCase()).filter(Boolean);
+  } catch { /* fall through */ }
+  return FALLBACK_SHARED;
+}
+function isSharedDomain(d) {
+  if (!sharedCache) sharedCache = loadSharedDomains();
+  const x = String(d || '').trim().toLowerCase().replace(/^www\./, '');
+  return !!x && sharedCache.some(s => x === s || x.endsWith('.' + s));
+}
+
+function isWorktreeDir(repoDir) {
+  try { return fs.statSync(path.join(repoDir, '.git')).isFile(); } catch { return false; }
+}
+
+/** Fail closed: a live run needs the sent ledger AND the do-not-contact list on disk, or it cannot know who must not be emailed. */
+function assertGateFiles(dataDir, { sentLedger = path.join(dataDir, 'sent-ledger.txt') } = {}) {
+  if (!fs.existsSync(dataDir)) throw new Error(`Data folder ${dataDir} does not exist. Refusing a live run: without the ledgers we cannot tell who was already contacted. Set OA_DATA_DIR to the live data folder (${DEFAULT_DATA_DIR}).`);
+  for (const f of [sentLedger, path.join(dataDir, 'do-not-contact.txt')]) {
+    if (!fs.existsSync(f)) throw new Error(`${path.basename(f)} is missing from ${dataDir}. Refusing a live run: an empty gate would let anyone through. Restore the file (an empty file is fine if the list really is empty).`);
+  }
+}
+
+function resolveDataDir({ env = process.env, repoDir = __dirname, dryRun = false, isWorktree = isWorktreeDir } = {}) {
+  if (env.OA_DATA_DIR) {
+    const d = path.resolve(env.OA_DATA_DIR);
+    if (!dryRun) assertGateFiles(d);
+    return d;
+  }
+  if (!dryRun && isWorktree(repoDir)) {
+    throw new Error(`Refusing a live run from a git worktree (${repoDir}): its data/ folder is a stale copy, so ledgers and the do-not-contact list would be wrong. ` +
+      `Set OA_DATA_DIR to the data folder you mean (the live one is ${DEFAULT_DATA_DIR}) and run again.`);
+  }
+  if (!dryRun) assertGateFiles(DEFAULT_DATA_DIR);
+  return DEFAULT_DATA_DIR;
+}
+
+const lc = s => String(s == null ? '' : s).trim().toLowerCase();
+
+function domainOf(v) {
+  return lc(v).replace(/^[a-z][a-z0-9+.-]*:\/\//, '').replace(/^[^@/]*@/, '').replace(/^www\./, '').split(/[/?#:]/)[0].replace(/\.$/, '');
+}
+const isPlatform = d => PLATFORM_DOMAINS.some(p => d === p || d.endsWith('.' + p));
+/** A domain that identifies one firm: blank for free mail, shared multi-firm domains and platforms that host many firms. */
+function firmDomain(v) {
+  const d = domainOf(v);
+  return !d || isFreemailDomain(d) || isSharedDomain(d) || isPlatform(d) ? '' : d;
+}
+/** The firm a lead belongs to: its website domain, else (no site, or a platform site) its own email domain. */
+function leadFirmDomain(lead) {
+  return firmDomain(lead && lead.website) || firmDomain(lead && lead.email);
+}
+
+// ---- do-not-contact: "email<TAB>reason", "@domain" or a bare domain; # comments ----
+function readDoNotContact(file, { required = false } = {}) {
+  const emails = new Set(), domains = new Set();
+  if (!fs.existsSync(file)) {
+    if (required) throw new Error(`do-not-contact list not found at ${file}. Refusing to continue without it.`);
+    return { emails, domains };
+  }
+  for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const token = lc(line.split(/\t/)[0].split(/\s+/)[0]);
+    if (!token) continue;
+    if (token.startsWith('@')) domains.add(token.slice(1));
+    else if (token.includes('@')) emails.add(token);
+    else domains.add(token);
+  }
+  return { emails, domains };
+}
+
+const inDomains = (set, d) => !!d && [...set].some(x => d === x || d.endsWith('.' + x));
+/** Reason string if this lead's email, email domain or website domain is on the list, else null. */
+function isDoNotContact(dnc, { email, website } = {}) {
+  const e = lc(email);
+  if (e && dnc.emails.has(e)) return 'do_not_contact_email';
+  if (inDomains(dnc.domains, domainOf(e)) || inDomains(dnc.domains, domainOf(website))) return 'do_not_contact_domain';
+  return null;
+}
+
+// ---- company ledger: company_number<TAB>domain, append-only ----
+function readCompanyLedger(file, { required = false } = {}) {
+  const numbers = new Set(), domains = new Set();
+  if (!fs.existsSync(file)) {
+    if (required) throw new Error(`company-ledger not found at ${file}. Refusing to continue without it.`);
+    return { numbers, domains };
+  }
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const [n, d] = line.split('\t');
+    if (n && n.trim()) numbers.add(n.trim());
+    if (d && d.trim() && !isSharedDomain(d)) domains.add(lc(d)); // shared domains written by an older run are ignored
+  }
+  return { numbers, domains };
+}
+
+function appendCompanyLedger(file, entries) {
+  const have = readCompanyLedger(file);
+  const lines = [];
+  for (const e of entries) {
+    const n = String(e.company_number || '').trim(), d = isSharedDomain(e.domain) ? '' : lc(e.domain);
+    if (!n && !d) continue;
+    if ((!n || have.numbers.has(n)) && (!d || have.domains.has(d))) continue;
+    lines.push(`${n}\t${d}`);
+    if (n) have.numbers.add(n);
+    if (d) have.domains.add(d);
+  }
+  if (!lines.length) return 0;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.appendFileSync(file, lines.join('\n') + '\n');
+  return lines.length;
+}
+
+/** Firm domains of every address already loaded (mailead-loaded-*.txt) or sent (sent-ledger.txt). Freemail excluded. */
+function loadedDomains(dataDir) {
+  const out = new Set();
+  if (!fs.existsSync(dataDir)) return out;
+  for (const f of fs.readdirSync(dataDir)) {
+    if (!(/^mailead-loaded-.*\.txt$/.test(f) || f === 'sent-ledger.txt')) continue;
+    for (const line of fs.readFileSync(path.join(dataDir, f), 'utf8').split(/\r?\n/)) {
+      const d = firmDomain(line.trim().split(/\s+/)[0]);
+      if (d && line.includes('@')) out.add(d);
+    }
+  }
+  return out;
+}
+
+/** Writes the loaded domains into the company ledger (idempotent). Returns how many lines were added. */
+function seedCompanyLedger(dataDir) {
+  return appendCompanyLedger(path.join(dataDir, 'company-ledger.txt'), [...loadedDomains(dataDir)].map(domain => ({ company_number: '', domain })));
+}
+
+/** Everything that counts as "this firm was already touched": the ledger plus domains of loaded emails. */
+function firmContext(dataDir, { required = false } = {}) {
+  const l = readCompanyLedger(path.join(dataDir, 'company-ledger.txt'), { required });
+  for (const d of loadedDomains(dataDir)) l.domains.add(d);
+  return { companyNumbers: l.numbers, domains: l.domains };
+}
+
+function firmSeen(ctx, lead) {
+  const n = String((lead.ref && lead.ref.company_number) || '').trim();
+  if (n && ctx.companyNumbers.has(n)) return 'firm_already_loaded_company_number';
+  const d = leadFirmDomain(lead);
+  if (d && ctx.domains.has(d)) return 'firm_already_loaded_domain';
+  return null;
+}
+
+/** One touch per firm within a file: same website domain or same company number. Best route wins, then file order. */
+function dedupeFirms(items) {
+  const order = items.map((it, i) => ({ it, i })).sort((a, b) => (ROUTE_RANK[a.it.route] - ROUTE_RANK[b.it.route]) || (a.i - b.i));
+  const seenNum = new Set(), seenDom = new Set();
+  const keep = new Set(), dropped = [];
+  for (const { it, i } of order) {
+    const n = String((it.lead.ref && it.lead.ref.company_number) || '').trim();
+    const d = leadFirmDomain(it.lead);
+    if ((n && seenNum.has(n)) || (d && seenDom.has(d))) { dropped.push({ email: it.lead.email, reason: 'firm_dupe_in_file' }); continue; }
+    if (n) seenNum.add(n);
+    if (d) seenDom.add(d);
+    keep.add(i);
+  }
+  return { kept: items.filter((_, i) => keep.has(i)), dropped };
+}
+
+module.exports = { assertGateFiles, isSharedDomain, loadSharedDomains, FALLBACK_SHARED, leadFirmDomain, DEFAULT_DATA_DIR, resolveDataDir, isWorktreeDir, readDoNotContact, isDoNotContact, domainOf, firmDomain,
+  readCompanyLedger, appendCompanyLedger, loadedDomains, seedCompanyLedger, firmContext, firmSeen, dedupeFirms, PLATFORM_DOMAINS };
