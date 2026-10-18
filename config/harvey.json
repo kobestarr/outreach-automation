@@ -1,9 +1,21 @@
 {
-  "bookingUrl": "",
+  "bookingUrl": "https://app.usemotion.com/meet/kobi-omenaka/Intro",
   "sources": [
-    { "match": "ksd-pro-services|ksd.{1,6}ai search.{1,6}professional services", "source": "a business contact database (Consulti) and your public website" },
-    { "match": "leadbyte|funded", "source": "startup funding data from LeadByte and your public website" },
-    { "match": "local-trades", "source": "Companies House records, your Google Maps listing and your website" },
-    { "match": "doctify", "source": "your public Doctify profile" }
+    {
+      "match": "ksd-pro-services|ksd.{1,6}ai search.{1,6}professional services",
+      "source": "a business contact database (Consulti) and your public website"
+    },
+    {
+      "match": "leadbyte|funded",
+      "source": "startup funding data from LeadByte and your public website"
+    },
+    {
+      "match": "local-trades",
+      "source": "Companies House records, your Google Maps listing and your website"
+    },
+    {
+      "match": "doctify",
+      "source": "your public Doctify profile"
+    }
   ]
 }

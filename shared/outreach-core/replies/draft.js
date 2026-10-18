@@ -29,7 +29,7 @@ House style, strictly:
 - One specific observation about THEM or their business, taken from their reply or company. Do not invent facts about them.
 - At most one proof point, chosen to fit the person, from this list only (invent nothing, no other clients, no other numbers):
 ${Object.entries(PROOF).map(([k, v]) => `  * ${k}: ${v.text}`).join('\n')}
-- A soft call to action with the booking link written exactly as ${BOOKING_TOKEN}.
+- End with Kobi's booking line, word for word: "The easiest way to go through it is a quick 15 minute call. What days work for you? Or if it's easier, here's the link to book straight into my calendar: ${BOOKING_TOKEN}"
 - Answer what they actually asked. If they asked a price, give no number: say it depends on what is worth doing and offer a short call.
 - If they asked how we got their details, answer it honestly and offer to remove them.
 Return ONLY a JSON object: {"body":"<the email text>","proof":"<one key from the list, or none>","proof_sentence":"<the exact sentence in body that states the proof, or empty>"}`;
@@ -119,7 +119,7 @@ async function draftReply({ reply, lead = {}, label }, { llm, config = {} } = {}
   let text = paras.join('\n\n');
   if (!text.includes(BOOKING_TOKEN)) {
     const at = text.lastIndexOf('\n\n');
-    const cta = `If it helps, you can pick a time here: ${BOOKING_TOKEN}`;
+    const cta = `The easiest way to go through it is a quick 15 minute call. What days work for you? Or if it's easier, here's the link to book straight into my calendar: ${BOOKING_TOKEN}`;
     text = at > 0 ? `${text.slice(0, at)}\n\n${cta}${text.slice(at)}` : `${text}\n\n${cta}`;
   }
   if (config.bookingUrl) text = text.split(BOOKING_TOKEN).join(config.bookingUrl);

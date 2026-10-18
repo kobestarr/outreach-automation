@@ -142,3 +142,9 @@ test('a model failure returns an error instead of throwing', async () => {
 test('refuses labels that should never get a draft', async () => {
   await assert.rejects(() => draftReply({ reply, lead, label: 'no' }, { llm: fakeLlm('x'), config: {} }), /label/);
 });
+
+test('booking line offers both: which days work, or book straight into the calendar (Kobi 18 Oct)', async () => {
+  const d = await draftReply({ reply, lead, label: 'warm' }, { llm: fakeLlm('Hi Donna,\n\nThanks!\n\nKobi'), config: { bookingUrl: 'https://app.usemotion.com/meet/kobi-omenaka/Intro' } });
+  assert.match(d.text, /What days work for you\?/);
+  assert.match(d.text, /book straight into my calendar: https:\/\/app\.usemotion\.com\/meet\/kobi-omenaka\/Intro/);
+});
