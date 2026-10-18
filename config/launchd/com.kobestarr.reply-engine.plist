@@ -12,7 +12,9 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <string>/Users/kobestarr/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>OA_DATA_DIR</key>
+        <string>/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/data</string>
     </dict>
     <!-- Every 5 minutes -->
     <key>StartInterval</key>
