@@ -8,14 +8,11 @@
  *   add --no-cli to bypass the LeadGen Jay CLI and use direct API calls only
  *   add --brand kobestarr|stripped|dealflow to limit to one sub-account
  *
+ * Before anything else each sub-account's identity is verified (location id and name read back from GHL and, with the
+ * CLI, from `ghlp <brand> locations get`). The id and name printed are the ones GHL returned.
  * Never edits or deletes an existing pipeline. Tokens are never printed.
  */
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { promisify } = require('util');
-const { execFile } = require('child_process');
-const { createGhlTracker, loadGhlCreds, STAGES, BRANDS, PIPELINE_NAME, DEFAULT_LOCATIONS } = require('./shared/outreach-core/crm/ghl-tracker');
+const { createGhlTracker, loadGhlCreds, makeDefaultCli, STAGES, BRANDS, PIPELINE_NAME } = require('./shared/outreach-core/crm/ghl-tracker');
 
 const MESSAGES = {
   ok: 'OK, Cold Email pipeline present with the right stages',
@@ -26,9 +23,7 @@ const MESSAGES = {
   error: 'ERROR',
 };
 
-const CLI_DIR = process.env.GHL_CLI_DIR || path.join(os.homedir(), 'Development', 'One Hour Vibe Coder', 'gohighlevel-cli');
-
-async function main(argv, { fetch, creds, cli, out = console.log } = {}) {
+async function main(argv, { fetch, creds, cli, throttle, out = console.log } = {}) {
   const has = (f) => argv.includes(f);
   const bi = argv.indexOf('--brand');
   const brands = bi >= 0 ? [argv[bi + 1]] : BRANDS;
@@ -37,14 +32,13 @@ async function main(argv, { fetch, creds, cli, out = console.log } = {}) {
   if (modes.length !== 1) { out('Usage: node ghl-setup.js --check | --plan | --apply [--brand kobestarr|stripped|dealflow]'); return 2; }
   const apply = modes[0] === '--apply';
   // Kobi's preferred route: the GHL CLI (ghlp <profile>), raw API only for what it cannot do
-  if (cli === undefined && !has('--no-cli') && fs.existsSync(path.join(CLI_DIR, 'ghlp'))) {
-    cli = { exec: promisify(execFile), ghlp: path.join(CLI_DIR, 'ghlp') };
-  }
-  const tracker = createGhlTracker({ fetch, creds: creds || loadGhlCreds({ cliDir: CLI_DIR }), cli: cli || undefined, log: () => {} });
+  const cliCfg = cli === undefined && !has('--no-cli') ? makeDefaultCli() : cli;
+  const tracker = createGhlTracker({ fetch, creds: creds || loadGhlCreds({ cliDir: cliCfg && cliCfg.dir }), cli: cliCfg || undefined,
+    ...(throttle ? { throttle } : {}), log: () => {} });
   const results = await tracker.ensurePipelines({ dryRun: !apply, brands });
   let bad = 0;
   for (const r of results) {
-    out(`${r.brand.padEnd(10)} (${DEFAULT_LOCATIONS[r.brand]}): ${MESSAGES[r.status]}${r.detail ? ' (' + r.detail + ')' : ''}`);
+    out(`${r.brand.padEnd(10)} ${r.locationName ? r.locationName + ' (' + r.locationId + ')' : '(identity not confirmed)'}: ${MESSAGES[r.status]}${r.detail ? ' (' + r.detail + ')' : ''}`);
     if (modes[0] === '--plan' && r.status === 'would_create') {
       r.stages.forEach((s, i) => out(`    ${i + 1}. ${s}`));
     }
