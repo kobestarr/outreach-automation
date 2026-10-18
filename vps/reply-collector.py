@@ -197,7 +197,8 @@ def fetch_new(M, folder, state_key, state, days, build, seen, out=print):
     """Walk UIDs newer than the saved one. Returns (records, new_last_uid, validity).
     Stops at the first fetch that fails so that message is retried next run (the saved uid never passes it).
     A message that cannot be parsed is skipped, not retried forever."""
-    typ, _ = M.select(folder, readonly=True)
+    # Gmail IMAP needs mailbox names with spaces quoted ("[Gmail]/Sent Mail")
+    typ, _ = M.select(f'"{folder}"' if " " in folder else folder, readonly=True)
     if typ != "OK":
         return [], state.get(state_key), state.get(state_key.replace("_uid", "_validity"))
     validity = uidvalidity(M)

@@ -30,6 +30,10 @@ class FakeIMAP:
     def logout(self): pass
     def select(self, folder, readonly=False):
         assert readonly, "collector must never open a mailbox read write"
+        # Real Gmail IMAP rejects an unquoted mailbox name containing a space (seen live 18 Oct)
+        if " " in folder and not (folder.startswith('"') and folder.endswith('"')):
+            raise Exception("EXAMINE command error: BAD [b'Could not parse command']")
+        folder = folder.strip('"')
         if folder not in self.folders: return "NO", []
         self.cur = folder; return "OK", [b"1"]
     def uid(self, cmd, *args):
