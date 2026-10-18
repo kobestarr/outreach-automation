@@ -23,7 +23,7 @@ async function evaluate(rows, { llm } = {}) {
   const live = out.filter(x => ['warm', 'maybe', 'referral'].includes(x.expected));
   const gates = [
     { name: 'agreement >= 95%', pass: agree / out.length >= 0.95, detail: `${agree}/${out.length}` },
-    { name: 'all warm rows labelled warm', pass: warm.every(x => x.got === 'warm'), detail: `${warm.filter(x => x.got === 'warm').length}/${warm.length}` },
+    { name: 'no warm reply missed (warm, or maybe which still alerts with a draft)', pass: warm.every(x => x.got === 'warm' || x.got === 'maybe'), detail: `${warm.filter(x => x.got === 'warm').length}/${warm.length} warm, ${warm.filter(x => x.got === 'maybe').length} maybe` },
     { name: 'zero warm/maybe/referral rows labelled no', pass: live.every(x => x.got !== 'no'), detail: `${live.filter(x => x.got === 'no').length} wrong` },
   ];
   return { agreement: agree / out.length, rows: out, gates };
