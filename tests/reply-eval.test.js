@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { evaluate, loadRows } = require('../scripts/eval-classifier');
 
-const rows = loadRows(path.join(__dirname, 'fixtures/replies-2026-10-18.jsonl'));
+const rows = loadRows(path.join(__dirname, 'fixtures/replies-2026-10-18.jsonl')).concat(loadRows(path.join(__dirname, 'fixtures/replies-must-not-block.jsonl')));
 
 test('a perfect model scores 100 percent and passes every gate', async () => {
   const llm = async ({ user }) => JSON.stringify({ label: rows.find(r => user.includes(r.subject) && user.includes(r.from)).label, reason: 'x' });
