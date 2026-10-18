@@ -134,7 +134,7 @@ async function resolveDomain(role, { fetchHtml, search } = {}) {
     return false;
   };
 
-  if (role.domain_override && !isBlocked(role.domain_override)) return { domain: registrable(hostOf(role.domain_override)), source: 'override', verified: false, corroborated: true };
+  if (role.domain_override && !isBlocked(role.domain_override)) return { domain: registrable(hostOf(role.domain_override)), source: 'web_search_verified', verified: true, corroborated: true, evidence_url: role.domain_evidence_url || '' };
   const ad = adDomains(role);
   const strong = ad.find((c) => !c.weak);
   if (strong) return { domain: strong.domain, source: strong.source, verified: false };

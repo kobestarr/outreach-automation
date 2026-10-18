@@ -1,0 +1,7 @@
+{
+  "cazoo": { "domain": "cazoo.co.uk", "evidence_url": "https://www.cazoo.co.uk/press/cazoo-strengthens-senior-leadership-team-with-appointment-of-brook-bishop-as-chief-commercial-officer/", "note": "WebSearch 2026-10-18: Cazoo is now a car/dealer marketplace run under Motors; the ad text matches (helps automotive retailers reach buyers). The earlier 'used-car listings site' reading was this same company." },
+  "nexxt industry": { "domain": "nexxtindustry.com", "evidence_url": "https://nexxtindustry.com", "note": "WebFetch: B2B tech marketing agency, Arnhem. Ad text matches." },
+  "crop.photo by evolphin": { "domain": "evolphin.com", "evidence_url": "https://evolphin.com", "note": "WebFetch: Evolphin DAM software; Crop.photo is its sister brand named in the ad." },
+  "jolly technologies inc": { "domain": "jollytech.com", "evidence_url": "https://jollytech.com/company/press/releases/2025-04-15.php", "note": "WebFetch/WebSearch: Redwood City B2B SaaS (Eventleaf, Lobbytrack). jollytechnologies.co.uk is an unrelated literacy company." },
+  "blazity": { "domain": "blazity.com", "evidence_url": "https://blazity.com", "note": "name and business match on the site" }
+}

@@ -52,8 +52,9 @@ async function ddgSearch(query) {
 async function main() {
   const a = parseArgs(process.argv.slice(2));
   if (!a.in || !a.out) { console.error('usage: node contracts-lane.js --in roles.csv --out send.csv [--dry-run] [--max-credits 150] [--desc-from a.csv,b.csv]'); process.exit(2); }
-  let overrides = {};
-  try { overrides = require('./config/contract-domain-overrides.json'); } catch (e) { /* none */ }
+  const loadJson = (f) => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'config', f), 'utf8')); } catch (e) { return {}; } };
+  const verifiedDomains = loadJson('contract-domains-verified.json'), peopleEvidence = loadJson('contract-people-evidence.json');
+  const ck = (r) => String(r.company || r.company_name || '').toLowerCase().trim();
   const dataDir = process.env.OA_DATA_DIR || path.join(__dirname, 'data');
   const rows = a.in.split(',').flatMap((f) => readRows(f.trim()));
   const descriptions = a['desc-from'] ? descriptionLookup(a['desc-from'].split(',')) : null;
@@ -82,9 +83,10 @@ async function main() {
       lookupOwner: (n) => ch.lookupOwner(n),
       accountsType: async (n) => { const r = await ch.chFetchJson(`/company/${String(n).padStart(8, '0')}`); return r && r.accounts && r.accounts.last_accounts ? r.accounts.last_accounts.type : ''; },
     },
+    evidence: (role) => peopleEvidence[String(role.company).toLowerCase().trim()] || null,
     openFinder: ({ maxCredits }) => require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits, maxIcypeas: 0 }),
   };
-  for (const r of rows) { const o = overrides[String(r.company || r.company_name || '').toLowerCase().trim()]; if (o) r.domain_override = o; }
+  for (const r of rows) { const o = verifiedDomains[ck(r)]; if (o) { r.domain_override = o.domain; r.domain_evidence_url = o.evidence_url; } }
   const res = await P.run({ rows, deps, dataDir, dryRun: !!a['dry-run'], maxCredits: a['max-credits'] === undefined ? P.MAX_CREDITS_CEILING : Number(a['max-credits']), minScore: a['min-score'] === undefined ? 5 : Number(a['min-score']), descriptions, log: (m) => console.error('  ' + m) });
 
   const base = a.out.replace(/\.csv$/i, '');

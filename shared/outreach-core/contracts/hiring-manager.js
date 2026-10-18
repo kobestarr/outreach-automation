@@ -239,6 +239,11 @@ async function findHiringManager(role, domain, deps = {}) {
     const { first, last } = splitName(ad.name);
     return { name: ad.name, first, last, title: ad.title, source: 'ad', confidence: 'high', evidence: ad.evidence };
   }
+  const ev = deps.evidence && deps.evidence(role);
+  if (ev && ev.name) {
+    const { first, last } = splitName(ev.name);
+    return { name: ev.name, first, last, title: ev.title || '', source: 'web_search', confidence: ev.confidence || 'low', evidence: ev.snippet || '', evidence_url: ev.evidence_url || '' };
+  }
   const adHint = (ad && ad.titleHint) || role.report_hint || '';
   let people = [];
   if (domain && deps.fetchHtml) {

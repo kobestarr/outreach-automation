@@ -12,9 +12,10 @@ const LEAD = /\blead\b(?!\s*(gen\b|generation|nurtur|scor|capture|qual|routing|m
 const CONTRACT = /(\bcontract(or)?\b|day[- ]rate|per day|\/ ?day|\bp\/?d\b|ir35|freelance|fixed[- ]term|\bftc\b|interim|fractional|temporary|\b\d{1,2}[- ](month|week)s?\b.{0,12}(contract|engagement|ftc))/i;
 const REMOTE = /(fully[- ]remote|100% ?remote|remote[- ]first|\bremote\b|work from home|\bwfh\b|home[- ]based)/i;
 const HYBRID = /(hybrid|\d ?(-\d)? ?days? (a|per|each) ?week (in|at|on)[- ]?(the )?(office|site)|office[- ]based|on[- ]site|onsite)/i;
-const AGENCY_NAME = /(recruit|resourc(ing|es)|talent|staffing|personnel|headhunt|executive search|\bhays\b|robert half|randstad|adecco|michael page|page group|harvey nash|experis|computer futures|hamilton barnes|lorien|sthree|parser|pontoon|manpower|morgan (hunt|mckinley)|harnham|robert walters|walters people|jobgether|frazer jones|major players|brook street|gattaca|fruition|digital gurus|sanderson|monroe consulting|venn group|opus recruitment|tenth revolution|\bcpl\b|matchtech|kelly services|capita|career moves|\blhh\b|aquent|hyqoo|gazelle global|cygnus professionals|alignerr|afterquery)/i;
-const AGENCY_TEXT = /(on behalf of (our|a|my) client|our client\b|my client\b|recruitment (agency|consultancy|business)|employment (agency|business)|talent partner|your consultant|an employer is seeking|i(?:'|’)m working with|about the client|apply via [a-z]+ today|\bour client is\b|this role is being advertised by)/i;
+const AGENCY_NAME = /(recruit|resourc(ing|es)|talent|staffing|personnel|headhunt|executive search|\bhays\b|robert half|randstad|adecco|michael page|page group|harvey nash|experis|computer futures|hamilton barnes|lorien|sthree|parser|pontoon|manpower|morgan (hunt|mckinley)|harnham|robert walters|walters people|jobgether|frazer jones|major players|brook street|gattaca|fruition|digital gurus|sanderson|monroe consulting|venn group|opus recruitment|tenth revolution|\bcpl\b|matchtech|kelly services|capita|career moves|\blhh\b|aquent|hyqoo|gazelle global|cygnus professionals|alignerr|afterquery|synthires|sentinel|pe global|haystack|primis|searchability|women in data|salt$|^salt\b|ethos$)/i;
+const AGENCY_TEXT = /(on behalf of (our|a|my) client|our client\b|my client\b|recruitment (agency|consultancy|business)|employment (agency|business)|talent partner|your consultant|an employer is seeking|we(?:'|’)re working with a (?:leading|global)|recruiting for .{0,60}on behalf of|on behalf of a (?:leading|global|major)|to source a\b|^client:|\bclient: |inside ir35.{0,40}umbrella|i(?:'|’)m working with|about the client|apply via [a-z]+ today|\bour client is\b|this role is being advertised by)/i;
 
+const { scoreRole } = require('./role-score');
 const truthy = (v) => /^(true|1|yes|y)$/i.test(String(v == null ? '' : v).trim());
 const s = (v) => (v == null ? '' : String(v).trim());
 
@@ -42,6 +43,7 @@ function normaliseRow(row) {
     job_url_direct: s(row.job_url_direct),
     company_urls: [s(row.company_url_direct), s(row.company_url)].filter(Boolean),
     domain_override: s(row.domain_override),
+    domain_evidence_url: s(row.domain_evidence_url),
     domain_hint: s(row.company_domain), // Recon's is a name-slug guess: verified later, never trusted
     ch_company_number: s(row.ch_company_number),
     employees: s(row.company_num_employees),
@@ -62,7 +64,7 @@ function normaliseRow(row) {
 
 function isAgency(role) {
   if (role.posted_by === 'recruitment_agency') return 'posted_by says recruitment agency';
-  if (role.posted_by === 'direct_employer') return '';
+  if (role.posted_by === 'direct_employer') return AGENCY_NAME.test(role.company) ? 'company name is a known agency (overrides upstream label)' : '';
   if (role.raw_flags.is_recruiter) return 'flagged recruiter by Recon';
   if (role.raw_flags.agency === true) return 'agency flag set';
   if (AGENCY_NAME.test(role.company)) return 'company name looks like an agency';
@@ -95,6 +97,7 @@ function filterRoles(rows, { minScore = 5 } = {}) {
   const keep = [], recruiters = [], dropped = [];
   for (const row of rows) {
     const role = normaliseRow(row);
+    if (role.score == null) { role.score = scoreRole(role); role.score_source = 'computed'; }
     const drop = (reason) => dropped.push({ role, reason });
     if (!role.title || !role.company) { drop('missing title or company'); continue; }
     const ag = isAgency(role);

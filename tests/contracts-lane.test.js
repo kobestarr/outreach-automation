@@ -197,3 +197,27 @@ test('Companies House director of a company that files full accounts is skipped'
   const ch = { searchCompany: async () => [{ title: 'COLT LTD', company_number: '1', company_status: 'active' }], accountsType: async () => 'full', lookupOwner: async () => ({ full: 'A B', role: 'director', other_directors: 1 }) };
   assert.strictEqual(await HM.chOwner({ company: 'Colt', title: 'x' }, { ch }), null);
 });
+
+test('web-search evidence: high/medium reach the finder, low is held, evidence url is carried to the send row', async () => {
+  const finder = { findMany: async () => ({ results: [{ email: 'jane@acme.co.uk', status: 'found', confidence: 'high' }], summary: {} }), close() {} };
+  const row = { ...curated({ company: 'Acme Widgets' }), company_url_direct: 'https://acme.co.uk' };
+  const mk = (confidence) => ({ ...mkDeps(finder), evidence: () => ({ name: 'Jane Doe', title: 'CEO', confidence, evidence_url: 'https://example.com/x', snippet: 's' }) });
+  const ok = await P.run({ rows: [row], deps: mk('high'), dataDir: dataDir() });
+  assert.strictEqual(ok.send.length, 1);
+  assert.strictEqual(P.sendRow(ok.send[0]).evidence_url, 'https://example.com/x');
+  assert.strictEqual(P.sendRow(ok.send[0]).hm_source, 'web_search');
+  const low = await P.run({ rows: [row], deps: mk('low'), dataDir: dataDir() });
+  assert.strictEqual(low.send.length, 0);
+  assert.match(low.held[0].reason, /low-confidence/);
+});
+test('a human-verified domain skips guessing and is trusted; Recon-style rows without a score get a computed fit score', async () => {
+  const r = await CD.resolveDomain({ company: 'Cazoo', company_urls: [], domain_override: 'cazoo.co.uk', domain_evidence_url: 'https://x' });
+  assert.deepStrictEqual([r.domain, r.source, r.verified], ['cazoo.co.uk', 'web_search_verified', true]);
+  const f = RF.filterRoles([{ title: 'PPC Specialist', company_name: 'Zed', job_url: 'u', contract_type: 'Contract', remote_hint: 'true', description: 'Google Ads, PPC, paid media, fully remote' }, { title: 'Store Assistant', company_name: 'Shop', job_url: 'u2', contract_type: 'Contract', remote_hint: 'true', description: 'remote' }]);
+  assert.deepStrictEqual(f.keep.map((x) => x.company), ['Zed']);
+  assert.ok(f.keep[0].score >= 5);
+});
+test('Synthires and ad-text agencies are routed to the recruiter list', () => {
+  const r = RF.filterRoles([curated({ company: 'Synthires', posted_by: 'direct_employer' }), curated({ company: 'Zork', posted_by: '', description: 'An employer is seeking a thing. Apply via Haystack today!' })]);
+  assert.strictEqual(r.recruiters.length, 2);
+});
