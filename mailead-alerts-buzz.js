@@ -62,11 +62,14 @@ async function main() {
     if (!finder) finder = require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits: 0, maxIcypeas: 0 });
     return finder.importBounce(email, why);
   };
+  const bouncedList = fileLedger(path.join(dataDir, 'bounced.txt'));
   let res;
   try {
     res = await handleEvents(parseNewEvents(chunk), {
       post, importBounce, dryRun: DRY, log: console.log,
-      ledger: fileLedger(path.join(dataDir, 'bounced.txt')),
+      ledger: fileLedger(path.join(dataDir, 'bounces-imported.txt')),
+      record: bouncedList,
+      backlog: bouncedList.all(),
       queue: fileQueue(path.join(dataDir, 'bounces-queue.txt')),
     });
   } finally {

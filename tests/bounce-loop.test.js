@@ -2,22 +2,23 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs'), path = require('path'), os = require('os');
-const { handleEvents, fileLedger, fileQueue } = require('../shared/outreach-core/notify/bounce-loop');
-const { leadEmail, OWN_DOMAIN_HINTS } = require('../shared/outreach-core/notify/lead-email');
+const { handleEvents, fileLedger, fileQueue, bounceKind } = require('../shared/outreach-core/notify/bounce-loop');
+const { leadEmail, isOwnMailbox, OWN_DOMAINS } = require('../shared/outreach-core/notify/lead-email');
 
 const bounce = (lead, extra = {}) => ({ event_type: 'email_bounced', campaign_name: 'local-trades-wave2', lead_email_account: lead, from_email_account: 'kobi.omenaka@trykobestarrdigital.com', companyName: 'Y Ltd', ...extra });
 const reply = (lead) => ({ event_type: 'email_answered', campaign_name: 'c', lead_email_account: lead, from_email_account: lead, firstName: 'Pat' });
 
 function mem() {
-  const ledger = new Set(), queue = new Set();
+  const ledger = new Set(), queue = new Set(), record = new Set();
   return {
+    record: { has: e => record.has(e), add: e => { record.add(e); }, _s: record },
     ledger: { has: e => ledger.has(e), add: e => { ledger.add(e); }, _s: ledger },
     queue: { list: () => [...queue], add: e => { queue.add(e); }, remove: e => { queue.delete(e); }, _s: queue },
   };
 }
 function setup(over = {}) {
   const m = mem(), posts = [], imported = [];
-  const deps = { post: msg => { posts.push(msg); }, importBounce: (e, why) => { imported.push([e, why]); }, ledger: m.ledger, queue: m.queue, log: () => {}, ...over };
+  const deps = { record: m.record, post: msg => { posts.push(msg); }, importBounce: (e, why) => { imported.push([e, why]); }, ledger: m.ledger, queue: m.queue, log: () => {}, ...over };
   return { deps, posts, imported, m };
 }
 
@@ -61,18 +62,17 @@ test('our own sending mailbox is never imported as a bounce', async () => {
 
 test('the bounced address follows the receiver rule: from_email_account first, then lead_email_account, never our own', () => {
   assert.strictEqual(leadEmail({ from_email_account: 'a@lead.co.uk', lead_email_account: 'b@lead.co.uk' }), 'a@lead.co.uk');
-  assert.strictEqual(leadEmail({ from_email_account: 'me@kobestarr.io', lead_email_account: 'b@lead.co.uk' }), 'b@lead.co.uk');
-  assert.strictEqual(leadEmail({ from_email_account: 'me@trykobestarrdigital.com', lead_email_account: 'me2@stripped.co' }), null);
+  assert.strictEqual(leadEmail({ from_email_account: 'kobi@kobestarrdigital.com', lead_email_account: 'b@lead.co.uk' }), 'b@lead.co.uk');
+  assert.strictEqual(leadEmail({ from_email_account: 'kobi@trykobestarrdigital.com', lead_email_account: 'kobi.o@gostripped.media' }), null);
   assert.strictEqual(leadEmail({}), null);
 });
 
-test('lead-email.js stays in step with the VPS receiver (same own-domain hints)', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'vps', 'mailead-webhook-receiver.js'), 'utf8');
-  const m = src.match(/const OWN_DOMAIN_HINTS = \[([^\]]*)\]/);
-  assert.ok(m, 'could not find OWN_DOMAIN_HINTS in the receiver');
-  const theirs = m[1].split(',').map(x => x.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
-  assert.deepStrictEqual(OWN_DOMAIN_HINTS, theirs);
-  assert.match(src, /for \(const c of cands\) if \(!OWN_DOMAIN_HINTS\.some/);
+test('own mailbox check is exact: the 9 sending domains only, never a substring', () => {
+  assert.strictEqual(OWN_DOMAINS.length, 9);
+  for (const d of OWN_DOMAINS) for (const l of ['kobi', 'kobi.o', 'kobi.omenaka']) assert.strictEqual(isOwnMailbox(`${l}@${d}`), true, `${l}@${d}`);
+  assert.strictEqual(isOwnMailbox('Kobi <kobi@DealflowMedia.co>'), true);
+  for (const a of ['info@strippedpine.co.uk', 'x@kobestarr-plumbing.co.uk', 'x@mykobestarrdigital.com', 'x@dealflowmedia.com', 'x@sub.dealflowmedia.co', 'x@trykobestarr.com', '']) assert.strictEqual(isOwnMailbox(a), false, a);
+  assert.strictEqual(leadEmail({ from_email_account: 'kobi@dealflowmedia.pro', lead_email_account: 'info@strippedpine.co.uk' }), 'info@strippedpine.co.uk');
 });
 
 test('replies are never imported as bounces', async () => {
@@ -149,6 +149,54 @@ test('dry run posts nothing real, imports nothing, writes nothing', async () => 
   assert.strictEqual(t.posts.length, 1, 'the dry-run poster is still called so it can print');
 });
 
+// ---- hard / soft ----
+test('bounceKind: unknown payloads are treated as hard; explicit soft or temporary markers are soft', () => {
+  assert.strictEqual(bounceKind({ event_type: 'email_bounced' }), 'hard');
+  assert.strictEqual(bounceKind({ bounce_type: 'Hard' }), 'hard');
+  assert.strictEqual(bounceKind({ bounce_type: 'soft' }), 'soft');
+  assert.strictEqual(bounceKind({ type: 'temporary' }), 'soft');
+  assert.strictEqual(bounceKind({ bounceType: 'transient' }), 'soft');
+  assert.strictEqual(bounceKind({ reason: '452 4.2.2 mailbox full' }), 'soft');
+  assert.strictEqual(bounceKind({ reason: '550 5.1.1 user unknown' }), 'hard');
+});
+
+test('a soft bounce is logged and not imported (alert still posts); a hard one is imported', async () => {
+  const logs = [];
+  const t = setup({ log: m => logs.push(m) });
+  await handleEvents([bounce('soft@y.co.uk', { bounce_type: 'soft' }), bounce('hard@y.co.uk', { bounce_type: 'hard' })], t.deps);
+  assert.deepStrictEqual(t.imported.map(x => x[0]), ['hard@y.co.uk']);
+  assert.ok(logs.some(m => /soft/i.test(m) && /soft@y\.co\.uk/.test(m)));
+  assert.strictEqual(t.posts.filter(p => /^Bounce:/.test(p)).length, 2);
+  assert.ok(!t.m.ledger._s.has('soft@y.co.uk'));
+});
+
+// ---- legacy bounced.txt is NOT assumed imported ----
+test('addresses only in the old bounced.txt are imported once on the first run, then never again', async () => {
+  const t = setup({ backlog: ['alex@aleran.com', 'areiter@10xscience.com'] });
+  const r1 = await handleEvents([], t.deps);
+  assert.deepStrictEqual(t.imported.map(x => x[0]), ['alex@aleran.com', 'areiter@10xscience.com']);
+  assert.strictEqual(r1.imported, 2);
+  const r2 = await handleEvents([], t.deps);
+  assert.strictEqual(t.imported.length, 2);
+  assert.strictEqual(r2.imported, 0);
+});
+
+test('backlog addresses the finder cannot take yet stay in the backlog (no ledger entry) and retry next run', async () => {
+  let down = true;
+  const t = setup({ backlog: ['a@y.co.uk'], importBounce: (e) => { if (down) throw new Error('down'); t.imported.push([e]); } });
+  await handleEvents([], t.deps);
+  assert.ok(!t.m.ledger._s.has('a@y.co.uk'));
+  down = false;
+  await handleEvents([], t.deps);
+  assert.ok(t.m.ledger._s.has('a@y.co.uk'));
+});
+
+test('a newly imported bounce is also recorded in bounced.txt (the plain bounce list)', async () => {
+  const t = setup();
+  await handleEvents([bounce('x@y.co.uk')], t.deps);
+  assert.ok(t.m.record._s.has('x@y.co.uk'));
+});
+
 test('file ledger: loads existing lines, adds with date and campaign, ignores comments, survives a missing file', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bl-'));
   const f = path.join(dir, 'bounced.txt');
@@ -161,6 +209,7 @@ test('file ledger: loads existing lines, adds with date and campaign, ignores co
   assert.ok(l.has('new@y.co.uk'));
   assert.match(fs.readFileSync(f, 'utf8'), /^new@y\.co\.uk 2026-10-18 campaign:local-trades-wave2$/m);
   assert.ok(!fileLedger(path.join(dir, 'missing.txt')).has('x'));
+  assert.deepStrictEqual(l.all().sort(), ['alex@aleran.com', 'harrison@taccs.co.uk', 'new@y.co.uk']);
   const fresh = fileLedger(f);
   assert.ok(fresh.has('new@y.co.uk'));
 });
