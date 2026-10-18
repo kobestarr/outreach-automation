@@ -53,7 +53,7 @@ async function main() {
   const a = parseArgs(process.argv.slice(2));
   if (!a.in || !a.out) { console.error('usage: node contracts-lane.js --in roles.csv --out send.csv [--dry-run] [--max-credits 150] [--desc-from a.csv,b.csv]'); process.exit(2); }
   const dataDir = process.env.OA_DATA_DIR || path.join(__dirname, 'data');
-  const rows = readRows(a.in);
+  const rows = a.in.split(',').flatMap((f) => readRows(f.trim()));
   const descriptions = a['desc-from'] ? descriptionLookup(a['desc-from'].split(',')) : null;
 
   const { fetchWebsite } = require('./shared/outreach-core/enrichment/website-scraper');
@@ -81,6 +81,8 @@ async function main() {
   console.log(JSON.stringify({ dryRun: !!a['dry-run'], plan: res.plan, finder: res.finderSummary }, null, 2));
   if (a['dry-run']) {
     console.log('\nPlan (no finder calls, no Reoon credits):');
+    for (const d of res.dropped) console.log(`  DROPPED ${d.role.company} | ${d.role.title}: ${d.reason}`);
+    for (const h of res.held) console.log(`  HELD ${h.role.company} | ${h.role.title}: ${h.reason}`);
     for (const c of res.candidates) console.log(`  ${c.role.company} | ${c.role.title} -> ${c.hm.name} (${c.hm.title || 'n/a'}) via ${c.hm.source}/${c.hm.confidence} @ ${c.domain}`);
   }
 }

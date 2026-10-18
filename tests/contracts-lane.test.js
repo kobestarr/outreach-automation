@@ -176,3 +176,13 @@ test('credits are hard capped at 150 and Companies House directors of large firm
   assert.strictEqual(r.candidates.length, 0);
   assert.match(r.held[0].reason, /larger company/);
 });
+
+test('a site that matches only the company name but describes a different business is held', async () => {
+  const ad = 'Jolly Technologies is a Silicon Valley software company. Our products are enterprise multi-tenant cloud SaaS platforms for label printing and visitor management used worldwide. ' + 'x'.repeat(400);
+  const html = '<title>Jolly Technologies</title><meta name="description" content="Building literacy products on the foundation of Jolly Phonics, teaching children to read"><h1>Jolly Phonics</h1>';
+  assert.strictEqual(CD.corroborates(html, { company: 'Jolly Technologies Inc', description: ad }), false);
+  const r = await P.run({ rows: [{ ...curated({ company: 'Jolly Technologies Inc', title: 'Growth Marketing Specialist' }), description: ad }], deps: { fetchHtml: async (u) => { if (u === 'https://jollytechnologies.com') return html; throw new Error('x'); }, openFinder: async () => { throw new Error('no'); } }, dataDir: dataDir(), dryRun: true });
+  assert.strictEqual(r.candidates.length, 0);
+  assert.match(r.held[0].reason, /same business/);
+  assert.strictEqual(CD.corroborates(html, { company: 'Jolly Technologies Inc', description: 'short' }), null);
+});

@@ -47,7 +47,7 @@ function splitName(full) {
 const LEAD_PHRASE = /(reporting (?:directly )?(?:in)?to|reports? (?:directly )?(?:in)?to|you(?:'|’)ll report to|hiring manager(?: is)?|line manager(?: is)?|working (?:directly )?(?:with|for|alongside|under))\s*[:\-]?\s*/gi;
 
 function parseAdManager(description) {
-  const text = String(description || '').replace(/\*+/g, ' ').replace(/\s+/g, ' ');
+  const text = String(description || '').replace(/\*+/g, ' ').replace(/[ \t]*\n+[ \t]*/g, ' \u00b6 ').replace(/[ \t]+/g, ' ');
   let titleHint = '';
   LEAD_PHRASE.lastIndex = 0;
   let m;
@@ -108,6 +108,7 @@ function extractPeople(html) {
 const MARKETING_RE = '(marketing|growth|digital|brand|demand|acquisition|performance|content|communications|seo|crm|lifecycle|customer)';
 function roleFamily(title) {
   const t = String(title || '').toLowerCase();
+  if (/(marketing|growth|brand|content|seo|ppc|paid|social|email|crm|lifecycle|demand|podcast|copy|affiliate|campaign|community)/.test(t)) return 'marketing';
   if (/(automation|operations|\bops\b|revops|\bai\b|workflow|process|power platform|data|analytic|systems|engineer|developer|technical)/.test(t)) return 'ops';
   return 'marketing';
 }

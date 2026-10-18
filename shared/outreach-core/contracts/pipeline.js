@@ -10,7 +10,7 @@ const { filterRoles } = require('./role-filter');
 const { resolveDomain } = require('./company-domain');
 const { findHiringManager } = require('./hiring-manager');
 
-const SEND_COLUMNS = ['first_name', 'last_name', 'email', 'company_name', 'role_title', 'role_url', 'hiring_manager_title', 'hm_source', 'hm_confidence', 'email_status', 'day_rate_or_pay', 'why_fit', 'eligibility_note'];
+const SEND_COLUMNS = ['first_name', 'last_name', 'email', 'company_name', 'role_title', 'role_url', 'hiring_manager_title', 'hm_source', 'hm_confidence', 'email_status', 'day_rate_or_pay', 'why_fit', 'eligibility_note', 'domain', 'domain_check'];
 const HELD_COLUMNS = ['company_name', 'role_title', 'role_url', 'reason', 'first_name', 'last_name', 'hiring_manager_title', 'hm_source', 'hm_confidence', 'domain', 'email_status', 'suggested_email', 'held_email', 'day_rate_or_pay'];
 const MAX_CREDITS_CEILING = 150;
 const CH_SMALL_FIRM_MAX_OTHER_DIRECTORS = 5;
@@ -66,6 +66,7 @@ async function run({ rows, deps, dataDir, dryRun = false, maxCredits = MAX_CREDI
   await mapLimit(keep, concurrency, async (role) => {
     const dom = await resolveDomain(role, { fetchHtml: deps.fetchHtml, search: deps.search }).catch(() => ({ domain: '', reason: 'domain lookup failed' }));
     if (!dom.domain) { held.push({ role, reason: `no company domain: ${dom.reason}` }); return; }
+    if (dom.corroborated === false) { held.push({ role, domain: dom.domain, reason: `${dom.domain} matches the company name but its site does not describe the same business as the ad (check by eye)` }); return; }
     if (excluded(ex, '', dom.domain)) { held.push({ role, domain: dom.domain, reason: 'domain in do-not-contact' }); return; }
     const hm = await findHiringManager(role, dom.domain, { fetchHtml: deps.fetchHtml, ch: deps.ch }).catch(() => null);
     if (!hm) { held.push({ role, domain: dom.domain, reason: 'no hiring manager found' }); return; }
@@ -73,7 +74,7 @@ async function run({ rows, deps, dataDir, dryRun = false, maxCredits = MAX_CREDI
     if (hm.source === 'companies_house' && (hm.other_directors || 0) > CH_SMALL_FIRM_MAX_OTHER_DIRECTORS) {
       held.push({ role, domain: dom.domain, hm, reason: 'Companies House director of a larger company, not a hiring manager' }); return;
     }
-    candidates.push({ role, domain: dom.domain, domain_source: dom.source, hm });
+    candidates.push({ role, domain: dom.domain, domain_source: dom.source, domain_check: dom.verified ? (dom.corroborated ? 'name_and_business_match' : 'name_match_only') : 'from_ad', hm });
     log(`${role.company}: ${hm.name} (${hm.source}/${hm.confidence}) @ ${dom.domain}`);
   });
 
@@ -92,7 +93,7 @@ async function run({ rows, deps, dataDir, dryRun = false, maxCredits = MAX_CREDI
       finderSummary = summary;
       candidates.forEach((c, i) => {
         const r = results[i] || {};
-        const base = { role: c.role, domain: c.domain, hm: c.hm, email_status: r.status, suggested_email: r.suggested_email || '' };
+        const base = { role: c.role, domain: c.domain, domain_source: c.domain_source, domain_check: c.domain_check, hm: c.hm, email_status: r.status, suggested_email: r.suggested_email || '' };
         const sendable = r.email && (r.status === 'found' || r.status === 'found_flagged' || (HIGH_CONFIDENCE_FINDS.has(r.status) && r.confidence === 'high'));
         if (sendable) {
           if (excluded(ex, r.email, c.domain)) { held.push({ ...base, reason: 'email already contacted or in do-not-contact' }); return; }
@@ -112,7 +113,7 @@ const toCsv = (cols, rows) => [cols.join(','), ...rows.map((r) => cols.map((c) =
 
 function sendRow(x) {
   return { first_name: x.hm.first, last_name: x.hm.last, email: x.email, company_name: x.role.company, role_title: x.role.title, role_url: x.role.job_url,
-    hiring_manager_title: x.hm.title, hm_source: x.hm.source, hm_confidence: x.hm.confidence, email_status: x.email_status, day_rate_or_pay: x.role.pay, why_fit: whyFit(x.role), eligibility_note: x.role.eligibility_note };
+    hiring_manager_title: x.hm.title, hm_source: x.hm.source, hm_confidence: x.hm.confidence, email_status: x.email_status, day_rate_or_pay: x.role.pay, why_fit: whyFit(x.role), eligibility_note: x.role.eligibility_note, domain: x.domain, domain_check: x.domain_check };
 }
 function heldRow(x) {
   return { company_name: x.role.company, role_title: x.role.title, role_url: x.role.job_url, reason: x.reason, first_name: x.hm ? x.hm.first : '', last_name: x.hm ? x.hm.last : '',

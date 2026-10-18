@@ -71,6 +71,25 @@ function pageMatchesCompany(html, name) {
   return need.length > 0 && need.every((t) => hay.includes(' ' + t) );
 }
 
+const GENERIC = new Set('about their there which where would could should these those other being while through within across ability experience working looking team role join work business company services service teams strong skills including required opportunity candidate candidates people great marketing growth digital content manager management customer customers product products global world leading help helping support build building create creating drive driving looking successful ideal position responsibilities requirements benefits remote contract based hours flexible salary apply application hiring part full time years year days every well also will must have your you our the and for with from that this they them what when more most into over only just like make made need needs using used new best high first'.split(' '));
+const words = (s) => new Set((String(s || '').toLowerCase().match(/[a-z]{5,}/g) || []).filter((w) => !GENERIC.has(w)));
+
+/** Does the site describe the same business the ad describes? true / false, or null when the ad has no company text to compare. */
+function corroborates(html, role) {
+  const ad = String(role.description || '').slice(0, 4000);
+  if (ad.length < 400) return null;
+  const nameWords = new Set(companyTokens(role.company));
+  const h = String(html || '');
+  const pick = (re) => (h.match(re) || [])[1] || '';
+  // The business description: title, meta description, og:description, first headings. Body text is too generic to compare.
+  const sig = [pick(/<title[^>]*>([^<]*)</i), pick(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)/i), pick(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i),
+    pick(/property=["']og:description["'][^>]+content=["']([^"']*)/i), ...(h.match(/<h[12][^>]*>[\s\S]*?<\/h[12]>/gi) || []).slice(0, 4).map((x) => x.replace(/<[^>]+>/g, ' '))].join(' ');
+  const pw = words(sig), aw = words(ad);
+  let shared = 0;
+  for (const w of aw) if (pw.has(w) && !nameWords.has(w)) shared++;
+  return shared >= 2;
+}
+
 function adDomains(role) {
   const out = [];
   for (const u of role.company_urls || []) {
@@ -100,10 +119,16 @@ function adDomains(role) {
  */
 async function resolveDomain(role, { fetchHtml, search } = {}) {
   const seen = new Set();
+  let lastCorroborated = null;
   const verify = async (domain) => {
     if (!fetchHtml || isBlocked(domain)) return false;
     for (const u of ['https://' + domain, 'https://www.' + domain]) {
-      try { return pageMatchesCompany(await fetchHtml(u), role.company); } catch (e) { /* try next */ }
+      try {
+        const html = await fetchHtml(u);
+        if (!pageMatchesCompany(html, role.company)) return false;
+        lastCorroborated = corroborates(html, role);
+        return true;
+      } catch (e) { /* try next */ }
     }
     return false;
   };
@@ -120,7 +145,7 @@ async function resolveDomain(role, { fetchHtml, search } = {}) {
   for (const c of candidates) {
     if (!c.domain || seen.has(c.domain) || isBlocked(c.domain)) continue;
     seen.add(c.domain);
-    if (await verify(c.domain)) return { domain: c.domain, source: c.source, verified: true };
+    if (await verify(c.domain)) return { domain: c.domain, source: c.source, verified: true, corroborated: lastCorroborated };
   }
   if (search) {
     let urls = [];
@@ -129,10 +154,10 @@ async function resolveDomain(role, { fetchHtml, search } = {}) {
       const d = registrable(hostOf(u));
       if (!d || seen.has(d) || isBlocked(d)) continue;
       seen.add(d);
-      if (await verify(d)) return { domain: d, source: 'search', verified: true };
+      if (await verify(d)) return { domain: d, source: 'search', verified: true, corroborated: lastCorroborated };
     }
   }
   return { domain: '', reason: 'no verifiable company website found' };
 }
 
-module.exports = { resolveDomain, isBlocked, registrable, hostOf, pageMatchesCompany, slugCandidates, companyTokens, adDomains };
+module.exports = { corroborates, resolveDomain, isBlocked, registrable, hostOf, pageMatchesCompany, slugCandidates, companyTokens, adDomains };
