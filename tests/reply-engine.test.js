@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const { processNew, emptyState } = require('../shared/outreach-core/replies/engine');
+const { processNew, emptyState, pruneState } = require('../shared/outreach-core/replies/engine');
 const { classifyReply } = require('../shared/outreach-core/replies/classify');
 const { draftReply } = require('../shared/outreach-core/replies/draft');
 
@@ -20,10 +20,10 @@ const labelLlm = async ({ user }) => {
 const draftLlm = async () => 'Hi there,\n\nThanks for coming back. Here is a Citi backed example.\n\n[BOOKING LINK]\n\nKobi';
 
 function make(overrides = {}) {
-  const h = { posts: [], blocks: [], tracked: [], clock: T0, state: emptyState(), blockResult: { complete: true } };
+  const h = { posts: [], blocks: [], tracked: [], drafts: 0, clock: T0, state: emptyState(), blockResult: { complete: true } };
   h.deps = {
     classify: r => classifyReply(r, { llm: labelLlm, now: h.clock }),
-    draft: a => draftReply(a, { llm: draftLlm, config: { bookingUrl: '' } }),
+    draft: a => { h.drafts++; return draftReply(a, { llm: draftLlm, config: { bookingUrl: '', sources: [{ match: 'ksd-pro-services', source: 'a business contact database and your public website' }] } }); },
     block: async (email, reason, label) => { h.blocks.push({ email, reason, label }); return h.blockResult; },
     post: async t => { h.posts.push(t); },
     tracker: { trackReply: async e => { h.tracked.push(e); } },
@@ -35,7 +35,7 @@ function make(overrides = {}) {
 }
 
 const inbound = (r, extra = {}) => ({ kind: 'inbound', msgid: `<${r.from}-${r.subject}>`, date: T0.toISOString(), from: r.from, to: ['kobi.o@kobestarrdigital.com'], cc: r.cc ? [r.cc] : [], subject: r.subject, body: r.body, ...extra });
-const evt = (lead, extra = {}) => ({ event_type: 'email_answered', lead_email_account: lead, firstName: 'Atif', lastName: 'CARRIER SECRET', companyName: 'Hutchings', campaign_name: 'ksd-pro-services', step: 1, from_email_account: 'kobi@kobestarrdigital.com', receivedAt: T0.toISOString(), ...extra });
+const evt = (lead, extra = {}) => ({ event_type: 'email_answered', lead_email_account: lead || '', firstName: 'Atif', lastName: 'CARRIER SECRET', companyName: 'Hutchings', campaign_name: 'ksd-pro-services', step: 1, from_email_account: 'kobi@kobestarrdigital.com', receivedAt: T0.toISOString(), ...extra });
 
 test('Atif: webhook reply with no Gmail copy gets a Unibox alert after 15 minutes, once', async () => {
   const h = make();
@@ -97,11 +97,17 @@ test('Donna asks the price: maybe with a draft, no block', async () => {
   assert.match(h.posts[0], /package prices/);
 });
 
-test('Rod asks where we got his details: the draft says where and offers removal', async () => {
+test('Rod asks where we got his details: the draft names the campaign source and offers removal', async () => {
+  const h = make();
+  await h.run([inbound(row('rod@incomethroughproperty.co.uk'))], [evt('rod@incomethroughproperty.co.uk', { firstName: 'Rod' })]);
+  assert.match(h.posts[0], /a business contact database and your public website/);
+  assert.match(h.posts[0], /remove you/);
+});
+
+test('Rod with an unknown campaign: the draft says [SOURCE: check] instead of guessing', async () => {
   const h = make();
   await h.run([inbound(row('rod@incomethroughproperty.co.uk'))]);
-  assert.match(h.posts[0], /publicly available business details/);
-  assert.match(h.posts[0], /remove you/);
+  assert.match(h.posts[0], /\[SOURCE: check\]/);
 });
 
 test('a referral is drafted and alerted, with the cc visible to the classifier', async () => {
@@ -146,32 +152,137 @@ test('left company is blocked', async () => {
 test('a partial block is reported loudly', async () => {
   const h = make();
   h.blockResult = { complete: false, mailead: 'failed: network' };
-  await h.run([inbound(row('feyi@rslaw.co.uk'))]);
+  const res = await h.run([inbound(row('feyi@rslaw.co.uk'))]);
   assert.match(h.posts[0], /PARTLY/);
+  assert.strictEqual(res.errors.length, 1);
 });
 
-test('OOO: no alert, resume date recorded, not blocked', async () => {
+test('OOO: one digest line, resume date recorded, not blocked', async () => {
   const h = make();
   await h.run([inbound(rows.find(r => r.subject.startsWith('Automatic reply: AI search for Hutchings')))]);
-  assert.strictEqual(h.posts.length, 0);
+  assert.strictEqual(h.posts.length, 1);
+  assert.match(h.posts[0], /^Auto repl/);
+  assert.match(h.posts[0], /2026-07-27|27 Jul/);
   assert.strictEqual(h.blocks.length, 0);
   assert.strictEqual(h.state.resume['atif@hutchingsaccountants.com'], '2026-07-27');
 });
 
-test('OOO naming a colleague posts a short note', async () => {
+test('OOO naming a colleague shows the colleague in the digest', async () => {
   const h = make();
   await h.run([inbound(rows.find(r => r.subject.startsWith('Automatic reply: AI search for McHale')))]);
   assert.strictEqual(h.posts.length, 1);
   assert.match(h.posts[0], /michelle\.corry@mchaleandco\.co\.uk/);
 });
 
-test('non-English auto replies are silent', async () => {
+test('non-English auto replies make one combined digest, no alerts, no blocks', async () => {
   const h = make();
   const autos = rows.filter(r => /Automatische|Automatisch|Demande|Solicitud/i.test(r.subject));
   assert.ok(autos.length >= 4);
-  await h.run(autos.map(r => inbound(r)));
-  assert.strictEqual(h.posts.length, 0);
+  await h.run(autos.map((r, i) => inbound(r, { msgid: `<a${i}>` })));
+  assert.strictEqual(h.posts.length, 1);
+  assert.match(h.posts[0], new RegExp(`Auto replies \\(${autos.length}\\)`));
   assert.strictEqual(h.blocks.length, 0);
+});
+
+test('a Gmail copy that is only an auto reply does not cancel the Unibox fallback for the real reply', async () => {
+  const h = make();
+  const auto = inbound(rows.find(r => r.subject.startsWith('Automatic reply: AI search for Hutchings')));
+  await h.run([auto], [evt('atif@hutchingsaccountants.com')]);
+  h.clock = at(20); await h.run();
+  assert.ok(h.posts.some(p => /Mailead Unibox/.test(p)), h.posts.join('\n---\n'));
+});
+
+test('a webhook event with no email still alerts, naming who and where to read it', async () => {
+  const h = make();
+  await h.run([], [evt(undefined, { lead_email_account: '', from_email_account: 'kobi@kobestarrdigital.com', firstName: 'Priya', companyName: 'Acme Ltd' })]);
+  assert.strictEqual(h.posts.length, 1);
+  assert.match(h.posts[0], /Priya at Acme Ltd/);
+  assert.match(h.posts[0], /Unibox/);
+  await h.run();
+  assert.strictEqual(h.posts.length, 1);
+});
+
+test('a real gmail user is not ignored just because googlemail.com is Google', async () => {
+  const h = make();
+  await h.run([inbound({ ...rows[0], from: 'someone@googlemail.com' }, { msgid: '<g1>' })]);
+  assert.strictEqual(h.posts.length, 1);
+  const g = make();
+  await g.run([inbound({ ...rows[0], from: 'mailer-daemon@googlemail.com' }, { msgid: '<g2>' }), inbound({ ...rows[0], from: 'postmaster@x.com' }, { msgid: '<g3>' })]);
+  assert.strictEqual(g.posts.length, 0);
+});
+
+test('a partial block posts once, keeps the reply retryable, and finishes next run', async () => {
+  const h = make();
+  h.blockResult = { complete: false, mailead: 'failed: network' };
+  const r = inbound(row('feyi@rslaw.co.uk'));
+  const res1 = await h.run([r]);
+  assert.strictEqual(res1.errors.length, 1);
+  assert.match(h.posts[0], /PARTLY/);
+  const res2 = await h.run([r]);
+  assert.strictEqual(res2.errors.length, 1);
+  assert.strictEqual(h.posts.length, 1, 'the PARTLY warning must not repeat every run');
+  h.blockResult = { complete: true };
+  const res3 = await h.run([r]);
+  assert.strictEqual(res3.errors.length, 0);
+  assert.strictEqual(h.blocks.length, 3);
+  assert.match(h.posts.at(-1), /Blocked everywhere/);
+  await h.run([r]);
+  assert.strictEqual(h.blocks.length, 3);
+});
+
+test('the draft is cached while Buzz is down, so Sonnet is not asked every run', async () => {
+  let fail = true;
+  const h = make({ post: async t => { if (fail) throw new Error('buzz down'); h.posts.push(t); } });
+  const r = inbound(rows[0]);
+  await h.run([r]); await h.run([r]); await h.run([r]);
+  assert.strictEqual(h.drafts, 1);
+  fail = false;
+  await h.run([r]);
+  assert.strictEqual(h.posts.length, 1);
+  assert.strictEqual(h.drafts, 1);
+});
+
+test('missing GHL tracker module: one Buzz warning a day', async () => {
+  const h = make({ tracker: undefined, trackerMissing: true });
+  await h.run();
+  assert.strictEqual(h.posts.length, 1);
+  assert.match(h.posts[0], /tracker/i);
+  h.clock = at(60); await h.run();
+  assert.strictEqual(h.posts.length, 1);
+  h.clock = at(25 * 60); await h.run();
+  assert.strictEqual(h.posts.length, 2);
+});
+
+test('"Smith, John" gives the first name John', async () => {
+  const h = make();
+  await h.run([inbound(rows[0], { from_name: 'Smith, John' })]);
+  assert.match(h.posts[0], /Warm reply: John/);
+});
+
+test('state older than 30 days is pruned, recent state is kept', () => {
+  const now = Date.parse('2026-10-18T00:00:00Z');
+  const day = 86_400_000;
+  const st = emptyState();
+  st.seen['<old>'] = now - 40 * day; st.seen['<new>'] = now - 2 * day;
+  st.blocked['o@x.com'] = now - 31 * day; st.sent['n@x.com'] = now - day;
+  st.awaiting['a@x.com'] = { ts: now - 35 * day }; st.awaiting['b@x.com'] = { ts: now - day };
+  st.resume['a@x.com'] = '2026-08-01'; st.resume['b@x.com'] = '2026-11-01';
+  st.drafts['<old>'] = { ts: now - 40 * day, text: 'x' };
+  pruneState(st, now);
+  assert.deepStrictEqual(Object.keys(st.seen), ['<new>']);
+  assert.deepStrictEqual(Object.keys(st.blocked), []);
+  assert.deepStrictEqual(Object.keys(st.sent), ['n@x.com']);
+  assert.deepStrictEqual(Object.keys(st.awaiting), ['b@x.com']);
+  assert.deepStrictEqual(Object.keys(st.resume), ['b@x.com']);
+  assert.deepStrictEqual(Object.keys(st.drafts), []);
+});
+
+test('timers still run when the read from the VPS failed (no new input at all)', async () => {
+  const h = make();
+  await h.run([inbound(rows[0])]);
+  h.clock = at(25 * 60);
+  await processNew({ replies: [], events: [], state: h.state }, h.deps);
+  assert.match(h.posts.at(-1), /Still unanswered/);
 });
 
 test('whole fixture: nothing warm, maybe or referral is ever blocked, every one is alerted', async () => {

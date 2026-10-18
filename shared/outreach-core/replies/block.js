@@ -44,9 +44,11 @@ async function blockEverywhere(rawEmail, reason, deps) {
   return out;
 }
 
+// launchd has a thin PATH, so the finder is called by absolute path.
 // execFile is async (cmd, args) => ... ; real wiring uses util.promisify(child_process.execFile)
-function makeFinderSuppress(execFile) {
-  return (email, reason) => execFile('email-finder', ['suppress', email, reason]);
+const FINDER_BIN = require('path').join(require('os').homedir(), '.local', 'bin', 'email-finder');
+function makeFinderSuppress(execFile, bin = FINDER_BIN) {
+  return (email, reason) => execFile(bin, ['suppress', email, reason]);
 }
 
-module.exports = { blockEverywhere, makeFinderSuppress, BLOCKABLE };
+module.exports = { blockEverywhere, makeFinderSuppress, BLOCKABLE, FINDER_BIN };

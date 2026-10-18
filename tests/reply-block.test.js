@@ -85,5 +85,8 @@ test('makeFinderSuppress runs: email-finder suppress <email> <reason>', async ()
   const seen = [];
   const f = makeFinderSuppress(async (cmd, args) => { seen.push([cmd, args]); });
   await f('a@b.com', 'asked to be removed');
-  assert.deepStrictEqual(seen, [['email-finder', ['suppress', 'a@b.com', 'asked to be removed']]]);
+  assert.strictEqual(seen.length, 1);
+  assert.ok(require('path').isAbsolute(seen[0][0]), 'launchd has a thin PATH: the finder must be called by absolute path');
+  assert.match(seen[0][0], /\.local\/bin\/email-finder$/);
+  assert.deepStrictEqual(seen[0][1], ['suppress', 'a@b.com', 'asked to be removed']);
 });

@@ -12,7 +12,7 @@ function formatActionable(r) {
   const lines = [
     `${HEAD[r.label] || r.label}: ${who(r)}`,
     ctx(r),
-    r.mailbox ? `Went to: ${clean(r.mailbox)}. Answer as that mailbox (Gmail sends as kobi@kobestarr.io; or use the Mailead Unibox).` : null,
+    r.mailbox ? `Went to: ${clean(r.mailbox)}. Answer in Gmail, reply to the thread.` : null,
     r.reason ? `Why: ${trim(r.reason, 160)}` : null,
     '',
     'They said:',
@@ -33,17 +33,20 @@ function formatBlocked(r) {
   return `${head}: ${who(r)}, ${clean(r.email)}\nPARTLY blocked, fix by hand: ${bad || 'unknown'}.${colleague}`;
 }
 
-function formatAutoNote(r) {
-  if (!r.colleague) return null;
-  return `Auto reply: ${who(r)} ${r.resume ? `back ${r.resume}. ` : ''}Names a colleague: ${clean(r.colleague)} (not contacted).`;
+function formatAutoDigest(items) {
+  const lines = items.map(i => `${who(i)}${i.email && !who(i).includes(i.email) ? ` ${clean(i.email)}` : ''}${i.resume ? `, back ${clean(i.resume)}` : ''}${i.colleague ? `, names ${clean(i.colleague)} (not contacted)` : ''}`);
+  return `Auto replies (${items.length}), nothing needed:\n${lines.map(l => `- ${l}`).join('\n')}`;
 }
 
 function formatUnibox(r) {
+  if (!r.email) {
+    return `Reply from ${clean(r.firstName) || 'someone'}${r.company ? ` at ${clean(r.company)}` : ''}, read it in the Mailead Unibox${r.mailbox ? ` (${clean(r.mailbox)})` : ''}.\n${clean(r.campaign) || 'unknown campaign'}${r.step ? `, step ${r.step}` : ''}. Mailead gave no email address, so I cannot see the text.`;
+  }
   return `Reply with no copy in Gmail: ${who(r)}\n${ctx(r)}\nRead it in the Mailead Unibox${r.mailbox ? ` (${clean(r.mailbox)})` : ''}. I cannot see the text.`;
 }
 
 function formatReAlert(r) {
-  return `Still unanswered after ${r.hours || 24}h: ${who(r)} (${HEAD[r.label] || r.label})\n${ctx(r)}\nNo reply from you has gone out to ${clean(r.email)} yet. This is the only reminder.`;
+  return `Still unanswered after ${r.hours || 24}h: ${who(r)} (${HEAD[r.label] || r.label})\n${ctx(r)}\nNo reply from you has gone out to ${clean(r.email)} yet. This is the only reminder. Answered some other way (say the Unibox)? Run: node reply-engine.js --answered ${clean(r.email)}`;
 }
 
-module.exports = { formatActionable, formatBlocked, formatAutoNote, formatUnibox, formatReAlert };
+module.exports = { formatActionable, formatBlocked, formatAutoDigest, formatUnibox, formatReAlert };
