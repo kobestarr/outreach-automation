@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// load-to-mailead.js — the send-batch last mile. Reads the campaign's ToSend sheet
+// load-to-mailead.js: the send-batch last mile and the TRUE last gate (do-not-contact, finder suppression, ledgers, firm check run again before every add_lead). Reads the campaign's ToSend sheet
 // and loads leads into an existing Mailead campaign via the direct add_lead API.
 // Replaces the (never-built) TaskMagic flow. Spec: docs/taskmagic-flow-brief.md.
 //
@@ -18,6 +18,8 @@ const fs = require('fs'), path = require('path');
 const { getCampaign } = require('./shared/outreach-core/campaigns/campaign-registry');
 const { MAILEAD_LABELS } = require('./shared/outreach-core/campaigns/sheet-rows');
 const { isValidEmail } = require('./shared/outreach-core/validation/data-quality');
+const G = require('./shared/outreach-core/campaigns/send-guards');
+const { readLedger } = require('./shared/outreach-core/csv/ledger');
 
 const TAB = 'ToSend';
 const L = MAILEAD_LABELS; // { first_name:'First Name', last_name:'Last Name', email:'Email', company_name:'Company Name', ... }
@@ -46,6 +48,48 @@ function appendLoadLedger(file, email) {
 async function loadBatch(opts, io) {
   const { campaign, title, campaignId = null, dryRun = false, limit = 0, spacingMs = 150, maxRetries = 3 } = opts;
   const log = io.log || console.log;
+  const dataDir = io.dataDir || path.dirname(io.ledgerFile);
+
+  // The true last gate. Live runs fail closed: no finder, no gate files, no load.
+  if (!dryRun) {
+    if (!io.finder || typeof io.finder.isSuppressed !== 'function') throw new Error('The email finder could not be loaded, so suppression cannot be checked. Refusing a live load.');
+    G.assertGateFiles(dataDir);
+  } else if (!io.finder) log('NOTE: finder suppression not checked in this dry run (finder unavailable). A live load would refuse to start.');
+
+  // Every gate is re-read at the moment it is used: hand edits to the sheet must not bypass anything.
+  const ownLoaded = path.basename(io.ledgerFile);
+  const otherLoaded = () => {
+    const emails = new Set(), domains = new Set();
+    if (!fs.existsSync(dataDir)) return { emails, domains };
+    for (const f of fs.readdirSync(dataDir)) {
+      if (!/^mailead-loaded-.*\.txt$/.test(f) || f === ownLoaded) continue;
+      for (const line of fs.readFileSync(path.join(dataDir, f), 'utf8').split(/\r?\n/)) {
+        const e = line.trim().toLowerCase();
+        if (!e.includes('@')) continue;
+        emails.add(e);
+        const d = G.firmDomain(e);
+        if (d) domains.add(d);
+      }
+    }
+    return { emails, domains };
+  };
+  const gate = lead => {
+    const email = lead.email.toLowerCase();
+    const why = G.isDoNotContact(G.readDoNotContact(path.join(dataDir, 'do-not-contact.txt'), { required: !dryRun }), { email });
+    if (why) return why;
+    if (io.finder && typeof io.finder.isSuppressed === 'function') {
+      const dom = G.domainOf(email);
+      if (io.finder.isSuppressed(email) || (dom && io.finder.isSuppressed(dom))) return 'finder_suppressed';
+    }
+    if (!readLedger(path.join(dataDir, 'sent-ledger.txt'), { required: !dryRun }).has(email)) return 'not_in_sent_ledger';
+    const other = otherLoaded();
+    if (other.emails.has(email)) return 'loaded_in_other_campaign';
+    const fd = G.leadFirmDomain({ email });
+    if (fd && other.domains.has(fd)) return 'firm_loaded_in_other_campaign';
+    return null;
+  };
+  const gated = [];
+  const skipGated = (lead, reason) => { gated.push({ email: lead.email, reason }); log(`  GATED ${lead.email}: ${reason}`); };
 
   // 1. Resolve sheet + rows
   const entry = getCampaign(io.registryFile, campaign);
@@ -77,13 +121,24 @@ async function loadBatch(opts, io) {
     seen.add(key);
     fresh.push(lead);
   }
-  const targets = limit > 0 ? fresh.slice(0, limit) : fresh;
+  // Last-gate pass 1 (preview and in-batch firm dedupe). Pass 2 runs again right before each add_lead.
+  const batchFirms = new Set();
+  const passed = [];
+  for (const lead of fresh) {
+    const reason = gate(lead);
+    if (reason) { skipGated(lead, reason); continue; }
+    const fd = G.leadFirmDomain({ email: lead.email });
+    if (fd && batchFirms.has(fd)) { skipGated(lead, 'firm_dupe_in_batch'); continue; }
+    if (fd) batchFirms.add(fd);
+    passed.push(lead);
+  }
+  const targets = limit > 0 ? passed.slice(0, limit) : passed;
 
   // 4. Report / preview
   const missingInsight = targets.filter(l => !l.last_name).map(l => l.email);
   log(`[${campaign}] sheet rows:${rows.length} mapped:${leads.length} no-email:${noEmail.length} ` +
-      `already-loaded:${alreadyLoaded.length} dup-in-sheet:${dupInFile.length} to-push:${targets.length}` +
-      (limit > 0 ? ` (limited from ${fresh.length})` : ''));
+      `already-loaded:${alreadyLoaded.length} dup-in-sheet:${dupInFile.length} gated:${gated.length} to-push:${targets.length}` +
+      (limit > 0 ? ` (limited from ${passed.length})` : ''));
   if (missingInsight.length) {
     log(`  NOTE: ${missingInsight.length} lead(s) have EMPTY Last Name (no insight carrier) -> ` +
         `email body line would render a gap. Emails: ${missingInsight.slice(0, 5).join(', ')}${missingInsight.length > 5 ? ' ...' : ''}`);
@@ -94,7 +149,7 @@ async function loadBatch(opts, io) {
     for (const lead of targets.slice(0, 3)) {
       log('    ' + JSON.stringify({ email_to_add: lead.email, first_name: lead.first_name, last_name: lead.last_name, company_name: lead.company_name }));
     }
-    return { toPush: targets.length, pushed: 0, failed: [], skipped: alreadyLoaded.length + dupInFile.length + noEmail.length, missingInsight };
+    return { toPush: targets.length, pushed: 0, failed: [], gated, skipped: alreadyLoaded.length + dupInFile.length + noEmail.length, missingInsight };
   }
 
   // 5. Live push with retry + spacing; ledger each success immediately (resumable)
@@ -104,6 +159,8 @@ async function loadBatch(opts, io) {
   const failed = [];
   for (let i = 0; i < targets.length; i++) {
     const lead = targets[i];
+    const reason = gate(lead); // immediately before add_lead
+    if (reason) { skipGated(lead, reason); continue; }
     let ok = false, lastErr = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -124,7 +181,7 @@ async function loadBatch(opts, io) {
   }
   log(`[${campaign}] DONE pushed:${pushed} failed:${failed.length}`);
   for (const f of failed.slice(0, 10)) log(`  FAIL ${f.email}: ${f.error}`);
-  return { toPush: targets.length, pushed, failed, skipped: alreadyLoaded.length + dupInFile.length + noEmail.length, missingInsight };
+  return { toPush: targets.length, pushed, failed, gated, skipped: alreadyLoaded.length + dupInFile.length + noEmail.length, missingInsight };
 }
 
 module.exports = { loadBatch, rowToLead };
@@ -148,14 +205,21 @@ if (require.main === module) {
       console.error(`--limit must be a positive integer (got '${limitRaw}')`); process.exit(2);
     }
 
+    const dryRun = flag('dry-run');
+    // Same pinned data folder as send-batch (OA_DATA_DIR, default the main checkout); a live run from a worktree is refused.
+    const dataDir = G.resolveDataDir({ repoDir: __dirname, dryRun });
+    let finder = null;
+    try { finder = require('./shared/outreach-core/enrichment/email-finder-adapter').openGateFinder(); }
+    catch (e) { console.error(`Email finder unavailable: ${e.message}`); }
+
     const sheets = require('./shared/outreach-core/sheets/sheets-client');
     const mailead = require('./shared/outreach-core/campaigns/mailead-client');
     // Resolve the campaign id up front: verifies the campaign exists (even on dry-run)
     // and keys the ledger by id so retitled/renamed campaigns can never share a ledger.
     const campaignId = await mailead.resolveCampaignId(title);
     const idSlug = title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    const ledgerFile = path.join(__dirname, `data/mailead-loaded-${campaignId}-${idSlug}.txt`);
-    const legacyLedger = path.join(__dirname, `data/mailead-loaded-${idSlug}.txt`);
+    const ledgerFile = path.join(dataDir, `mailead-loaded-${campaignId}-${idSlug}.txt`);
+    const legacyLedger = path.join(dataDir, `mailead-loaded-${idSlug}.txt`);
     if (!fs.existsSync(ledgerFile) && fs.existsSync(legacyLedger)) {
       fs.renameSync(legacyLedger, ledgerFile);
       console.log(`Migrated ledger ${path.basename(legacyLedger)} -> ${path.basename(ledgerFile)}`);
@@ -163,11 +227,14 @@ if (require.main === module) {
     const io = {
       registryFile: path.join(__dirname, 'config/campaign-sheets.json'),
       ledgerFile,
+      dataDir,
+      finder,
       sheets,
       resolveCampaignId: mailead.resolveCampaignId,
       addLead: mailead.addLead,
       log: console.log,
     };
-    await loadBatch({ campaign, title, campaignId, dryRun: flag('dry-run'), limit }, io);
+    try { await loadBatch({ campaign, title, campaignId, dryRun, limit }, io); }
+    finally { try { if (finder) finder.close(); } catch { /* best effort */ } }
   })().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
 }

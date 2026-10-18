@@ -32,7 +32,8 @@ The held and excluded files appear in the data folder (`held-<campaign>-<route>.
 - **Someone who has probably left.** If the address exists but the mailbox is switched off, we do not send.
 - **Anyone on the do-not-contact list**, by address or by whole company website. Checked at the very last step, whatever way the address was found.
 - **Anyone the finder has marked as suppressed** (they bounced, asked to be removed, or you added them). If a firm is suppressed we do not fall back to another address at that firm.
-- **The same firm twice.** One firm gets one email, even if it appears twice in the list, under two websites, or was loaded in an earlier wave. If one firm has both a personal and a shared address, the personal one wins.
+- **Nothing slips past the loader.** `load-to-mailead.js` runs every one of these checks again, address by address, just before it adds a lead, so a hand edit to the Google Sheet cannot bypass them. A row that was never put there by send-batch is refused.
+- **The same firm twice.** One firm gets one email, even if it appears twice in the list, under two websites, or was loaded in an earlier wave. If one firm has both a personal and a shared address, the personal one wins. Big shared addresses (NHS, universities, doctors.org.uk, TaxAssist, BT and similar) are never treated as one firm. The list lives in `config/shared-domains.json`, add to it any time.
 - **Anything unclear.** If a list has the new "how was this found" column but a row's value is blank, the row is excluded rather than assumed fine. Old lists without that column behave exactly as before.
 
 ## Credits and safety limits
@@ -42,7 +43,8 @@ The held and excluded files appear in the data folder (`held-<campaign>-<route>.
 - Before checking addresses for a send, the tool looks at today's balance. If there are not enough credits it stops, tells you, and pushes nothing.
 - Addresses the finder already confirmed in the last 30 days are not paid for a second time.
 - Icypeas spending is **off by default**. You have to ask for it.
-- Live sends refuse to run from a work-in-progress copy of the project, so the wrong list of past sends can never be used.
+- Live sends refuse to run from a work-in-progress copy of the project, and refuse if the list of past sends, the do-not-contact list or the finder's memory file is missing, so an empty list can never be mistaken for "nobody to avoid".
+- Dry runs never write into the data folder. Their held and excluded files go to a temporary folder (or the one you name with `--out-dir`).
 
 ## How bounces teach it
 
@@ -52,7 +54,7 @@ When an email bounces, the Buzz alert still arrives as before. In addition, the 
 - forgets that the address was ever confirmed,
 - marks the format that produced it as less trustworthy for that company.
 
-Each bounced address is passed on once only. If the finder cannot be reached at that moment, the address waits in a queue file, you get a single Buzz message saying so, and it is passed on automatically at the next run. Nothing is lost.
+Only hard bounces are passed on (a full mailbox or a temporary failure is just logged). Each bounced address is passed on once only, and the older bounce list from July is imported the first time it runs. If the finder cannot be reached at that moment, the address waits in a queue file, you get a single Buzz message saying so, and it is passed on automatically at the next run. Nothing is lost.
 
 ## What you run
 
