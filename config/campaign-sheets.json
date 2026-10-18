@@ -82,8 +82,8 @@
     "heldBack": "data/ai-visible-held-back-8985.txt"
   },
   "local-trades-wave2": {
-    "sheetId": null,
-    "sheetUrl": null,
+    "sheetId": "1QQf5FjxCm7DR5BK077740y1oLBW0XofuNI60lT2uim8",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1QQf5FjxCm7DR5BK077740y1oLBW0XofuNI60lT2uim8/edit",
     "label": "local-trades-wave2",
     "carriers": {
       "last_name": "{category} in {town}"
@@ -92,16 +92,41 @@
       "inbox": "local-trades-wave2-inbox"
     },
     "sequence": "exports/local-established-sequence-2026-10.md",
-    "note": "sheet pending: Kobi creates a blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>. Probable (Icypeas low-confidence) rows are HELD in data/held-local-trades-wave2-probable.csv until Icypeas is topped up."
+    "mailead": {
+      "campaignId": 8989,
+      "title": "local-trades-wave2-2026-10 (main)"
+    },
+    "sizeGate": true
   },
   "local-trades-wave2-inbox": {
-    "sheetId": null,
-    "sheetUrl": null,
+    "sheetId": "1MYnKCexGlPOecbJmWE-WyncIIVeVMx0kkIkYRKmv1fk",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1MYnKCexGlPOecbJmWE-WyncIIVeVMx0kkIkYRKmv1fk/edit",
     "label": "local-trades-wave2-inbox",
     "carriers": {
       "last_name": "{category} in {town}"
     },
-    "sequence": "exports/local-established-sequence-2026-10.md (inbox variant: line 1 tweaked, Kobi approves the line first)",
-    "note": "sheet pending: Kobi creates a blank sheet w/ ToSend tab, shares Editor with outreach-sheets@kobestarr-leadpipe.iam.gserviceaccount.com, then node send-batch.js --register <key> <url>"
+    "sequence": "exports/local-established-sequence-2026-10.md (inbox variant: line 1 = 'hoping this reaches you rather than getting lost in the general {{company_name}} inbox', approved 18 Oct)",
+    "mailead": {
+      "campaignId": 8990,
+      "title": "local-trades-wave2-2026-10 (inbox)"
+    },
+    "sizeGate": true
+  },
+  "funded-founders-2026-10": {
+    "sheetId": "1XzbgMZ2_LkunkObhF-wb_P5481SgfJ0znLSJ10XxN2E",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1XzbgMZ2_LkunkObhF-wb_P5481SgfJ0znLSJ10XxN2E/edit",
+    "label": "funded-founders-2026-10",
+    "carriers": {
+      "last_name": "{icebreaker}"
+    },
+    "mailead": {
+      "campaignId": 8987,
+      "title": "funded-founders-2026-10 (AI walkthrough)"
+    },
+    "sequence": "Claude Doc 'Copy for approval: funded + local wave 2' (approved 18 Oct)",
+    "route": {
+      "listType": "funded",
+      "verify": "reoon-safe-only"
+    }
   }
 }

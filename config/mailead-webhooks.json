@@ -1,37 +1,68 @@
 {
- "receiver": "https://n8n.srv1244012.hstgr.cloud/mailead-hook/<secret on VPS unit + scratchpad>",
- "registered": "2026-07-06",
- "webhooks": [
-  {
-   "campaign_id": 8890,
-   "event": "email_answered",
-   "webhook_id": "789b1c10-2dc9-4571-bce2-7d292f8a58b0"
-  },
-  {
-   "campaign_id": 8890,
-   "event": "email_bounced",
-   "webhook_id": "de60e2d7-e278-478d-8868-0c6eb4871854"
-  },
-  {
-   "campaign_id": 8886,
-   "event": "email_answered",
-   "webhook_id": "ee524a8a-bbf0-4f26-a67a-1d9f4e961e34"
-  },
-  {
-   "campaign_id": 8886,
-   "event": "email_bounced",
-   "webhook_id": "19c37b38-5c45-4844-a494-1f44de78d4d6"
-  },
-  {
-   "campaign_id": 8986,
-   "event": "email_answered",
-   "webhook_id": "dc3d1ddf-39b0-4c4f-b940-9c96654587f8"
-  },
-  {
-   "campaign_id": 8986,
-   "event": "email_bounced",
-   "webhook_id": "7d7ed3d7-31c3-4402-982c-67043d786d78"
-  }
- ],
- "receiverNote": "Real URL = receiver with <secret> replaced by HOOK_SECRET from VPS systemd unit mailead-webhook (never commit it)."
+  "receiver": "https://n8n.srv1244012.hstgr.cloud/mailead-hook/<secret on VPS unit + scratchpad>",
+  "registered": "2026-07-06",
+  "webhooks": [
+    {
+      "campaign_id": 8890,
+      "event": "email_answered",
+      "webhook_id": "789b1c10-2dc9-4571-bce2-7d292f8a58b0"
+    },
+    {
+      "campaign_id": 8890,
+      "event": "email_bounced",
+      "webhook_id": "de60e2d7-e278-478d-8868-0c6eb4871854"
+    },
+    {
+      "campaign_id": 8886,
+      "event": "email_answered",
+      "webhook_id": "ee524a8a-bbf0-4f26-a67a-1d9f4e961e34"
+    },
+    {
+      "campaign_id": 8886,
+      "event": "email_bounced",
+      "webhook_id": "19c37b38-5c45-4844-a494-1f44de78d4d6"
+    },
+    {
+      "campaign_id": 8986,
+      "event": "email_answered",
+      "webhook_id": "dc3d1ddf-39b0-4c4f-b940-9c96654587f8"
+    },
+    {
+      "campaign_id": 8986,
+      "event": "email_bounced",
+      "webhook_id": "7d7ed3d7-31c3-4402-982c-67043d786d78"
+    },
+    {
+      "campaign_id": 8987,
+      "event": "email_answered",
+      "webhook_id": "e712f6b1-e961-4c75-972d-3560e345f5f0"
+    },
+    {
+      "campaign_id": 8987,
+      "event": "email_bounced",
+      "webhook_id": "591c84f5-fdc1-4e4e-84a2-db1e681619c8"
+    },
+    {
+      "campaign_id": 8989,
+      "event": "email_answered",
+      "webhook_id": "7335d9bd-8899-4211-92a7-bfafbe9a7bcc"
+    },
+    {
+      "campaign_id": 8989,
+      "event": "email_bounced",
+      "webhook_id": "1df2d9ab-6a6f-4feb-8ebe-b586b73cc65c"
+    },
+    {
+      "campaign_id": 8990,
+      "event": "email_answered",
+      "webhook_id": "72d94a6e-6fbd-4b19-8f0a-99dca5b77f85"
+    },
+    {
+      "campaign_id": 8990,
+      "event": "email_bounced",
+      "webhook_id": "b7c275a0-5ab9-4e80-aa41-c1ea153cc2c0"
+    }
+  ],
+  "receiverNote": "Real URL = receiver with <secret> replaced by HOOK_SECRET from VPS systemd unit mailead-webhook (never commit it).",
+  "deadWebhooksNote": "18 Oct: 6 earlier webhooks for 8987/8989/8990 were registered with the unsubstituted placeholder URL (404, ids not captured). Harmless; correct ones listed above."
 }
