@@ -180,6 +180,36 @@ class DryRunAndSafety(unittest.TestCase):
         self.assertFalse(any("hunter2" in l for l in lines))
 
 
+class Skips(unittest.TestCase):
+    def test_skipped_messages_are_logged_with_their_uid(self):
+        folders = {"INBOX": {4: mail("a@b.com", OURS, "Re: ok", "x", "<ok>"), 5: b"Subject: weird\r\nFrom: a@b.com\r\nTo: " + OURS.encode() + b"\r\n\r\nno message id"},
+                   "[Gmail]/Sent Mail": {}}
+        _, recs, lines, _, _ = run_collector(folders)
+        self.assertEqual([r["msgid"] for r in recs], ["<ok>"])
+        self.assertTrue(any("UID 5" in l and "Message-ID" in l for l in lines), lines)
+
+    def test_unparseable_message_is_logged_with_uid(self):
+        folders = {"INBOX": {7: mail("a@b.com", OURS, "Re: boom", "x", "<m7>")}, "[Gmail]/Sent Mail": {}}
+        real = rc.inbound_record
+        rc.inbound_record = lambda m, a: (_ for _ in ()).throw(ValueError("bad"))
+        try:
+            _, _, lines, _, _ = run_collector(folders)
+        finally:
+            rc.inbound_record = real
+        self.assertTrue(any("UID 7" in l and "bad" in l for l in lines), lines)
+
+    def test_state_is_written_atomically(self):
+        calls = []
+        real = os.replace
+        os.replace = lambda a, b: (calls.append((a, b)), real(a, b))[1]
+        try:
+            _, _, _, env, _ = run_collector({"INBOX": {1: mail("a@b.com", OURS, "Re: 1", "x", "<m1>")}, "[Gmail]/Sent Mail": {}})
+        finally:
+            os.replace = real
+        self.assertTrue(any(b == env["STATE_PATH"] and a != b for a, b in calls))
+        self.assertFalse([f for f in os.listdir(os.path.dirname(env["STATE_PATH"])) if f.endswith(".tmp")])
+
+
 class Resilience(unittest.TestCase):
     def three(self):
         return {"INBOX": {i: mail(f"p{i}@x.com", OURS, f"Re: {i}", f"body {i}", f"<m{i}>") for i in (1, 2, 3)}, "[Gmail]/Sent Mail": {}}

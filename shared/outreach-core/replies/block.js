@@ -14,7 +14,8 @@ const firstCols = text => new Set(String(text).split('\n').filter(l => l && !l.s
 
 function appendUnique(email, line, path, { readFile, appendFile }) {
   let text = '';
-  try { text = readFile(path); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  // Fail closed: a missing ledger file is an error, never created here (a wrong data dir would silently fork the lists)
+  try { text = readFile(path); } catch (e) { throw e.code === 'ENOENT' ? new Error(`${path} does not exist, refusing to create it`) : e; }
   if (firstCols(text).has(email)) return 'exists';
   appendFile(path, `${text && !text.endsWith('\n') ? '\n' : ''}${line}\n`);
   return 'added';

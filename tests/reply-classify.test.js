@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const { classifyDeterministic, classifyReply, parseResumeDate, LABELS } = require('../shared/outreach-core/replies/classify');
+const { classifyDeterministic, classifyReply, parseResumeDate, LABELS, stripBody } = require('../shared/outreach-core/replies/classify');
 
 const rows = fs.readFileSync(path.join(__dirname, 'fixtures/replies-2026-10-18.jsonl'), 'utf8')
   .trim().split('\n').map(l => JSON.parse(l));
@@ -270,4 +270,60 @@ test('a salvaged label still goes through the never-no guard', async () => {
   const raw = '{"label":"no","reason":"x","}';
   const r = await classifyReply(warmAsk, { llm: async () => raw });
   assert.notStrictEqual(r.label, 'no');
+});
+
+// ---- round 3 ----
+test('removal plus an alternative is never decided by the rules', () => {
+  for (const body of ['Remove me from the video list and email the report instead', 'Not interested in a call, I would rather you emailed the audit',
+    'no thanks to the call, happy with just the report', 'Please remove me, I prefer the one pager', 'Not interested, only send me the report', 'Unsubscribe me but email me the audit']) {
+    assert.strictEqual(classifyDeterministic({ subject: 'Re: x', body, from: 'a@b.com' }), null, body);
+  }
+});
+
+test('a Thanks line does not hide a later question', () => {
+  const body = 'Please remove me.\nThanks\nActually what would the audit cost?';
+  assert.strictEqual(classifyDeterministic({ subject: 'Re: x', body, from: 'a@b.com' }), null);
+  assert.match(stripBody(body), /audit cost/);
+  assert.match(stripBody('Thanks\nActually I would love the audit'), /love the audit/);
+});
+
+test('a real signature block after the sign-off is still removed', () => {
+  assert.strictEqual(stripBody('Not interested.\nKind regards\nJo Smith\nDirector\n07700 900123\nwww.firm.co.uk'), 'Not interested.');
+  assert.strictEqual(classifyDeterministic({ subject: 'Re: x', body: 'Not interested.\nThanks\nJo Smith\nPartner | Firm LLP', from: 'a@b.com' }).label, 'no');
+});
+
+test('Exit planning question with an empty body is not a left notice', () => {
+  assert.strictEqual(classifyDeterministic({ subject: 'Exit planning question', body: '', from: 'a@b.com' }), null);
+  assert.strictEqual(classifyDeterministic({ subject: 'Re: Exit planning question', body: '', from: 'a@b.com' }), null);
+  assert.strictEqual(classifyDeterministic({ subject: 'Grayson Exit Re: Hi Grayson', body: '', from: 'a@b.com' }).label, 'left_company');
+});
+
+test('model safety net: a no with a question mark anywhere in the reply becomes maybe', async () => {
+  for (const body of ['Not for us. Who is this?', 'Is this a scam?', 'We already have someone. What makes you different?']) {
+    for (const label of ['no', 'left_company']) {
+      const c = await classifyReply({ subject: 'Re: x', body, from: 'a@b.com' }, { llm: async () => JSON.stringify({ label, reason: 'x' }) });
+      assert.strictEqual(c.label, 'maybe', `${label}: ${body}`);
+    }
+  }
+  const ok = await classifyReply({ subject: 'Re: x', body: 'We are not interested, stop emailing us. Two sentences so the rules pass it on.', from: 'a@b.com' }, { llm: async () => '{"label":"no","reason":"x"}' });
+  assert.strictEqual(ok.label, 'no');
+});
+
+// neutral bodies: no positive word, so only the tag stripping / subject lead can save them
+test('gateway tags never turn a human reply into an auto reply (neutral body)', () => {
+  for (const s of ['EXT: Re: AI search for X', '[EXTERNAL] Re: AI search for X', '*External* Re: AI search for X', 'CAUTION: Re: AI search for X', '[EXT] RE: AI search for X']) {
+    const d = classifyDeterministic({ subject: s, body: 'Ok, thanks Kobi.', from: 'a@b.com' });
+    assert.ok(!d || d.label !== 'auto', `${s} -> ${d && d.label}`);
+  }
+});
+
+test('auto-subject words that sit after Re: are our subject, not an auto reply (neutral body)', () => {
+  for (const s of ['Re: Annual leave planning for the AI search audit', 'Re: holiday cottage football books', 'Re: Automatic reply tips for X', 'Re: Out of office hours for X']) {
+    const d = classifyDeterministic({ subject: s, body: 'Ok, thanks Kobi.', from: 'a@b.com' });
+    assert.ok(!d || d.label !== 'auto', `${s} -> ${d && d.label}`);
+  }
+});
+
+test('the same words BEFORE Re: are an auto reply', () => {
+  assert.strictEqual(classifyDeterministic({ subject: 'Annual leave Re: AI search for X', body: 'Ok, thanks Kobi.', from: 'a@b.com' }).label, 'auto');
 });

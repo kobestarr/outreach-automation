@@ -87,7 +87,10 @@ const LEFT = [
   /\bmoved on from\b/i, /\bhas departed\b/i,
 ];
 const FIRST_PERSON_LEFT = /\b(?:we|i)(?:'re|'m| are| am)\s+no longer\b/i;
-const LEFT_SUBJECT = /\bexit\b|\bdeparture\b/i;
+// Only "<Name> Exit" followed by a Re: (an HR-style auto subject). A bare "Exit planning question" is a sales topic, not a left notice.
+const leftSubject = (lead, subject) => /^\S+(?:\s\S+)?\s+exit$/i.test(lead) && lead.length < String(subject).length;
+// Removal or no, but with an alternative on offer ("email the report instead"): never the rules' call.
+const ALTERNATIVE = /\b(?:instead|rather|just the|only|happy with|prefer(?:red)?)\b|\b(?:email|send)(?: me)? the (?:report|audit|one[- ]?pager)\b/i;
 const MAILBOX_DEAD = /(?:mailbox|address|account|inbox) (?:is |has been )?(?:no longer (?:in use|monitored|checked|active|valid)|(?:closed|deactivated|disabled))/i;
 const RETIRED = /\b(?:i am|i'm|i have|i've|have|has|now|am|is|founder has|owner has)\s+(?:now\s+)?retired\b|\bretired\b.*\bno longer\b/i;
 const RETIRED_NOTICE = /no longer in use|automatically deleted|mailbox (?:is )?closed/i;
@@ -120,6 +123,15 @@ const FOOTER_LINE = /unsubscribe|opt[- ]out/i;
 const FOOTER_CONTEXT = /newsletter|click|mailing list|manage (?:your )?(?:email )?preferences/i;
 const CUT_AT = [/^\s*--\s*$/, /^\s*sent from my\b/i, /^\s*get outlook for\b/i, /^\s*sent via\b/i, /^\s*-{2,}\s*original message/i, /^\s*_{10,}\s*$/, /^\s*on .{3,}wrote:\s*$/i];
 
+// What follows a sign-off is only dropped when it looks like a signature (name, title, phone, URL), never a later question.
+const SIG_LINE = /^[A-Z][\w.'\u2019-]*(?:\s+[A-Z][\w.'\u2019-]*){0,3}$|\d{3}|@|https?:|www\.|\||\b(?:director|manager|partner|founder|ceo|cfo|coo|owner|consultant|accountant|solicitor|head|lead|ltd|limited|llp|plc|inc)\b/i;
+function looksLikeSignature(rest) {
+  const ls = rest.map(x => x.trim()).filter(Boolean);
+  if (!ls.length) return true;
+  if (ls.length > 8 || ls.some(x => x.includes('?') || x.length > 80)) return false;
+  return ls.every(x => SIG_LINE.test(x));
+}
+
 function stripBody(body) {
   const kept = [];
   const lines = String(body || '').replace(/\r\n?/g, '\n').split('\n');
@@ -129,7 +141,7 @@ function stripBody(body) {
     if (CUT_AT.some(r => r.test(ln))) break;
     if (/^\s*from:\s/i.test(ln) && lines.slice(i + 1, i + 4).some(x => /^\s*(?:sent|date|to|subject):/i.test(x))) break;
     if (FOOTER_LINE.test(ln) && FOOTER_CONTEXT.test(ln)) continue;
-    if (kept.length && SIGNOFF.test(ln)) break;
+    if (kept.length && SIGNOFF.test(ln) && looksLikeSignature(lines.slice(i + 1))) break;
     kept.push(ln);
   }
   return kept.join('\n').trim();
@@ -157,11 +169,12 @@ function classifyDeterministic(reply, now = new Date()) {
   const headerAuto = /auto-(?:replied|generated|notified)/.test(hdr) || /auto_reply|bulk/.test(`${reply.precedence || ''}`.toLowerCase()) || reply.x_autoreply;
 
   // 1. retired / left company / dead mailbox (robots send these too, so before auto). Rules only block a short single-intent notice.
-  const leftLike = !FIRST_PERSON_LEFT.test(text) && (LEFT.some(r => r.test(text)) || LEFT_SUBJECT.test(lead) || MAILBOX_DEAD.test(text));
+  const alt = ALTERNATIVE.test(text);
+  const leftLike = !FIRST_PERSON_LEFT.test(text) && (LEFT.some(r => r.test(text)) || leftSubject(lead, subject) || MAILBOX_DEAD.test(text));
   const retiredLike = RETIRED.test(text);
   if (leftLike || retiredLike) {
     if (TAKEOVER.test(body)) return decorate({ label: 'referral', reason: 'someone new has taken over' }, text, reply);
-    if (!positive && singleIntent(body)) {
+    if (!positive && !alt && singleIntent(body)) {
       return retiredLike ? decorate({ label: 'no', reason: 'retired' }, text, reply) : decorate({ label: 'left_company', reason: 'person no longer there' }, text, reply);
     }
   }
@@ -175,7 +188,7 @@ function classifyDeterministic(reply, now = new Date()) {
   }
 
   // 3. firm no: only a short single-intent notice, never "not now", never when they also ask for something
-  if (!positive && !NOT_NOW.test(text) && singleIntent(body)) {
+  if (!positive && !alt && !NOT_NOW.test(text) && singleIntent(body)) {
     if (NO_FIRM.some(r => r.test(text))) return decorate({ label: 'no', reason: 'asked to be removed' }, text, reply);
     if (NO_SOFT.some(r => r.test(body))) return decorate({ label: 'no', reason: 'not interested' }, text, reply);
   }
@@ -251,7 +264,9 @@ async function classifyReply(reply, { llm, now } = {}) {
   const text = `${subjectLead(cleanSubject(reply.subject))}\n${stripBody(reply.body)}`;
   if (['no', 'auto', 'left_company'].includes(out.label)) {
     if (TAKEOVER.test(text) && out.label !== 'auto') return { ...out, label: 'referral', reason: `model said ${j.label} but someone new has taken over: ${out.reason}` };
-    if (hasPositive(text) || (out.label !== 'auto' && NOT_NOW.test(text))) {
+    const body = stripBody(reply.body);
+    const unexplained = out.label !== 'auto' && !body && !(LEFT.some(r => r.test(text)) || leftSubject(subjectLead(cleanSubject(reply.subject)), cleanSubject(reply.subject)) || MAILBOX_DEAD.test(text) || RETIRED.test(text));
+    if (hasPositive(text) || (out.label !== 'auto' && (NOT_NOW.test(text) || ALTERNATIVE.test(text) || /\?/.test(body) || unexplained))) {
       return { ...out, label: 'maybe', reason: `model said ${j.label} but the reply asks for something or is not final: ${out.reason}` };
     }
   }

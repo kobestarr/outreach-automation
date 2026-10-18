@@ -19,12 +19,12 @@ const ACTIONABLE = ['warm', 'maybe', 'referral'];
 const IGNORED_SENDERS = /^(?:mailer-daemon|postmaster)@/i; // not a whole domain: real people use googlemail.com
 
 const DAY = 24 * HOUR;
-const emptyState = () => ({ seen: {}, events: {}, pending: {}, gmailLeads: {}, blocked: {}, resume: {}, awaiting: {}, sent: {}, partial: {}, drafts: {}, warned: {} });
+const emptyState = () => ({ seen: {}, events: {}, pending: {}, gmailLeads: {}, blocked: {}, resume: {}, awaiting: {}, sent: {}, partial: {}, drafts: {}, warned: {}, evIds: {} });
 
 // Drop anything older than 30 days so the state file stays small.
 function pruneState(st, nowMs, days = 30) {
   const cutoff = nowMs - days * DAY;
-  for (const k of ['seen', 'events', 'gmailLeads', 'blocked', 'sent', 'partial']) for (const [key, v] of Object.entries(st[k] || {})) if (v < cutoff) delete st[k][key];
+  for (const k of ['seen', 'events', 'evIds', 'gmailLeads', 'blocked', 'sent', 'partial']) for (const [key, v] of Object.entries(st[k] || {})) if (v < cutoff) delete st[k][key];
   for (const [key, v] of Object.entries(st.awaiting || {})) if (v.ts < cutoff) delete st.awaiting[key];
   for (const [key, v] of Object.entries(st.drafts || {})) if (v.ts < cutoff) delete st.drafts[key];
   for (const [key, v] of Object.entries(st.pending || {})) if (v.at < cutoff) delete st.pending[key];
@@ -84,6 +84,13 @@ async function processNew({ replies = [], events = [], state }, deps) {
   for (const ev of events) {
     if (!ev || ev.event_type !== 'email_answered') continue;
     const key = eventKey(ev);
+    // an exact event line seen before (say the log rotated and was read again) is never alerted twice
+    const stamp = ev.receivedAt || ev.timestamp;
+    if (stamp) {
+      const idKey = `${key}|${stamp}`;
+      if (state.evIds[idKey]) continue;
+      state.evIds[idKey] = nowMs;
+    }
     if (state.events[key] && nowMs - state.events[key] < EVENT_DEDUP) continue;
     state.events[key] = nowMs;
     state.pending[key] = { ev, at: eventTime(ev, nowMs) };

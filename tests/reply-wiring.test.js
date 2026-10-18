@@ -97,6 +97,7 @@ test('writeAtomic leaves no temp file and replaces in one step', () => {
 // ---- whole runs with injected effects ----
 function liveOpts(dir, extra = {}) {
   const posts = [];
+  for (const f of ['do-not-contact.txt', 'sent-ledger.txt']) if (!fs.existsSync(path.join(dir, f))) fs.writeFileSync(path.join(dir, f), '');
   return { posts, opts: { env: { REPLY_ENGINE_STATE_DIR: dir, OA_DATA_DIR: dir }, log: () => {}, isWorktree: () => false,
     post: async t => { posts.push(t); }, llm: { classify: undefined, draft: async () => 'Hi,\n\nx [BOOKING LINK]\n\nKobi' }, now: () => new Date('2026-10-20T12:00:00Z'), ...extra } };
 }
@@ -140,4 +141,31 @@ test('state is written atomically and pruned', async () => {
   const st = JSON.parse(fs.readFileSync(path.join(dir, 'reply-engine-state.json'), 'utf8'));
   assert.deepStrictEqual(Object.keys(st.seen), ['<new>']);
   assert.ok(!fs.readdirSync(dir).some(f => f.endsWith('.tmp')));
+});
+
+test('fail closed: no data dir, or missing ledger files, means no run, one alert a day, nothing created', async () => {
+  for (const make of [
+    d => path.join(d, 'nope'),                                   // dir does not exist
+    d => { const x = path.join(d, 'empty'); fs.mkdirSync(x); return x; },   // dir exists, files do not
+    d => { const x = path.join(d, 'half'); fs.mkdirSync(x); fs.writeFileSync(path.join(x, 'sent-ledger.txt'), ''); return x; }, // only one of the two
+  ]) {
+    const dir = tmp(); const data = make(dir);
+    const posts = []; const lines = [];
+    const opts = { env: { REPLY_ENGINE_STATE_DIR: path.join(dir, 's'), OA_DATA_DIR: data }, log: l => lines.push(l), isWorktree: () => false,
+      post: async t => posts.push(t), ssh: () => { throw new Error('must not reach ssh'); }, now: () => new Date('2026-10-20T12:00:00Z') };
+    const before = fs.existsSync(data) ? fs.readdirSync(data).sort() : null;
+    assert.notStrictEqual(await main(['--once'], opts), 0);
+    assert.strictEqual(posts.length, 1);
+    assert.match(posts[0], /do-not-contact|ledger/);
+    await main(['--once'], opts);
+    assert.strictEqual(posts.length, 1, 'one alert per day, not one per run');
+    const after = fs.existsSync(data) ? fs.readdirSync(data).sort() : null;
+    assert.deepStrictEqual(after, before, 'must never create the ledger files');
+  }
+});
+
+test('with both files present the live run starts', async () => {
+  const dir = tmp();
+  const { opts } = liveOpts(dir, { ssh: cmd => (/wc -l/.test(cmd) ? '0\n' : ''), tracker: { trackReply: async () => {} } });
+  assert.strictEqual(await main(['--once'], opts), 0);
 });

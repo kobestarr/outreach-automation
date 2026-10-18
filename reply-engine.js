@@ -109,6 +109,19 @@ async function main(argv = process.argv.slice(2), opts = {}) {
     const worktree = (opts.isWorktree || isWorktreeDir)(root);
     if (worktree && !env.OA_DATA_DIR) { log('refusing to run live from a git worktree without OA_DATA_DIR (the ledgers live in the main checkout)'); return 2; }
     fs.mkdirSync(stateDir, { recursive: true });
+    // fail closed: the do-not-contact list and ledger must already exist where we are pointed. Never created here.
+    const missing = [dncPath, ledgerPath].filter(f => !fs.existsSync(f));
+    if (missing.length) {
+      log(`refusing to run: missing ${missing.join(', ')} (data dir ${dataDir})`);
+      const marker = path.join(stateDir, 'reply-engine-data-alert');
+      if (now().getTime() - (readOffset(marker) || 0) > 24 * 3600_000) {
+        try {
+          await (opts.post || require('./shared/outreach-core/notify/buzz-post').post)(`Reply engine NOT running: cannot find ${missing.map(f => path.basename(f)).join(' and ')} in ${dataDir}. Check OA_DATA_DIR. Nothing was blocked or posted. This alert repeats once a day.`);
+          writeAtomic(marker, String(now().getTime()));
+        } catch (e) { log(`could not post the alert: ${e.message}`); }
+      }
+      return 2;
+    }
     if (!acquireLock(lockFile)) { log('another run is in progress, skipping'); return 0; }
   }
   try {

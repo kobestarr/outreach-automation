@@ -90,3 +90,11 @@ test('makeFinderSuppress runs: email-finder suppress <email> <reason>', async ()
   assert.match(seen[0][0], /\.local\/bin\/email-finder$/);
   assert.deepStrictEqual(seen[0][1], ['suppress', 'a@b.com', 'asked to be removed']);
 });
+
+test('a missing ledger or do-not-contact file fails closed: nothing is created and it is not complete', async () => {
+  const { deps, calls } = harness({ '/d/sent-ledger.txt': '' }); // no do-not-contact file
+  const r = await blockEverywhere('a@b.com', 'x', deps);
+  assert.match(r.dnc, /^failed/);
+  assert.strictEqual(r.complete, false);
+  assert.ok(!calls.appends.some(([p]) => p === '/d/do-not-contact.txt'), 'must never create the file');
+});

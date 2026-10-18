@@ -383,3 +383,26 @@ test('actions list describes what happened (used by dry-run)', async () => {
   const res = await h.run([inbound(row('feyi@rslaw.co.uk')), inbound(rows[0])]);
   assert.deepStrictEqual(res.actions.map(a => `${a.label}:${a.email}`), ['no:feyi@rslaw.co.uk', 'warm:atif@hutchingsaccountants.com']);
 });
+
+test('log rotation: lines re-read later are not posted again (seen by msgid) and old events do not re-alert', async () => {
+  const h = make();
+  const r = inbound(rows[0]);
+  await h.run([r], [evt('atif@hutchingsaccountants.com')]);
+  const e2 = evt('zed@z.com', { firstName: 'Zed' });
+  await h.run([], [e2]);
+  h.clock = at(20); await h.run();
+  const n = h.posts.length;
+  h.clock = at(26 * 60); // a day later the logs rotated, so everything is read again
+  await h.run([r], [evt('atif@hutchingsaccountants.com'), e2]);
+  h.clock = at(27 * 60); await h.run();
+  assert.strictEqual(h.posts.filter(p => /Mailead Unibox/.test(p)).length, 1, 'Zed alerted once only');
+  assert.strictEqual(h.posts.filter(p => /^Warm reply/.test(p)).length, 1);
+  assert.ok(h.posts.length <= n + 1); // at most the one 24h reminder for the unanswered warm reply
+});
+
+test('seen is kept for the whole 30 day collector retention', () => {
+  const now = Date.parse('2026-10-18T00:00:00Z');
+  const st = emptyState(); st.seen['<a>'] = now - 29 * 86_400_000; st.evIds['x'] = now - 29 * 86_400_000;
+  pruneState(st, now);
+  assert.deepStrictEqual([Object.keys(st.seen).length, Object.keys(st.evIds).length], [1, 1]);
+});

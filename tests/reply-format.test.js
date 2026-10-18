@@ -45,3 +45,9 @@ test('auto digest lists each auto with resume date and colleague, one message', 
   const m = f.formatAutoDigest([{ firstName: 'A', company: 'AA', email: 'a@a.com', resume: '2026-07-27' }, { firstName: 'B', company: 'BB', email: 'b@b.com', colleague: 'c@b.com' }]);
   assert.match(m, /^Auto replies \(2\)/); assert.match(m, /2026-07-27/); assert.match(m, /c@b\.com/); assert.doesNotMatch(m, /\u2014/);
 });
+
+test('"Blocked everywhere" only when every target succeeded', () => {
+  assert.match(f.formatBlocked({ ...base, label: 'no', result: { complete: true, mailead: 'ok', finder: 'ok', dnc: 'added', ledger: 'added' } }), /Blocked everywhere/);
+  const m = f.formatBlocked({ ...base, label: 'no', result: { complete: true, mailead: 'ok', finder: 'ok', dnc: 'failed: missing', ledger: 'added' } });
+  assert.doesNotMatch(m, /Blocked everywhere/); assert.match(m, /PARTLY/);
+});

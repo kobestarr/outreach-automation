@@ -193,7 +193,7 @@ def uidvalidity(M):
         return None
 
 
-def fetch_new(M, folder, state_key, state, days, build, seen):
+def fetch_new(M, folder, state_key, state, days, build, seen, out=print):
     """Walk UIDs newer than the saved one. Returns (records, new_last_uid, validity).
     Stops at the first fetch that fails so that message is retried next run (the saved uid never passes it).
     A message that cannot be parsed is skipped, not retried forever."""
@@ -224,9 +224,12 @@ def fetch_new(M, folder, state_key, state, days, build, seen):
             break                              # do not advance past a failed fetch
         try:
             rec = build(email.message_from_bytes(fetched[0][1]))
-        except Exception:
-            rec = None                         # poison message: skip it
+        except Exception as e:
+            rec = None                         # poison message: skip it, but say so
+            out(f"skipped UID {u} in {folder}: could not parse ({e})")
         new_last = u
+        if rec and not rec["msgid"]:
+            out(f"skipped UID {u} in {folder}: no Message-ID")
         if rec and rec["msgid"] and rec["msgid"] not in seen:
             seen[rec["msgid"]] = True
             records.append(rec)
@@ -252,8 +255,8 @@ def run(connect, env, argv, out=print):
     M = connect()
     M.login(user, pw)
     try:
-        inbound, last_in, val_in = fetch_new(M, INBOX, "inbox_uid", state, days, lambda m: inbound_record(m, allow), seen)
-        sent, last_sent, val_sent = fetch_new(M, SENT, "sent_uid", state, days, sent_record, seen)
+        inbound, last_in, val_in = fetch_new(M, INBOX, "inbox_uid", state, days, lambda m: inbound_record(m, allow), seen, out)
+        sent, last_sent, val_sent = fetch_new(M, SENT, "sent_uid", state, days, sent_record, seen, out)
     finally:
         try: M.logout()
         except Exception: pass
@@ -273,8 +276,10 @@ def run(connect, env, argv, out=print):
                   "seen": list(seen)[-SEEN_MAX:],
                   "updated": datetime.now(timezone.utc).isoformat()})
     os.makedirs(os.path.dirname(state_path), exist_ok=True)
-    with open(state_path, "w") as f:
+    tmp = state_path + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(state, f)
+    os.replace(tmp, state_path)            # atomic: a crash never leaves half a state file
     out(f"{len(inbound)} inbound, {len(sent)} sent written")
     return 0
 

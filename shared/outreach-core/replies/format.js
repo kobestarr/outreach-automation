@@ -26,7 +26,8 @@ function formatActionable(r) {
 function formatBlocked(r) {
   const head = r.label === 'left_company' ? 'Left the company' : 'No';
   const colleague = r.referral_email ? `\nNamed colleague: ${clean(r.referral_email)} (not contacted, your call).` : '';
-  if (r.result && r.result.complete) {
+  const failed = Object.values(r.result || {}).some(v => typeof v === 'string' && v.startsWith('failed'));
+  if (r.result && r.result.complete && !failed) {
     return `${head}: ${who(r)}, ${clean(r.email)}\n${trim(r.reason, 120)}. Blocked everywhere (Mailead, email finder, do not contact list, ledger).${colleague}`;
   }
   const bad = Object.entries(r.result || {}).filter(([k, v]) => typeof v === 'string' && v.startsWith('failed')).map(([k, v]) => `${k} ${v}`).join('; ');
