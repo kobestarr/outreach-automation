@@ -52,3 +52,15 @@ Approval tap, building campaigns in the Mailead UI, sheets sharing, subject line
 1. Weekly Outscraper spend cap? Recommended: £20 a wave (about 5,000 results at $0.002), reviewed after week two.
 2. Should the first autopilot run be Mon 26 Oct, with this week's wave run by hand? Recommended: yes.
 3. Weekly wave size? Recommended: about 600 leads to start (2 to 3 Mailead campaigns), raised only while bounce stays under 3%.
+
+## Revisions after adversarial review (18 Oct 2026, binding)
+- **Scope (30 Oct).** Drop segment scoring until there is history. v1 `pickSegments` takes the next segment from a fixed list in `config/harvey.json` that Kobi orders. Scoring returns once there are 4 waves of results. The explore slot is dropped with it.
+- **PECR (M10).** Only **Companies House-matched limited companies** enter a wave. Sole traders and partnerships need consent and are excluded.
+- **Route by segment and copy (M10).** A lead is mapped to a campaign by `segment` AND the copy it was written for, never by pile type alone. Each campaign in `config/campaign-sheets.json` declares `segment` and `copyVariant`; a mismatch holds the row. Plumbers can never reach window-cleaner copy. This sits on top of `finder-route.js` (main, inbox, probable), which is being built today on branch `feat/ef-finder`; this spec depends on it merging.
+- **Reoon shared (M10).** The 2,100 a day allowance is shared with the funded re-verify. Wave staging reserves nothing it cannot use: it reads the day's remaining credits first, and the funded re-verify has priority on its days.
+- **Outscraper maths (minor).** £20 is about 12,500 results at $0.002, not 5,000. Cap stays £20; the report shows results bought.
+- **Run place (M9).** Staging stays on the Mac. The Monday report is posted by the Mac when awake, else by the VPS from the last staged `wave.json` ("staged, Mac asleep").
+- **Value and labels.** Report counts use the shared labels: warm, maybe, referral, no, auto, left_company. Funnel value is monthly. 
+- **Daily snapshots.** Harvey writes a daily funnel snapshot (`data/harvey/funnel-YYYY-MM-DD.json`: count and monthly value per stage per brand) so week-on-week figures exist. The first report says "no comparison yet".
+- **Build order.** Autopilot is built Mon 26 Oct, after specs 1, 2, 6 and the minimal dashboard.
+- **Open questions changed:** wave size recommendation stays about 600 but only limited companies count, so expect fewer; the Outscraper cap is £20 for about 12,500 results.

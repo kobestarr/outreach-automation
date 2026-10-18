@@ -55,3 +55,15 @@ Fee, scope, wording, sending, deciding Not now or Lost.
 ## Open questions for Kobi
 1. Proposal delivery for 30 Oct: PDF attached to your email, or a hosted link with sign and pay? Recommended: PDF now, hosted page after the first client.
 2. Is Opus 5.5 per proposal acceptable (a few pounds each)? Recommended: yes, only after your approval.
+
+## Revisions after adversarial review (18 Oct 2026, binding)
+- **Money (M1).** Every money figure in a proposal cites a transcript quote or shows `[KOBI: figure]`. Harvey never invents a number. The checklist fails any figure without a quote or placeholder. Day-2/6 follow-ups never repeat an unquoted figure.
+- **Fee (M2).** `fee-suggest.js` returns `{ amount, source: 'said_on_call'|'ballpark', confidence, structure }`, shown on the approval page. `structure` is the proposal skill's own: **project plus deposit** (cost field = deposit or total) or **retainer** (monthly). The ballpark (10 to 25% of marketing budget, monthly) only suggests a retainer; Kobi chooses. Pricing figures from the ballpark are flagged "estimate" in the draft, never as fact.
+- **Entity (M2).** Proposal letterhead, sender and terms follow the deal's brand (Kobestarr Digital, Stripped Media, DealFlow Media). **VAT** is never defaulted to 20%: it depends on the client's country and Kobi's registration status (open question). Until answered, proposals say "plus VAT where applicable".
+- **Sending (M3).** Kobi replies from Gmail as kobi@kobestarr.io. Primary trigger for Proposal sent is "Mark sent" in Buzz or the dashboard. Gmail Sent detection is secondary and only suggests ("looks sent, mark it?"). Stripped and Dealflow prospects first got mail from those brands' mailboxes; the draft flags the sender mismatch and offers a line ("writing from my main address") or a send-as alias if Kobi has one. Open question below.
+- **MeetGeek (M4).** Meeting matched by start-time overlap plus attendee email; two plausible meetings means refuse and ask. curl-like User-Agent. Key: `MEETGEEK_API_KEY` in `kobestarr-tools/.env.bak`. Always paginate. Runs on the VPS with the booking job.
+- **Value (M7).** GHL opportunity value stays the estimated **monthly** value. Proposal fee, first-year value and invoice total go in GHL custom fields (`proposal_fee`, `first_year_value`, `invoice_total`). This replaces "opportunity value is set to the proposed fee".
+- **Notes.** `addNote` is also a required tracker change. `moveStage` gains a required `pipeline` parameter (see spec 6).
+- **Follow-ups.** Reply de-dupe across Gmail and Unibox by message id. Use the classifier's `resume_date` for Not now, not a flat period.
+- **Labels (M6).** warm, maybe, referral, no, auto, left_company.
+- **Open questions added:** (1) Are you VAT registered for each brand? Recommended: tell me per brand; until then "plus VAT where applicable". (2) Send-as aliases for Stripped and Dealflow in Gmail? Recommended: add them, so proposals come from the brand the prospect knows.

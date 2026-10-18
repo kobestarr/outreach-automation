@@ -48,3 +48,13 @@ Every send, every approval.
 ## Open questions for Kobi
 1. Phone view when away? Recommended: no, local only. Use Buzz alerts when out.
 2. Show money values on screen by default? Recommended: yes, hidden in demo mode.
+
+## Revisions after adversarial review (18 Oct 2026, binding)
+- **Scope (30 Oct, v1).** Build **Today plus Funnel only**. Campaign health and Finder are v2 (their collectors exist as stubs returning "not built"). Demo mode ships in v1 for Funnel and Today.
+- **Security (M8).** Bind to `127.0.0.1` only. Every POST route checks `Origin` and `Host` (must be `127.0.0.1:4747` or `localhost:4747`) and requires a per-session token. The token is generated at server start, injected into the page, and sent in a header. GET routes that expose lead data check Host too (blocks DNS rebinding). Tests assert a POST without token, with a foreign Origin, or with a foreign Host is refused.
+- **Funnel numbers (minor).** Week-on-week uses the daily funnel snapshots (`data/harvey/funnel-YYYY-MM-DD.json`) that spec 4 writes. Until a week exists, show "no comparison yet". Values are estimated monthly value (M7); proposal fee, first-year and invoice totals are separate custom fields and shown separately.
+- **Answered logic (minor).** De-dupe Gmail and Unibox by message id before deciding a reply was answered.
+- **Labels (M6).** Reply rows use: warm, maybe, referral, no, auto, left_company.
+- **Marketplace.** Shown as its own pipeline row once spec 6 exists.
+- **Run place (M9).** Dashboard server and refresher stay on the Mac. VPS-only state (calls, marketplace) is fetched read-only over SSH on each refresh.
+- **Build.** Fourth in the order, after specs 1, 2 and 6.

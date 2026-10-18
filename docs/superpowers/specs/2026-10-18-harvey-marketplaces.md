@@ -47,3 +47,14 @@ Recording the Loom, editing, submitting, paying Connects or credits.
 1. Weekly credit cap for Bark, Twine and Upwork? Recommended: £30 a week to start.
 2. Switch on Bark lead emails and Upwork saved-search alerts now (10 minutes, you only). Recommended: yes, today.
 3. Which address should alerts go to? Recommended: kobi@kobestarr.io with a Gmail label per platform.
+
+## Revisions after adversarial review (18 Oct 2026, binding)
+- **Own pipeline (M6).** Marketplace calls need their own GHL pipeline **"Marketplace"** (Kobestarr sub-account). So `moveStage(email, brand, stageName)` must gain a **required `pipeline` parameter**: `moveStage(email, brand, pipeline, stageName)`. This is a required change to the GHL tracker being built today; booking, proposal and close specs pass `'Cold Email'` or `'Marketplace'`.
+- **Value (M7).** GHL value is monthly; one-off fee in a custom field.
+- **Where it runs (M9).** The Bark window is 30 minutes, so intake and scoring run on the **VPS clawdbot** next to `twine-watcher.js` and the IMAP collection. Mac only drafts nothing; drafting also runs on the VPS so the Buzz post lands in minutes.
+- **Bark staleness (minor).** Skip Bark leads over 30 minutes old (the skill rule). They are not drafted; the earlier "stale but drafted" line is removed.
+- **Never invent a client name (minor).** Upwork hides client names. Drafts address "Hi there" or use only the name shown; the checklist fails any name not in the brief.
+- **Loom length (minor).** 45 to 60 seconds, per the skill (the 60 to 90 second line is removed). Answer each requirement point by point inside that time; if more than three requirements, the script covers the top three and the cover note covers the rest.
+- **Reuse.** Use the Loom script generator and lead qualifier `qualifyLead()` in `kobestarr-engine/lib/claude.js` before writing new prompts; wrap, do not copy.
+- **Labels and Won.** Won from this pipeline uses the spec 3 checklist.
+- **Build.** Separate session, in parallel with specs 1 and 2, starting once `moveStage` has the `pipeline` parameter.

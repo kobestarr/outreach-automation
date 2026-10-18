@@ -58,3 +58,14 @@ Moving Won or Lost, checking and sending invoices, kickoff, proof permission, an
 ## Open questions for Kobi
 1. Should Won also create a Stripe or FreeAgent recurring plan for monthly retainers? Recommended: no, one draft invoice for the first month, add recurring by hand.
 2. Local patch size: town or postcode district? Recommended: the client's service area as stated, default to town plus 5 miles.
+
+## Revisions after adversarial review (18 Oct 2026, binding)
+- **Scope for 30 Oct (v1).** Won becomes a **Buzz checklist with the invoice details pre-filled** (client, entity, country, currency, lines, VAT note, FreeAgent or Stripe link to open, kickoff drafts, claim, proof entry). The FreeAgent and Stripe draft APIs are **v2**. Everything else in this spec stays as the v2 design.
+- **Entity (M2).** Invoice entity follows the deal's brand. FreeAgent has separate accounts (vault `freeagent.kobestarr`, `freeagent.strippedMedia`). Stripe has Kobestarr only, so an international Stripped Media or Dealflow client is invoiced from Kobestarr Stripe with the brand named on the lines, unless Kobi says otherwise. Open question below. VAT depends on country and Kobi's registration status; never default to 20%.
+- **Value (M7).** GHL value is monthly. Fee, first-year value and invoice total go in custom fields.
+- **Lost (M6).** The tracker already moves `no` and `left_company` to Lost automatically. For those, **no reason is asked**: the reason is the reply text, copied into the note. Kobi is asked only for deals he moves to Lost himself. Label set: warm, maybe, referral, no, auto, left_company. Hard-no blocking is already done by the reply engine at classification; this spec only confirms it ran.
+- **Not now (minor).** `resumeOn` comes from the classifier's `resume_date`; default 90 days only when none was given.
+- **Claim radius (minor).** `claimed-areas.json` gains `radiusMiles` (number or null) next to `area`. Default 5 for "town plus 5 miles".
+- **Closure and marketplace.** Won from the Marketplace pipeline uses the same checklist; `moveStage` needs the `pipeline` parameter.
+- **Where it runs (M9).** `close-run.js` stays on the Mac (not time critical).
+- **Open questions added:** (1) Stripe account for Stripped and Dealflow international clients? Recommended: bill from Kobestarr Stripe for now, brand named on the invoice, until each brand has its own.
