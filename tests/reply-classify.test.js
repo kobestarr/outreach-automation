@@ -327,3 +327,8 @@ test('auto-subject words that sit after Re: are our subject, not an auto reply (
 test('the same words BEFORE Re: are an auto reply', () => {
   assert.strictEqual(classifyDeterministic({ subject: 'Annual leave Re: AI search for X', body: 'Ok, thanks Kobi.', from: 'a@b.com' }).label, 'auto');
 });
+
+test('left or retired plus an alternative also goes to the model', () => {
+  assert.strictEqual(classifyDeterministic({ subject: 'Re: x', body: 'John has left the company, contact the office instead.', from: 'a@b.com' }), null);
+  assert.strictEqual(classifyDeterministic({ subject: 'Re: x', body: 'John has left the company.', from: 'a@b.com' }).label, 'left_company');
+});
