@@ -11,26 +11,26 @@ const MAIN = path.join(KT, 'engines/email-finder');
 
 const existsIn = (...dirs) => p => dirs.some(d => [path.join(d, 'cli.js'), path.join(d, 'node_modules'), d].includes(p));
 
-test('EMAIL_FINDER_HOME wins, then the worktree, then engines/', () => {
+test('EMAIL_FINDER_HOME wins, then engines/ (merged code), then the worktree', () => {
   const loaded = [];
   const req = p => { loaded.push(p); return { createEmailFinder: () => ({}) }; };
   A.loadFinderLib({ env: { EMAIL_FINDER_HOME: '/custom/ef' }, home: HOME, exists: existsIn('/custom/ef', WT, MAIN), req });
   A.loadFinderLib({ env: {}, home: HOME, exists: existsIn(WT, MAIN), req });
-  A.loadFinderLib({ env: {}, home: HOME, exists: existsIn(MAIN), req });
-  assert.deepStrictEqual(loaded, [path.join('/custom/ef', 'index.js'), path.join(WT, 'index.js'), path.join(MAIN, 'index.js')]);
+  A.loadFinderLib({ env: {}, home: HOME, exists: existsIn(WT), req });
+  assert.deepStrictEqual(loaded, [path.join('/custom/ef', 'index.js'), path.join(MAIN, 'index.js'), path.join(WT, 'index.js')]);
 });
 
 test('a directory without cli.js or without node_modules is skipped', () => {
   const loaded = [];
   const req = p => { loaded.push(p); return {}; };
-  const exists = p => p === path.join(WT, 'cli.js') /* no node_modules in WT */ || [path.join(MAIN, 'cli.js'), path.join(MAIN, 'node_modules')].includes(p);
+  const exists = p => p === path.join(MAIN, 'cli.js') /* no node_modules in engines/ */ || [path.join(WT, 'cli.js'), path.join(WT, 'node_modules')].includes(p);
   A.loadFinderLib({ env: {}, home: HOME, exists, req });
-  assert.deepStrictEqual(loaded, [path.join(MAIN, 'index.js')]);
+  assert.deepStrictEqual(loaded, [path.join(WT, 'index.js')]);
 });
 
 test('when nothing is found the error names every path tried', () => {
   assert.throws(() => A.loadFinderLib({ env: { EMAIL_FINDER_HOME: '/custom/ef' }, home: HOME, exists: () => false, req: () => ({}) }), e => {
-    for (const p of ['/custom/ef', WT, MAIN]) assert.ok(e.message.includes(p), `missing ${p} in: ${e.message}`);
+    for (const p of ['/custom/ef', MAIN, WT]) assert.ok(e.message.includes(p), `missing ${p} in: ${e.message}`);
     return true;
   });
 });
@@ -92,4 +92,14 @@ test('loadFinderDryRun returns the finder\'s offline estimator from src/run.js o
   assert.strictEqual(fn(), 'est');
   assert.deepStrictEqual(loaded, [path.join(MAIN, 'src', 'run.js')]);
   assert.throws(() => A.loadFinderDryRun({ env: {}, home: HOME, exists: () => false, req }), /not found/);
+});
+
+test('openGateFinder refuses when the finder database file did not exist before opening (a fresh empty DB means no suppressions)', () => {
+  const lib = Object.assign(fakeLib(), { DEFAULT_DB: '/home/kobi/.kobestarr/email-finder/finder.db' });
+  assert.throws(() => A.openGateFinder({ lib, exists: () => false }), /finder\.db/);
+  assert.strictEqual(lib.calls.created.length, 0, 'it must not open (and so create) the database');
+  A.openGateFinder({ lib, exists: p => p === lib.DEFAULT_DB });
+  assert.strictEqual(lib.calls.created.length, 1);
+  assert.strictEqual(lib.calls.created[0].useReserve, false);
+  assert.strictEqual(lib.calls.created[0].maxCredits, 0);
 });

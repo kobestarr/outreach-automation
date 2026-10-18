@@ -12,7 +12,8 @@ const HEADROOM = 300; // the funded daily batch shares the Reoon key: always lea
 
 function candidateDirs({ env = process.env, home = os.homedir() } = {}) {
   const kt = path.join(home, KT_REL);
-  return [env.EMAIL_FINDER_HOME, path.join(kt, '.worktrees/email-finder/engines/email-finder'), path.join(kt, 'engines/email-finder')].filter(Boolean);
+  // Merged code first, the unmerged worktree only as a fallback.
+  return [env.EMAIL_FINDER_HOME, path.join(kt, 'engines/email-finder'), path.join(kt, '.worktrees/email-finder/engines/email-finder')].filter(Boolean);
 }
 
 function findFinderDir({ env = process.env, home = os.homedir(), exists = fs.existsSync } = {}) {
@@ -42,6 +43,17 @@ function openFinder({ maxCredits, maxIcypeas, lib = loadFinderLib() } = {}) {
   return lib.createEmailFinder({ useReserve: false, maxCredits, maxIcypeas: icy });
 }
 
+/**
+ * The finder for the last-gate checks (suppression, 30-day Reoon memory, balance). Refuses if the memory file does not exist yet:
+ * opening would create a fresh empty database, and an empty database has no suppressions.
+ */
+function openGateFinder({ lib = loadFinderLib(), exists = fs.existsSync } = {}) {
+  if (!lib.DEFAULT_DB || !exists(lib.DEFAULT_DB)) {
+    throw new Error(`The finder's memory file ${lib.DEFAULT_DB || '(unknown)'} does not exist. A fresh empty one would have no suppressions, so the last gate refuses to run. Restore it or run the finder once.`);
+  }
+  return openFinder({ maxCredits: 0, maxIcypeas: 0, lib });
+}
+
 /** Like openFinder, but when no explicit maxCredits is given the cap is the daily balance minus headroom. */
 async function openFinderBounded({ maxCredits, maxIcypeas, headroom = HEADROOM, lib = loadFinderLib() } = {}) {
   let cap = maxCredits;
@@ -52,4 +64,4 @@ async function openFinderBounded({ maxCredits, maxIcypeas, headroom = HEADROOM, 
   return openFinder({ maxCredits: cap, maxIcypeas, lib });
 }
 
-module.exports = { findFinderDir, loadFinderDryRun, loadFinderLib, openFinder, openFinderBounded, defaultMaxCredits, candidateDirs, HEADROOM };
+module.exports = { openGateFinder, findFinderDir, loadFinderDryRun, loadFinderLib, openFinder, openFinderBounded, defaultMaxCredits, candidateDirs, HEADROOM };

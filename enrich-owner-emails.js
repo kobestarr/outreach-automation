@@ -26,7 +26,12 @@ const OWNER_SCRAPED = new Set(['owner-match', 'owner-freemail']);
 function needsFinder(row, scrapedRule, noGuess = false) {
   return !noGuess && !!row.website && !!String(row.owner_first || '').trim() && FINDER_MATCH.has(row.maps_match) && !OWNER_SCRAPED.has(scrapedRule);
 }
-const keyOf = (r, i) => (r.company_number ? String(r.company_number) : `row${i}`);
+// Stable across reordering: company number, else website plus owner name, else (nothing to go on) the row position.
+const keyOf = (r, i) => {
+  if (r.company_number) return String(r.company_number);
+  const w = String(r.website || '').trim().toLowerCase();
+  return w ? `${w}|${String(r.owner_first || '').trim().toLowerCase()}|${String(r.owner_last || '').trim().toLowerCase()}` : `row${i}`;
+};
 
 /** Last record per row wins; v1 records (no v) are ignored; a row only counts as finder-done on a FINAL status. */
 function loadRecords(records) {
@@ -55,6 +60,7 @@ async function enrichRows(rows, io) {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i], key = keyOf(r, i);
     let rec = scraped.get(key);
+    if (rec && rec.website !== r.website) rec = null; // the site changed since the scrape: do it again
     if (!rec) {
       let emails = [], error = '';
       const canScrape = r.website && SCRAPE_MATCH.has(r.maps_match);
@@ -63,7 +69,7 @@ async function enrichRows(rows, io) {
         catch (e) { error = e.message; }
       }
       const pick = canScrape ? pickBestEmail({ emails, website: r.website, owner: { first: r.owner_first, last: r.owner_last } }) : { email: null, rule: 'no-website' };
-      rec = { kind: 'scrape', key, company_number: r.company_number || '', scraped: emails, pick: { email: pick.email || '', rule: pick.rule }, error };
+      rec = { kind: 'scrape', key, website: r.website, company_number: r.company_number || '', scraped: emails, pick: { email: pick.email || '', rule: pick.rule }, error };
       append(rec); scraped.set(key, rec);
       log(`scrape ${i + 1}/${rows.length} ${String(r.company_name).slice(0, 30)} -> ${pick.email || '-'} (${pick.rule})`);
     }
@@ -73,7 +79,7 @@ async function enrichRows(rows, io) {
   // ---- Phase 2: one findMany call for the rows that still have no owner address ----
   const eligible = rows.map((_, i) => i).filter(i => needsFinder(rows[i], picks[i].pick.rule, io.noGuess));
   const results = new Map(); // row index -> { result, checked_at }
-  for (const i of eligible) { const d = finderDone.get(keyOf(rows[i], i)); if (d) results.set(i, { result: d.result, checked_at: d.checked_at || '' }); }
+  for (const i of eligible) { const d = finderDone.get(keyOf(rows[i], i)); if (d && d.website === rows[i].website) results.set(i, { result: d.result, checked_at: d.checked_at || '' }); }
   const queue = eligible.filter(i => !results.has(i));
   const report = { rows: rows.length, finder_rows: eligible.length, resumed: eligible.length - queue.length, queued: queue.length,
     reoon_used: 0, icypeas_used: 0, rerun: 0, finder_error: '', by_status: {}, by_rule: {} };
@@ -86,7 +92,7 @@ async function enrichRows(rows, io) {
       const keep = (qi, result) => {
         const i = queue[qi], checked_at = now().toISOString();
         results.set(i, { result, checked_at });
-        append({ kind: 'finder', key: keyOf(rows[i], i), company_number: rows[i].company_number || '', result, checked_at });
+        append({ kind: 'finder', key: keyOf(rows[i], i), website: rows[i].website, company_number: rows[i].company_number || '', result, checked_at });
       };
       const { results: out, summary } = await finder.findMany(batch, { onResult: (qi, _p, result) => keep(qi, result) });
       out.forEach((result, qi) => keep(qi, result)); // final answers (a retry pass may have changed them) supersede

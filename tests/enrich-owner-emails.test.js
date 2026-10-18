@@ -308,3 +308,29 @@ test('needsFinder is the single gate: site, owner first name, maps yes/probable,
   assert.strictEqual(needsFinder(row(), 'owner-guess-verified'), true, 'an old guessed address is not a scraped owner address');
   assert.strictEqual(needsFinder(row(), 'role', true), false);
 });
+
+// ---- round 2: resume safety ----
+test('resume records store the website, and a changed website re-scrapes and re-asks the finder', async () => {
+  const io = makeIo({ scrape: async () => ({ emails: ['info@acme.co.uk'] }), finder: fakeFinder({ Anthony: { status: 'found', email: 'anthony@acme.co.uk', confidence: 'high' } }) });
+  await enrichRows([row()], io);
+  assert.ok(io.appended.filter(r => r.kind !== undefined).every(r => r.website === 'https://acme.co.uk'));
+  let scrapes = 0;
+  const io2 = makeIo({ records: io.appended, scrape: async () => { scrapes++; return { emails: [] }; }, finder: fakeFinder({ Anthony: { status: 'not_found', email: '' } }) });
+  const { rows } = await enrichRows([row({ website: 'https://acme-new.co.uk' })], io2);
+  assert.strictEqual(scrapes, 1);
+  assert.strictEqual(io2.finder.calls.length, 1);
+  assert.strictEqual(rows[0].email_status, 'not_found');
+});
+
+test('rows with no company number are keyed by website plus owner name, not by row position', async () => {
+  const a = row({ company_number: '', website: 'https://a.co.uk', owner_first: 'Ann' });
+  const b = row({ company_number: '', website: 'https://b.co.uk', owner_first: 'Bea' });
+  const io = makeIo({ finder: fakeFinder({ Ann: { status: 'found', email: 'ann@a.co.uk', confidence: 'high' }, Bea: { status: 'found', email: 'bea@b.co.uk', confidence: 'high' } }) });
+  await enrichRows([a, b], io);
+  // same rows, opposite order, plus a new row first: nobody inherits somebody else's answer
+  const c = row({ company_number: '', website: 'https://c.co.uk', owner_first: 'Cat' });
+  const io2 = makeIo({ records: io.appended, finder: fakeFinder({ Cat: { status: 'not_found', email: '' } }) });
+  const { rows } = await enrichRows([c, b, a], io2);
+  assert.deepStrictEqual(io2.finder.calls[0].rows.map(r => r.owner_first), ['Cat']);
+  assert.deepStrictEqual(rows.map(r => r.email), ['', 'bea@b.co.uk', 'ann@a.co.uk']);
+});
