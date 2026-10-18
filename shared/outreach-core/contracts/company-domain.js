@@ -74,6 +74,7 @@ function pageMatchesCompany(html, name) {
 const GENERIC = new Set('about their there which where would could should these those other being while through within across ability experience working looking team role join work business company services service teams strong skills including required opportunity candidate candidates people great marketing growth digital content manager management customer customers product products global world leading help helping support build building create creating drive driving looking successful ideal position responsibilities requirements benefits remote contract based hours flexible salary apply application hiring part full time years year days every well also will must have your you our the and for with from that this they them what when more most into over only just like make made need needs using used new best high first'.split(' '));
 const words = (s) => new Set((String(s || '').toLowerCase().match(/[a-z]{5,}/g) || []).filter((w) => !GENERIC.has(w)));
 
+const CORROBORATION_MIN = 1;
 /** Does the site describe the same business the ad describes? true / false, or null when the ad has no company text to compare. */
 function corroborates(html, role) {
   const ad = String(role.description || '').slice(0, 4000);
@@ -87,7 +88,7 @@ function corroborates(html, role) {
   const pw = words(sig), aw = words(ad);
   let shared = 0;
   for (const w of aw) if (pw.has(w) && !nameWords.has(w)) shared++;
-  return shared >= 2;
+  return shared >= CORROBORATION_MIN;
 }
 
 function adDomains(role) {
@@ -133,19 +134,26 @@ async function resolveDomain(role, { fetchHtml, search } = {}) {
     return false;
   };
 
+  if (role.domain_override && !isBlocked(role.domain_override)) return { domain: registrable(hostOf(role.domain_override)), source: 'override', verified: false, corroborated: true };
   const ad = adDomains(role);
   const strong = ad.find((c) => !c.weak);
   if (strong) return { domain: strong.domain, source: strong.source, verified: false };
 
+  let fallback = null;
   const candidates = [];
   for (const c of ad) candidates.push({ ...c });
-  if (role.domain_hint && !isBlocked(role.domain_hint)) candidates.push({ domain: registrable(hostOf(role.domain_hint)), source: 'recon_hint' });
   for (const d of slugCandidates(role.company)) candidates.push({ domain: d, source: 'name_guess' });
+  if (role.domain_hint && !isBlocked(role.domain_hint)) candidates.push({ domain: registrable(hostOf(role.domain_hint)), source: 'recon_hint' });
 
   for (const c of candidates) {
     if (!c.domain || seen.has(c.domain) || isBlocked(c.domain)) continue;
     seen.add(c.domain);
-    if (await verify(c.domain)) return { domain: c.domain, source: c.source, verified: true, corroborated: lastCorroborated };
+    lastCorroborated = null;
+    if (await verify(c.domain)) {
+      const found = { domain: c.domain, source: c.source, verified: true, corroborated: lastCorroborated };
+      if (found.corroborated !== false) return found;
+      if (!fallback) fallback = found; // name matches but the business does not: keep looking, use only if nothing better
+    }
   }
   if (search) {
     let urls = [];
@@ -154,9 +162,15 @@ async function resolveDomain(role, { fetchHtml, search } = {}) {
       const d = registrable(hostOf(u));
       if (!d || seen.has(d) || isBlocked(d)) continue;
       seen.add(d);
-      if (await verify(d)) return { domain: d, source: 'search', verified: true, corroborated: lastCorroborated };
+      lastCorroborated = null;
+      if (await verify(d)) {
+        const found = { domain: d, source: 'search', verified: true, corroborated: lastCorroborated };
+        if (found.corroborated !== false) return found;
+        if (!fallback) fallback = found;
+      }
     }
   }
+  if (fallback) return fallback;
   return { domain: '', reason: 'no verifiable company website found' };
 }
 

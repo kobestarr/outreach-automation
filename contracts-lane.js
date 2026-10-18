@@ -52,14 +52,27 @@ async function ddgSearch(query) {
 async function main() {
   const a = parseArgs(process.argv.slice(2));
   if (!a.in || !a.out) { console.error('usage: node contracts-lane.js --in roles.csv --out send.csv [--dry-run] [--max-credits 150] [--desc-from a.csv,b.csv]'); process.exit(2); }
+  let overrides = {};
+  try { overrides = require('./config/contract-domain-overrides.json'); } catch (e) { /* none */ }
   const dataDir = process.env.OA_DATA_DIR || path.join(__dirname, 'data');
   const rows = a.in.split(',').flatMap((f) => readRows(f.trim()));
   const descriptions = a['desc-from'] ? descriptionLookup(a['desc-from'].split(',')) : null;
 
   const { fetchWebsite } = require('./shared/outreach-core/enrichment/website-scraper');
+  const { fetchWithBrowser, needsBrowserRendering } = require('./shared/outreach-core/enrichment/browser-fetcher');
   const ch = require('./shared/outreach-core/enrichment/ch-owner');
   const deps = {
-    fetchHtml: a['no-web'] ? async () => { throw new Error('offline'); } : (u) => fetchWebsite(u, 8000),
+    fetchHtml: a['no-web'] ? async () => { throw new Error('offline'); } : async (u) => {
+      try {
+        const html = await fetchWebsite(u, 8000);
+        if (needsBrowserRendering(html)) { const r = await fetchWithBrowser(u, 15000).catch(() => null); if (r) return r; }
+        return html;
+      } catch (e) {
+        if (!/HTTP (403|429|503)/.test(e.message)) throw e; // dead hosts fail fast; only bot walls get the browser
+        const html = await fetchWithBrowser(u, 15000).catch(() => null); // bot walls (429/403) and JS-rendered team pages
+        if (html) return html; throw e;
+      }
+    },
     search: a['no-web'] || a['no-search'] ? null : ddgSearch,
     ch: a['no-web'] ? null : {
       searchCompany: async (name) => {
@@ -67,9 +80,11 @@ async function main() {
         return ((r && r.items) || []).map((i) => ({ title: i.title, company_number: i.company_number, company_status: i.company_status }));
       },
       lookupOwner: (n) => ch.lookupOwner(n),
+      accountsType: async (n) => { const r = await ch.chFetchJson(`/company/${String(n).padStart(8, '0')}`); return r && r.accounts && r.accounts.last_accounts ? r.accounts.last_accounts.type : ''; },
     },
     openFinder: ({ maxCredits }) => require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits, maxIcypeas: 0 }),
   };
+  for (const r of rows) { const o = overrides[String(r.company || r.company_name || '').toLowerCase().trim()]; if (o) r.domain_override = o; }
   const res = await P.run({ rows, deps, dataDir, dryRun: !!a['dry-run'], maxCredits: a['max-credits'] === undefined ? P.MAX_CREDITS_CEILING : Number(a['max-credits']), minScore: a['min-score'] === undefined ? 5 : Number(a['min-score']), descriptions, log: (m) => console.error('  ' + m) });
 
   const base = a.out.replace(/\.csv$/i, '');
@@ -87,5 +102,5 @@ async function main() {
   }
 }
 
-if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+if (require.main === module) main().then(() => { try { require('./shared/outreach-core/enrichment/browser-fetcher').closeBrowser(); } catch (e) { /* none open */ } }).catch((e) => { console.error(e); process.exit(1); });
 module.exports = { readRows, parseArgs, descriptionLookup };

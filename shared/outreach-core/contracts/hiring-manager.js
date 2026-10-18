@@ -32,7 +32,10 @@ function isName(str) {
 
 function isTitle(str) {
   const s = clean(str);
-  return s.length >= 2 && s.length <= 80 && TITLE_RE.test(s) && !/[.!?]\s+[A-Z]/.test(s);
+  if (s.length < 2 || s.length > 70 || !TITLE_RE.test(s) || /[.!?]\s+[A-Z]/.test(s)) return false;
+  if (/\d|\(|\)|\s(at|@)\s/i.test(s)) return false; // "(1 Owner/Full service history)" on a car listing, "Head of X at Y" testimonials
+  // every comma segment must itself be a title: "Director of Growth, Lusha" is a testimonial for another firm
+  return s.split(/\s*(?:,|\s[-\u2013\u2014|]\s)\s*/).filter(Boolean).every((seg) => TITLE_RE.test(seg) || /^(co-?founder|partner|owner)$/i.test(seg));
 }
 
 function splitName(full) {
@@ -58,7 +61,7 @@ function parseAdManager(description) {
       const after = rest.slice(nm[0].length).replace(/^\s*[,(\-–|]\s*|^\s+(?:who is\s+|is\s+|our\s+|the\s+)/i, '');
       const tm = after.match(/^([A-Za-z&' /,-]{3,70}?)(?:\)|\.|;|\n|,\s+(?:and|who|to|so)\b|\s+(?:and|to|who|in|at)\s|$)/);
       const title = tm && isTitle(tm[1]) ? clean(tm[1]) : '';
-      return { name: nm[1], title, evidence: clean(m[0] + rest.slice(0, 90)).slice(0, 160), titleHint: title };
+      return { name: nm[1], title: title.replace(/[\s,.;]+$/, ''), evidence: clean(m[0] + rest.slice(0, 90)).slice(0, 160), titleHint: title };
     }
     const th = rest.match(/^((?:Head|Director|VP|Vice President|Chief|Manager|Lead)\b[A-Za-z&' /-]{0,40}|[A-Z][A-Za-z&' -]{2,30}\s(?:Director|Manager|Lead|Head))/);
     if (th && !titleHint) titleHint = clean(th[1]).replace(/\s+(and|to|who|in|at|on|for)$/i, '');
@@ -89,7 +92,7 @@ function extractPeople(html) {
   const people = [...personsFromJsonLd(html)];
   const body = html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
   const chunks = body.split(/<[^>]+>/).map(clean).filter((c) => c && c.length <= 120);
-  const add = (name, title) => { if (isName(name) && isTitle(title)) people.push({ name: clean(name).replace(/[,.]+$/, ''), title: clean(title) }); };
+  const add = (name, title) => { if (isName(name) && isTitle(title)) people.push({ name: clean(name).replace(/[,.]+$/, ''), title: clean(title).replace(/[\s,.;|]+$/, '') }); };
   for (let i = 0; i < chunks.length; i++) {
     const c = chunks[i];
     const inline = c.match(/^(.{4,40}?)\s*(?:,|\||–|-|—|:)\s+(.{3,80})$/);
@@ -188,7 +191,8 @@ async function peopleFromSite(domain, { fetchHtml, maxPages = 5 }) {
   let homeUrl = base;
   for (const u of [base, 'https://www.' + domain]) { try { home = await fetchHtml(u); homeUrl = u; break; } catch (e) { /* next */ } }
   const urls = [...navLinks(home, homeUrl), ...PROBE_PATHS.map((p) => homeUrl + p)];
-  const people = [...extractPeople(home)];
+  const homePeople = extractPeople(home); // testimonials and press quotes live here: only used when no team page gives anyone
+  const people = [];
   const tried = new Set([homeUrl]);
   let pages = 0;
   for (const u of urls) {
@@ -200,7 +204,7 @@ async function peopleFromSite(domain, { fetchHtml, maxPages = 5 }) {
     if (people.some((p) => titleScore(p.title, 'marketing', '') >= 88) && people.length >= 4 && pages >= 2) break;
   }
   const seen = new Set();
-  return people.filter((p) => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  return (people.length ? people : homePeople).filter((p) => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
 // ---------- (c) Companies House ----------
@@ -216,6 +220,10 @@ async function chOwner(role, { ch }) {
     const hit = hits.find((h) => normCo(h.title) === normCo(role.company) && /active/i.test(h.company_status || 'active'));
     if (!hit) return null;
     number = hit.company_number; matched = `Companies House name match ${hit.title}`;
+  }
+  if (ch.accountsType) {
+    const type = String((await ch.accountsType(number).catch(() => '')) || '').toLowerCase();
+    if (/^(full|group|medium|large|audited)/.test(type) && !/small|micro/.test(type)) return null; // a company filing full accounts is not a one-owner business
   }
   const owner = await ch.lookupOwner(number);
   if (!owner || owner.none || owner.error) return null;

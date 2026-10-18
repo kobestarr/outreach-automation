@@ -82,7 +82,7 @@ const TEAM = `<html><body><h2>Meet the team</h2>
 <div><h3>Chen Wu</h3><p>Marketing Manager (Intern)</p></div></body></html>`;
 test('team page: picks the marketing owner for a marketing role, not CEO, finance or juniors', () => {
   const people = HM.extractPeople(TEAM);
-  assert.strictEqual(people.length, 4);
+  assert.strictEqual(people.length, 3); // the '(Intern)' line is not a clean title
   const pick = HM.pickFromPeople(people, { title: 'PPC Specialist' }, {});
   assert.deepStrictEqual([pick.name, pick.source, pick.confidence], ['Priya Nair', 'team_page', 'medium']);
   const ops = HM.pickFromPeople([{ name: 'Sam Ops', title: 'Head of Operations' }, ...people], { title: 'Automation Engineer' }, {});
@@ -185,4 +185,15 @@ test('a site that matches only the company name but describes a different busine
   assert.strictEqual(r.candidates.length, 0);
   assert.match(r.held[0].reason, /same business/);
   assert.strictEqual(CD.corroborates(html, { company: 'Jolly Technologies Inc', description: 'short' }), null);
+});
+
+test('car listings, testimonials and homepage quotes are never taken as the hiring manager', () => {
+  assert.strictEqual(HM.isTitle('(1 Owner/Full service history)'), false);
+  assert.strictEqual(HM.isTitle('Director of growth, Lusha'), false);
+  assert.strictEqual(HM.isTitle('Co-Founder & CEO'), true);
+  assert.strictEqual(HM.isTitle('Chief Executive Officer, Co-Founder'), true);
+});
+test('Companies House director of a company that files full accounts is skipped', async () => {
+  const ch = { searchCompany: async () => [{ title: 'COLT LTD', company_number: '1', company_status: 'active' }], accountsType: async () => 'full', lookupOwner: async () => ({ full: 'A B', role: 'director', other_directors: 1 }) };
+  assert.strictEqual(await HM.chOwner({ company: 'Colt', title: 'x' }, { ch }), null);
 });

@@ -13,7 +13,7 @@ const CONTRACT = /(\bcontract(or)?\b|day[- ]rate|per day|\/ ?day|\bp\/?d\b|ir35|
 const REMOTE = /(fully[- ]remote|100% ?remote|remote[- ]first|\bremote\b|work from home|\bwfh\b|home[- ]based)/i;
 const HYBRID = /(hybrid|\d ?(-\d)? ?days? (a|per|each) ?week (in|at|on)[- ]?(the )?(office|site)|office[- ]based|on[- ]site|onsite)/i;
 const AGENCY_NAME = /(recruit|resourc(ing|es)|talent|staffing|personnel|headhunt|executive search|\bhays\b|robert half|randstad|adecco|michael page|page group|harvey nash|experis|computer futures|hamilton barnes|lorien|sthree|parser|pontoon|manpower|morgan (hunt|mckinley)|harnham|robert walters|walters people|jobgether|frazer jones|major players|brook street|gattaca|fruition|digital gurus|sanderson|monroe consulting|venn group|opus recruitment|tenth revolution|\bcpl\b|matchtech|kelly services|capita|career moves|\blhh\b|aquent|hyqoo|gazelle global|cygnus professionals|alignerr|afterquery)/i;
-const AGENCY_TEXT = /(on behalf of (our|a|my) client|our client\b|my client\b|recruitment (agency|consultancy|business)|employment (agency|business)|talent partner|your consultant|this role is being advertised by)/i;
+const AGENCY_TEXT = /(on behalf of (our|a|my) client|our client\b|my client\b|recruitment (agency|consultancy|business)|employment (agency|business)|talent partner|your consultant|an employer is seeking|i(?:'|’)m working with|about the client|apply via [a-z]+ today|\bour client is\b|this role is being advertised by)/i;
 
 const truthy = (v) => /^(true|1|yes|y)$/i.test(String(v == null ? '' : v).trim());
 const s = (v) => (v == null ? '' : String(v).trim());
@@ -41,6 +41,7 @@ function normaliseRow(row) {
     job_url: s(row.url || row.job_url_direct || row.job_url),
     job_url_direct: s(row.job_url_direct),
     company_urls: [s(row.company_url_direct), s(row.company_url)].filter(Boolean),
+    domain_override: s(row.domain_override),
     domain_hint: s(row.company_domain), // Recon's is a name-slug guess: verified later, never trusted
     ch_company_number: s(row.ch_company_number),
     employees: s(row.company_num_employees),
