@@ -90,3 +90,29 @@ Returns `{ email, email_rule, email_source: 'scraped'|'finder'|'', email_status,
 - Dashboard: finder status mix and credits per day.
 - Funded daily batch and other legacy finders (`email-discovery/`, `icypeas-finder.js`, `pattern-generator.js`): unchanged for now.
 - Probable campaign: no Mailead campaign until Icypeas is topped up; those rows are held.
+
+## Revisions after adversarial review (18 Oct 2026, binding, these override anything above)
+
+Verdict was "build after fixes". Every item below is required.
+
+**Critical**
+1. **Columns survive to routing.** `assemble-local-mailead.js` passes through `email_status`, `email_confidence`, `email_source` (never `email_suggested`). Finder picks get `email_rule=finder-found` (or `finder-generic`) so the nickname greeting still works. `normalise.js` puts unknown columns in `lead.ref`, so routing reads `lead.ref.email_status`. **Fail closed:** a file is "legacy" only when its header has no `email_status` column; if the column exists, a blank value means excluded. Tests for both.
+2. **Suppression is checked at the last gate.** Add read-only `isSuppressed(emailOrDomain)` to the finder (next to `lastVerified`). send-batch checks every final address and its domain against the finder AND `data/do-not-contact.txt` (email and domain), whatever the source (scraped rows included). A finder status of `suppressed` removes the row entirely (never fall back to a scraped address at that firm). **Data dir is pinned:** all ledgers, do-not-contact and load files resolve from `OA_DATA_DIR`, default the main checkout `/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/data`; a live (non dry-run) send-batch refuses to run from a worktree unless `OA_DATA_DIR` is set explicitly.
+
+**Major**
+3. **Firm-level dedupe.** Before routing, dedupe the whole input by website domain and by `company_number` (keep the best route). At push time append `company_number<TAB>domain` to `data/company-ledger.txt` and skip any row whose company number or domain is already there or whose domain appears in any loaded email (freemail domains excluded). Seed the company ledger from the existing `data/mailead-loaded-*.txt` files.
+4. **Bounces imported once.** `data/bounced.txt` is the imported ledger (replaces `bounces-pending.csv`): import to the finder only addresses not already in it; append after a successful import. The bounced address comes from the receiver's `leadEmail()` logic (skip our own sending mailboxes), not `formatEvent`. If the finder fails to load, post one Buzz notice and keep the address queued in `data/bounces-queue.txt`.
+5. **Credits.** Default `--max-credits` = finder daily balance minus 300 headroom (the funded daily batch shares the key). send-batch checks the finder's `balance().daily` before verifying and stops cleanly if it would dip into the reserve. The adapter turns a missing `maxIcypeas` into 0. Call the finder only when there is an owner name AND `maps_match` is `yes` or `probable`.
+6. **`lastVerified(email)` returns `{status, verified_at}`** (store row), null past the 30-day TTL. send-batch skips Reoon only when status is `safe`, `role_account` or `inbox_full` and verified_at is within 30 days. If the method is missing (older finder), verify as normal.
+7. **Resume and retry.** Two phases: scrape every row first (resumable), then call `findMany` once on the rows that need the finder (per-domain locking, concurrency and its retry pass come free), with a done map. Only `FINAL` statuses count as done on resume; records carry `v:2`; error, skipped, not_run and retry_later rows re-run. The wave 1 benchmark writes to a NEW `--out`.
+
+**Minor**
+- Choose by status, never by "email is non-empty" (`left_company` has an email). Test.
+- New precedence: scraped owner, finder personal, scraped role, finder generic, scraped staff, Icypeas probable (staff now above probable).
+- `send-batch --register` merges into the existing registry entry (keeps `finderRoutes`).
+- Pre-flight: check every route's sheet exists before pushing anything; abort with no partial push if one is missing.
+- A finder error keeps a valid scraped role address (`email_status=scraped_role`).
+- `email_suggested` never leaves the enrich CSV (assemble drops it; buildRow never sees it).
+- Wave 2 campaign keys: `local-trades-wave2` (main) and `local-trades-wave2-inbox` (inbox), probable held.
+
+**Tests added to the list:** columns survive assemble; fail-closed blank status; suppressed overrides scraped; do-not-contact by email and domain; domain and company dedupe within a file and across routes; maxIcypeas undefined is 0; repeated bounce imported once; own-mailbox address skipped; retry_later re-runs on resume; left_company never chosen; status-aware Reoon skip; worktree live-run refusal.
