@@ -32,3 +32,8 @@ test('throws on whitespace-only field value (never renders blank)', () => {
 test('throws when a dash arrives via a substituted field value', () => {
   assert.throws(() => fillTemplate('in {town}', { ...lead, town: 'Stock–port' }), /dash/i);
 });
+
+test('a carrier placeholder can read an extra column kept in lead.ref (funded icebreaker)', () => {
+  const lead = { email: 'a@b.com', ref: { icebreaker: 'Saw the Series A news from March.' } };
+  assert.strictEqual(require('../shared/outreach-core/content-generation/insight-composer').fillTemplate('{icebreaker}', lead), 'Saw the Series A news from March.');
+});

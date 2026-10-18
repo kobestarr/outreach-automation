@@ -5,7 +5,7 @@
 
 function fillTemplate(tpl, lead) {
   const out = tpl.replace(/\{(\w+)\}/g, (_, field) => {
-    let v = lead[field];
+    let v = lead[field] !== undefined && lead[field] !== '' ? lead[field] : (lead.ref || {})[field]; // extra CSV columns live in lead.ref
     v = v === undefined || v === null ? '' : String(v).trim();
     if (v === '') throw new Error(`unresolved placeholder {${field}} for ${lead.email || lead.company_name || 'lead'}`);
     if (field === 'category') v = v.toLowerCase();
