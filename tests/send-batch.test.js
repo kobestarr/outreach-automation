@@ -16,6 +16,8 @@ function makeIo(overrides = {}) {
   return {
     dir,
     io: {
+      dataDir: dir,
+      finder: { isSuppressed: () => false, lastVerified: () => null, balance: async () => ({ daily: 2000, instant: 99999 }) },
       registryFile,
       ledgerFile: path.join(dir, 'sent-ledger.txt'),
       sheets: {
