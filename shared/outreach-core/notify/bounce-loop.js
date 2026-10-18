@@ -14,16 +14,20 @@ const { leadEmail } = require('./lead-email');
 const lc = s => String(s == null ? '' : s).trim().toLowerCase();
 
 function fileLedger(file, { today = () => new Date().toISOString().slice(0, 10) } = {}) {
-  const have = new Set();
+  const have = new Set(), optOuts = new Set();
   if (fs.existsSync(file)) {
     for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
       const t = line.trim();
-      if (t && !t.startsWith('#')) have.add(lc(t.split(/\s+/)[0]));
+      if (!t || t.startsWith('#')) continue;
+      have.add(lc(t.split(/\s+/)[0]));
+      if (/\bOPT-?OUT\b/i.test(t)) optOuts.add(lc(t.split(/\s+/)[0]));
     }
   }
   return {
     has: e => have.has(lc(e)),
     all: () => [...have],
+    // Opt-outs were logged here by hand; they are suppressions (do-not-contact), not proof of a wrong address format.
+    bounces: () => [...have].filter(e => !optOuts.has(e)),
     add(e, campaign = '') {
       const a = lc(e);
       if (!a || have.has(a)) return;

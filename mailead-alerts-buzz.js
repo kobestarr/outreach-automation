@@ -69,7 +69,7 @@ async function main() {
       post, importBounce, dryRun: DRY, log: console.log,
       ledger: fileLedger(path.join(dataDir, 'bounces-imported.txt')),
       record: bouncedList,
-      backlog: bouncedList.all(),
+      backlog: bouncedList.bounces(),
       queue: fileQueue(path.join(dataDir, 'bounces-queue.txt')),
     });
   } finally {

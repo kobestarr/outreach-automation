@@ -231,3 +231,12 @@ test('mailead-alerts-buzz.js exports handleEvents and does not run main() when r
   const m = require('../mailead-alerts-buzz');
   assert.strictEqual(typeof m.handleEvents, 'function');
 });
+
+test('opt-out lines in bounced.txt are not offered as bounces (they are suppressions, not wrong formats)', () => {
+  const os = require('os'), fsx = require('fs'), px = require('path');
+  const f = px.join(fsx.mkdtempSync(px.join(os.tmpdir(), 'bl-')), 'bounced.txt');
+  fsx.writeFileSync(f, 'alex@aleran.com 2026-07-06 campaign:8886\nharrison@taccs.co.uk 2026-07-08 OPT-OUT campaign:8890\n');
+  const led = require('../shared/outreach-core/notify/bounce-loop').fileLedger(f);
+  assert.deepStrictEqual(led.bounces(), ['alex@aleran.com']);
+  assert.ok(led.has('harrison@taccs.co.uk'));
+});
