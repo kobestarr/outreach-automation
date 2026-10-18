@@ -15,12 +15,19 @@ function candidateDirs({ env = process.env, home = os.homedir() } = {}) {
   return [env.EMAIL_FINDER_HOME, path.join(kt, '.worktrees/email-finder/engines/email-finder'), path.join(kt, 'engines/email-finder')].filter(Boolean);
 }
 
-function loadFinderLib({ env = process.env, home = os.homedir(), exists = fs.existsSync, req = require } = {}) {
+function findFinderDir({ env = process.env, home = os.homedir(), exists = fs.existsSync } = {}) {
   const dirs = candidateDirs({ env, home });
-  for (const d of dirs) {
-    if (exists(path.join(d, 'cli.js')) && exists(path.join(d, 'node_modules'))) return req(path.join(d, 'index.js'));
-  }
+  for (const d of dirs) if (exists(path.join(d, 'cli.js')) && exists(path.join(d, 'node_modules'))) return d;
   throw new Error(`email finder code not found. Looked in: ${dirs.join(', ')}. Each needs cli.js and node_modules (run npm install there) or set EMAIL_FINDER_HOME.`);
+}
+
+function loadFinderLib({ env = process.env, home = os.homedir(), exists = fs.existsSync, req = require } = {}) {
+  return req(path.join(findFinderDir({ env, home, exists }), 'index.js'));
+}
+
+/** The finder's own offline estimator (what `email-finder find --dry-run` prints): rows -> { people, companyOnly, badInput, worstCase, samples }. No network, no credits. */
+function loadFinderDryRun({ env = process.env, home = os.homedir(), exists = fs.existsSync, req = require } = {}) {
+  return req(path.join(findFinderDir({ env, home, exists }), 'src', 'run.js')).dryRun;
 }
 
 /** Daily Reoon credits minus headroom, never below zero. */
@@ -45,4 +52,4 @@ async function openFinderBounded({ maxCredits, maxIcypeas, headroom = HEADROOM, 
   return openFinder({ maxCredits: cap, maxIcypeas, lib });
 }
 
-module.exports = { loadFinderLib, openFinder, openFinderBounded, defaultMaxCredits, candidateDirs, HEADROOM };
+module.exports = { findFinderDir, loadFinderDryRun, loadFinderLib, openFinder, openFinderBounded, defaultMaxCredits, candidateDirs, HEADROOM };

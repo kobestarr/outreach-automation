@@ -84,3 +84,12 @@ test('an explicit maxCredits skips the probe, including an explicit zero', async
   assert.strictEqual(lib.calls.created.length, 1);
   assert.strictEqual(lib.calls.created[0].maxCredits, 0);
 });
+
+test('loadFinderDryRun returns the finder\'s offline estimator from src/run.js of the first usable directory', () => {
+  const loaded = [];
+  const req = p => { loaded.push(p); return { dryRun: () => 'est' }; };
+  const fn = A.loadFinderDryRun({ env: {}, home: HOME, exists: existsIn(MAIN), req });
+  assert.strictEqual(fn(), 'est');
+  assert.deepStrictEqual(loaded, [path.join(MAIN, 'src', 'run.js')]);
+  assert.throws(() => A.loadFinderDryRun({ env: {}, home: HOME, exists: () => false, req }), /not found/);
+});

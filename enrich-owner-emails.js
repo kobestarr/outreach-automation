@@ -22,6 +22,10 @@ const FINAL = new Set(['found', 'found_flagged', 'found_generic', 'catch_all_fou
 const SCRAPE_MATCH = new Set(['yes', 'probable', 'check']);
 const FINDER_MATCH = new Set(['yes', 'probable']);
 const OWNER_SCRAPED = new Set(['owner-match', 'owner-freemail']);
+/** Does this row go to the finder? Needs a site, an owner name, a confirmed Maps match, and no scraped owner address yet. */
+function needsFinder(row, scrapedRule, noGuess = false) {
+  return !noGuess && !!row.website && !!String(row.owner_first || '').trim() && FINDER_MATCH.has(row.maps_match) && !OWNER_SCRAPED.has(scrapedRule);
+}
 const keyOf = (r, i) => (r.company_number ? String(r.company_number) : `row${i}`);
 
 /** Last record per row wins; v1 records (no v) are ignored; a row only counts as finder-done on a FINAL status. */
@@ -67,11 +71,7 @@ async function enrichRows(rows, io) {
   }
 
   // ---- Phase 2: one findMany call for the rows that still have no owner address ----
-  const needs = i => {
-    const r = rows[i];
-    return !io.noGuess && r.website && String(r.owner_first || '').trim() && FINDER_MATCH.has(r.maps_match) && !OWNER_SCRAPED.has(picks[i].pick.rule);
-  };
-  const eligible = rows.map((_, i) => i).filter(needs);
+  const eligible = rows.map((_, i) => i).filter(i => needsFinder(rows[i], picks[i].pick.rule, io.noGuess));
   const results = new Map(); // row index -> { result, checked_at }
   for (const i of eligible) { const d = finderDone.get(keyOf(rows[i], i)); if (d) results.set(i, { result: d.result, checked_at: d.checked_at || '' }); }
   const queue = eligible.filter(i => !results.has(i));
@@ -142,7 +142,7 @@ function rowsToCsv(rows, baseHeader) {
   return toCSV([H, ...rows.map(r => H.map(h => r[h]))]);
 }
 
-module.exports = { enrichRows, parseEnrichArgs, loadRecords, rowsToCsv, FINAL, OUT_COLUMNS };
+module.exports = { enrichRows, needsFinder, parseEnrichArgs, loadRecords, rowsToCsv, FINAL, OUT_COLUMNS };
 
 if (require.main === module) {
   (async () => {

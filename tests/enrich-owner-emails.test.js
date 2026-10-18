@@ -295,3 +295,16 @@ test('args: a typo in a number stops the run instead of silently using a default
   assert.throws(() => parseEnrichArgs(['node', 'x', 'in.csv', '--max-credits']), /max-credits/);
   assert.throws(() => parseEnrichArgs(['node', 'x']), /Usage/);
 });
+
+test('needsFinder is the single gate: site, owner first name, maps yes/probable, no scraped owner address, not --no-guess', () => {
+  const { needsFinder } = require('../enrich-owner-emails');
+  assert.strictEqual(needsFinder(row(), 'role'), true);
+  assert.strictEqual(needsFinder(row({ maps_match: 'probable' }), 'none'), true);
+  assert.strictEqual(needsFinder(row({ maps_match: 'check' }), 'none'), false);
+  assert.strictEqual(needsFinder(row({ owner_first: ' ' }), 'none'), false);
+  assert.strictEqual(needsFinder(row({ website: '' }), 'none'), false);
+  assert.strictEqual(needsFinder(row(), 'owner-match'), false);
+  assert.strictEqual(needsFinder(row(), 'owner-freemail'), false);
+  assert.strictEqual(needsFinder(row(), 'owner-guess-verified'), true, 'an old guessed address is not a scraped owner address');
+  assert.strictEqual(needsFinder(row(), 'role', true), false);
+});
