@@ -252,3 +252,76 @@ test('ensurePipelines: a brand with no credentials is reported, not thrown', asy
   const r = await tracker.ensurePipelines({});
   assert.strictEqual(r.find((x) => x.brand === 'stripped').status, 'no_credentials');
 });
+
+// ---- CLI transport (gohighlevel-cli ghlp), per Kobi: CLI first, fetch only for gaps ----
+const { makeFakeExec } = require('./fake-ghl');
+function mkCli(opts = {}) {
+  const fake = makeFakeGhl(opts.fake);
+  const fx = makeFakeExec(fake, { failures: opts.cliFailures });
+  const tracker = createGhlTracker({ fetch: fake.fetch, creds: opts.creds || FAKE_CREDS, log: () => {}, sleep: noSleep,
+    cli: { exec: fx.exec, ghlp: '/cli/ghlp' }, ...opts.tracker });
+  return { fake, fx, tracker };
+}
+test('cli: full warm reply works end to end, CLI used for covered calls, fetch only for gaps', async () => {
+  const { tracker, fake, fx } = mkCli();
+  const r = await tracker.trackReply(evt());
+  assert.strictEqual(r.stage, 'Interested'); assert.strictEqual(fake.state.opps.length, 1);
+  const cmds = fx.calls.map((c) => `${c.args[2]} ${c.args[3]}`);
+  assert.deepStrictEqual(cmds, ['contacts add-tag', 'opportunities pipelines', 'opportunities list', 'opportunities create']);
+  assert.ok(fx.calls.every((c) => c.file === '/cli/ghlp' && c.args[0] === 'kobestarr' && c.args[1] === '--json'));
+  const fetchPaths = fake.state.calls.map((c) => c.path).filter((p) => !/^\/(opportunities|contacts\/[^/]+\/tags)/.test(p) || p === '/opportunities/pipelines' && false);
+  assert.ok(fetchPaths.includes('/contacts/upsert')); assert.ok(fetchPaths.some((p) => /notes$/.test(p)));
+});
+test('cli: brand routes to the matching ghlp profile', async () => {
+  const { tracker, fx } = mkCli();
+  await tracker.trackReply(evt({ mailbox: 'x@dealflowmedia.pro' }));
+  assert.ok(fx.calls.every((c) => c.args[0] === 'dealflow'));
+});
+test('cli: contact filtering and no-backwards still hold; idempotent', async () => {
+  const { tracker, fake } = mkCli();
+  await tracker.trackReply(evt()); await tracker.moveStage('a@acme.co.uk', 'kobestarr', 'Call booked');
+  await tracker.trackReply(evt({ label: 'maybe', text: 'q', date: '2026-10-20' }));
+  await tracker.trackReply(evt({ label: 'maybe', text: 'q', date: '2026-10-20' }));
+  assert.strictEqual(fake.state.opps.length, 1); assert.strictEqual(fake.state.opps[0].pipelineStageId, 'LOC_K_Call booked');
+  assert.strictEqual(Object.values(fake.state.notes)[0].length, 2);
+});
+test('cli: a second contact does not see the first contact\'s deal', async () => {
+  const { tracker, fake } = mkCli();
+  await tracker.trackReply(evt()); await tracker.trackReply(evt({ email: 'b@other.co.uk', label: 'maybe' }));
+  assert.strictEqual(fake.state.opps.length, 2);
+});
+test('cli: full page of 100 falls back to the API contact-filtered search', async () => {
+  const { tracker, fake } = mkCli();
+  await tracker.trackReply(evt());
+  const base = fake.state.opps[0];
+  for (let i = 0; i < 100; i++) fake.state.opps.push({ ...base, id: 'f' + i, contactId: 'other' + i });
+  fake.state.opps.reverse(); // the real one is now past nothing, still found via the API path
+  const r = await tracker.trackReply(evt({ label: 'maybe', text: 'again', date: '2026-10-21' }));
+  assert.strictEqual(r.created, false);
+  assert.ok(fake.state.calls.some((c) => c.path === '/opportunities/search' && c.query.contactId));
+});
+test('cli: 429 in stderr is retried; hard errors are not and never show a token', async () => {
+  let x = mkCli({ cliFailures: [{ times: 2, stderr: 'HTTP 429 Too Many Requests' }] });
+  await x.tracker.trackReply(evt()); assert.strictEqual(x.fake.state.opps.length, 1);
+  x = mkCli({ cliFailures: [{ times: 9, stderr: 'HTTP 401 Bearer pit-abcd-1234 unauthorised' }] });
+  await assert.rejects(() => x.tracker.trackReply(evt()), (e) => /401/.test(e.message) && !/pit-abcd/.test(e.message));
+  assert.strictEqual(x.fx.calls.length, 1);
+});
+test('cli: dry run makes no CLI or fetch calls', async () => {
+  const { tracker, fake, fx } = mkCli({ tracker: { dryRun: true } });
+  await tracker.trackReply(evt()); assert.strictEqual(fx.calls.length + fake.state.calls.length, 0);
+});
+test('cli: ensurePipelines check uses CLI only, create falls to the API (gap), works with no stored tokens', async () => {
+  let x = mkCli({ creds: {} });
+  assert.deepStrictEqual((await x.tracker.ensurePipelines({})).map((r) => r.status), ['ok', 'ok', 'ok']);
+  assert.strictEqual(x.fake.state.calls.length, 3); // fake CLI -> fake http only
+  x = mkCli({ fake: { pipelines: false } });
+  const r = await x.tracker.ensurePipelines({ brands: ['stripped'] });
+  assert.strictEqual(r[0].status, 'created'); assert.strictEqual(x.fake.writes().filter((w) => w.path === '/opportunities/pipelines').length, 1);
+});
+test('creds: falls back to the CLI .env.<brand> file', () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'ghle-'));
+  fs.writeFileSync(path.join(d, '.env.stripped'), 'GHL_API_KEY=pit-env-s\nGHL_LOCATION_ID=ENVLOC\n');
+  const c = loadGhlCreds({ vaultPath: '/nope', claudeJsonPath: '/nope', cliDir: d });
+  assert.deepStrictEqual(c.stripped, { token: 'pit-env-s', locationId: 'ENVLOC' });
+});

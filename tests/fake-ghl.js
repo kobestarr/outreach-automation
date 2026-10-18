@@ -81,4 +81,31 @@ const FAKE_CREDS = {
   stripped: { token: 'tok-s', locationId: 'LOC_S' },
   dealflow: { token: 'tok-d', locationId: 'LOC_D' },
 };
-module.exports = { makeFakeGhl, FAKE_CREDS, STAGES };
+// Fake of `ghlp <profile> --json <group> <cmd> ...`: translates the args to the HTTP call the real CLI makes.
+function makeFakeExec(fake, { failures = [] } = {}) {
+  const calls = [];
+  const tok = { kobestarr: 'tok-k', stripped: 'tok-s', dealflow: 'tok-d' };
+  async function exec(file, args) {
+    calls.push({ file, args });
+    const f = failures.find((x) => x.times > 0);
+    if (f) { f.times--; const e = new Error('cli failed'); e.stderr = f.stderr; throw e; }
+    const [profile, , group, cmd, ...rest] = args;
+    const loc = { kobestarr: 'LOC_K', stripped: 'LOC_S', dealflow: 'LOC_D' }[profile];
+    const opt = (n) => { const i = rest.indexOf(n); return i >= 0 ? rest[i + 1] : undefined; };
+    const H = { headers: { Authorization: `Bearer ${tok[profile]}` } };
+    const go = async (method, path, body) => {
+      const r = await fake.fetch(`https://x${path}`, { method, ...H, body: body ? JSON.stringify({ locationId: loc, ...body }) : undefined });
+      const t = JSON.parse(await r.text()); if (!r.ok) { const e = new Error('http'); e.stderr = `Error ${r.status}`; throw e; } return t;
+    };
+    let out;
+    if (group === 'opportunities' && cmd === 'pipelines') out = await go('GET', `/opportunities/pipelines?locationId=${loc}`);
+    else if (group === 'opportunities' && cmd === 'list') out = await go('GET', `/opportunities/search?locationId=${loc}&pipelineId=${opt('--pipeline-id')}&status=${opt('--status') || ''}`);
+    else if (group === 'opportunities' && cmd === 'create') out = await go('POST', '/opportunities/', { pipelineId: opt('--pipeline-id'), pipelineStageId: opt('--stage-id'), name: opt('--name'), contactId: opt('--contact-id'), status: opt('--status') });
+    else if (group === 'opportunities' && cmd === 'update') { const b = {}; if (opt('--stage-id')) b.pipelineStageId = opt('--stage-id'); if (opt('--status')) b.status = opt('--status'); out = await go('PUT', `/opportunities/${rest[0]}`, b); }
+    else if (group === 'contacts' && cmd === 'add-tag') out = await go('POST', `/contacts/${rest[0]}/tags`, { tags: rest.slice(1) });
+    else throw new Error(`fake exec: unsupported ${group} ${cmd}`);
+    return { stdout: JSON.stringify(out, null, 2) };
+  }
+  return { exec, calls };
+}
+module.exports = { makeFakeExec, makeFakeGhl, FAKE_CREDS, STAGES };

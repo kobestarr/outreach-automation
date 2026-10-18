@@ -20,3 +20,6 @@ Spec: docs/spec-reply-funnel-2026-10-18.md section 3.
 8. ensurePipelines: check, plan, apply (never moves or edits an existing wrong pipeline).
 9. ghl-setup.js CLI (--check, --plan, --apply, --brand). Live --check read only.
 10. Setup doc (not needed, API can create) and user guide docs/user-guides/ghl-tracking.md.
+
+## Amendment (coordinator, 18 Oct): CLI first
+Use the LeadGen Jay CLI (gohighlevel-cli, `ghlp <brand> --json ...`) through an injected exec for everything it covers: list pipelines, list opportunities, create and update opportunity, add tags. Raw fetch only for gaps: create pipeline, contact upsert, find contact by email, notes read and write, and an opportunity search by contact when the CLI page (100) may be full. Tests use a fake exec that maps CLI args to the same fake GHL.

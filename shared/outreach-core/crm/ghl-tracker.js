@@ -28,6 +28,12 @@
  *   Rate limits: 100 requests per 10 s and 200,000 per day per app per resource
  *     https://marketplace.gohighlevel.com/docs/other/rate-limits   (429 handling is not documented: we back off)
  *
+ * Transport (Kobi's preference, 18 Oct 2026): the LeadGen Jay GHL CLI (gohighlevel-cli/ghlp <profile>) is used for every
+ * operation it covers, via an injected exec. Raw fetch is used ONLY for the gaps the CLI does not cover (see CLI_GAPS):
+ *   covered by CLI : list pipelines, list/search opportunities (no contactId filter, so filtered here), create opp,
+ *                    update opp, add tags
+ *   gaps (fetch)   : create pipeline, contact upsert, find contact by email, notes read/write, and any opportunity search
+ *                    that may exceed the CLI's 100-row page
  * Tokens are never logged or put in error messages.
  */
 const crypto = require('crypto');
@@ -63,10 +69,15 @@ function brandForMailbox(addr) {
 }
 
 function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
+function readEnvFile(p) {
+  const o = {};
+  try { for (const l of fs.readFileSync(p, 'utf8').split('\n')) { const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/); if (m) o[m[1]] = m[2].replace(/^["']|["']$/g, ''); } } catch { /* no env file */ }
+  return o;
+}
 const stripBearer = (t) => String(t || '').replace(/^Bearer\s+/i, '').trim();
 
 /** Vault ghl.<brand> first, then ~/.claude.json mcpServers.ghl-<brand>. Returns { brand: {token, locationId} }. */
-function loadGhlCreds({ vaultPath, claudeJsonPath } = {}) {
+function loadGhlCreds({ vaultPath, claudeJsonPath, cliDir } = {}) {
   const vault = readJson(vaultPath || path.join(os.homedir(), '.credentials', 'api-keys.json')) || {};
   const claude = readJson(claudeJsonPath || path.join(os.homedir(), '.claude.json')) || {};
   const out = {};
@@ -76,9 +87,10 @@ function loadGhlCreds({ vaultPath, claudeJsonPath } = {}) {
     const vTok = stripBearer(vObj.token || vObj.private_integration_token || vObj.pit);
     const vLoc = vObj.location_id || vObj.locationId;
     const h = (claude.mcpServers && claude.mcpServers['ghl-' + brand] && claude.mcpServers['ghl-' + brand].headers) || {};
-    const token = vTok || stripBearer(h.Authorization || h.authorization);
+    const env = cliDir ? readEnvFile(path.join(cliDir, '.env.' + brand)) : {};
+    const token = vTok || stripBearer(h.Authorization || h.authorization) || stripBearer(env.GHL_API_KEY);
     if (!token) continue;
-    out[brand] = { token, locationId: vLoc || h.locationId || DEFAULT_LOCATIONS[brand] };
+    out[brand] = { token, locationId: vLoc || h.locationId || env.GHL_LOCATION_ID || DEFAULT_LOCATIONS[brand] };
   }
   return out;
 }
@@ -88,19 +100,78 @@ function trimText(t, n) {
   return s.length > n ? s.slice(0, n) + ' [trimmed]' : s;
 }
 
-function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun = false, sleep, baseUrl = BASE_URL, version = API_VERSION } = {}) {
+function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun = false, sleep, baseUrl = BASE_URL, version = API_VERSION, cli } = {}) {
   const wait = sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const credMap = creds || loadGhlCreds();
   const pipeCache = {};
 
-  function credsFor(brand) {
+  function credsFor(brand, { needToken = !cli } = {}) {
     const c = credMap[brand];
+    if (cli && !needToken) return { token: c && c.token, locationId: (c && c.locationId) || DEFAULT_LOCATIONS[brand] };
     if (!c || !c.token) throw new Error(`No GHL credentials for brand "${brand}" (vault ghl.${brand} or ~/.claude.json ghl-${brand})`);
     return { token: c.token, locationId: c.locationId || DEFAULT_LOCATIONS[brand] };
   }
 
+  // ---- CLI transport (gohighlevel-cli ghlp <profile> --json ...) -------------------------------------------------
+  const CLI_GAPS = ['POST /opportunities/pipelines', 'POST /contacts/upsert', 'GET /contacts/search/duplicate', 'GET|POST /contacts/:id/notes'];
+  function cliArgs(method, p, query = {}, body = {}) {
+    let m;
+    if (method === 'GET' && p === '/opportunities/pipelines') return ['opportunities', 'pipelines'];
+    if (method === 'GET' && p === '/opportunities/search' && query.pipelineId && Number(query.limit || 20) <= 100) {
+      const a = ['opportunities', 'list', '--pipeline-id', query.pipelineId, '--limit', String(query.limit || 100)];
+      if (query.status) a.push('--status', query.status);
+      return a;
+    }
+    if (method === 'POST' && p === '/opportunities/') {
+      return ['opportunities', 'create', '--pipeline-id', body.pipelineId, '--stage-id', body.pipelineStageId, '--name', body.name,
+        '--contact-id', body.contactId, '--status', body.status || 'open'];
+    }
+    if (method === 'PUT' && (m = p.match(/^\/opportunities\/([^/]+)$/))) {
+      const a = ['opportunities', 'update', m[1]];
+      if (body.pipelineStageId) a.push('--stage-id', body.pipelineStageId);
+      if (body.status) a.push('--status', body.status);
+      return a;
+    }
+    if (method === 'POST' && (m = p.match(/^\/contacts\/([^/]+)\/tags$/))) return ['contacts', 'add-tag', m[1], ...body.tags];
+    return null;
+  }
+  async function viaCli(brand, method, p, query, body) {
+    const args = cliArgs(method, p, query, body);
+    if (!args) return undefined;
+    const label = `GHL CLI ${method} ${p}`;
+    let lastErr;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const r = await cli.exec(cli.ghlp, [brand, '--json', ...args], { timeout: TIMEOUT_MS });
+        const out = String((r && r.stdout) || '');
+        const at = out.indexOf('{');
+        let json = {};
+        if (at >= 0) { try { json = JSON.parse(out.slice(at)); } catch { throw new Error(`${label} returned unreadable output`); } }
+        if (method === 'GET' && p === '/opportunities/search') {
+          const rows = json.opportunities || [];
+          // the CLI cannot filter by contact: filter here, and fall back to the API if the page may be truncated
+          if (rows.length >= Number(query.limit || 100) && query.contactId) return undefined;
+          return { ...json, opportunities: query.contactId ? rows.filter((o) => o.contactId === query.contactId || (o.contact && o.contact.id === query.contactId)) : rows };
+        }
+        return json;
+      } catch (e) {
+        const msg = String((e && (e.stderr || e.message)) || e);
+        const timedOut = e && (e.killed || e.code === 'ETIMEDOUT');
+        lastErr = new Error(timedOut ? `${label} timed out after ${TIMEOUT_MS / 1000}s` : `${label} failed: ${msg.replace(/pit-[\w-]+/g, '[token]').slice(0, 200)}`);
+        const retryable = timedOut || /\b(429|5\d\d)\b/.test(msg);
+        if (!retryable || attempt === MAX_ATTEMPTS) throw lastErr;
+        await wait(500 * 2 ** (attempt - 1));
+      }
+    }
+    throw lastErr;
+  }
+
   async function request(brand, method, p, { query, body } = {}) {
-    const { token } = credsFor(brand);
+    if (cli) {
+      const r = await viaCli(brand, method, p, query, body);
+      if (r !== undefined) return r;
+    }
+    const { token } = credsFor(brand, { needToken: true });
     const qs = query ? '?' + new URLSearchParams(query).toString() : '';
     const label = `GHL ${method} ${p}`;
     let lastErr;
@@ -137,7 +208,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
   }
 
   async function listPipelines(brand) {
-    const { locationId } = credsFor(brand);
+    const { locationId } = credsFor(brand, { needToken: false });
     const r = await request(brand, 'GET', '/opportunities/pipelines', { query: { locationId } });
     return r.pipelines || [];
   }
@@ -175,7 +246,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
   }
 
   async function findOpenOpp(brand, pl, contactId) {
-    const { locationId } = credsFor(brand);
+    const { locationId } = credsFor(brand, { needToken: false });
     const r = await request(brand, 'GET', '/opportunities/search', { query: { locationId, pipelineId: pl.id, contactId, status: 'open', limit: '100' } });
     return (r.opportunities || []).find((o) => !o.pipelineId || o.pipelineId === pl.id) || null;
   }
@@ -196,7 +267,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
     const tags = ['cold-email', ...(e.campaign ? [`campaign:${e.campaign}`] : []), `brand:${brand}`];
     if (dryRun) return { dryRun: true, brand, stage: target, tags, email: e.email };
 
-    const { locationId } = credsFor(brand);
+    const { locationId } = credsFor(brand, { needToken: false });
     const up = await request(brand, 'POST', '/contacts/upsert', { body: {
       locationId, email: e.email, ...(e.firstName ? { firstName: e.firstName } : {}), ...(e.company ? { companyName: e.company } : {}), source: 'cold-email',
     } });
@@ -241,7 +312,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
     const canonical = STAGES.find((s) => s.toLowerCase() === String(stageName).toLowerCase());
     if (!canonical) throw new Error(`Unknown stage "${stageName}". Stages: ${STAGES.join(', ')}`);
     if (dryRun) return { dryRun: true, brand, stage: canonical };
-    const { locationId } = credsFor(brand);
+    const { locationId } = credsFor(brand, { needToken: false });
     const r = await request(brand, 'GET', '/contacts/search/duplicate', { query: { locationId, email } });
     const c = r.contact || (r.contacts && r.contacts[0]);
     if (!c) return { moved: false, reason: 'no contact with that email' };
@@ -258,7 +329,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
   async function ensurePipelines({ dryRun: dry = dryRun, brands = BRANDS } = {}) {
     const out = [];
     for (const brand of brands) {
-      if (!credMap[brand] || !credMap[brand].token) { out.push({ brand, status: 'no_credentials' }); continue; }
+      if (!cli && (!credMap[brand] || !credMap[brand].token)) { out.push({ brand, status: 'no_credentials' }); continue; }
       try {
         const existing = (await listPipelines(brand)).find((p) => String(p.name).toLowerCase() === PIPELINE_NAME.toLowerCase());
         if (existing) {
@@ -267,7 +338,7 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
           continue;
         }
         if (dry) { out.push({ brand, status: 'would_create', stages: STAGES }); continue; }
-        const { locationId } = credsFor(brand);
+        const { locationId } = credsFor(brand, { needToken: false });
         await request(brand, 'POST', '/opportunities/pipelines', { body: {
           locationId, name: PIPELINE_NAME, stages: STAGES.map((name, position) => ({ name, position, showInFunnel: true })),
         } });
@@ -285,4 +356,4 @@ function createGhlTracker({ fetch = global.fetch, creds, log = () => {}, dryRun 
   return { trackReply, moveStage, ensurePipelines, brandForMailbox, checkPipeline };
 }
 
-module.exports = { createGhlTracker, loadGhlCreds, brandForMailbox, STAGES, BRANDS, PIPELINE_NAME, DEFAULT_LOCATIONS };
+module.exports = { createGhlTracker, CLI_GAPS_NOTE: 'create pipeline, contact upsert, find contact by email, notes', loadGhlCreds, brandForMailbox, STAGES, BRANDS, PIPELINE_NAME, DEFAULT_LOCATIONS };
