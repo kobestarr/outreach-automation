@@ -64,3 +64,9 @@ Approval tap, building campaigns in the Mailead UI, sheets sharing, subject line
 - **Daily snapshots.** Harvey writes a daily funnel snapshot (`data/harvey/funnel-YYYY-MM-DD.json`: count and monthly value per stage per brand) so week-on-week figures exist. The first report says "no comparison yet".
 - **Build order.** Autopilot is built Mon 26 Oct, after specs 1, 2, 6 and the minimal dashboard.
 - **Open questions changed:** wave size recommendation stays about 600 but only limited companies count, so expect fewer; the Outscraper cap is £20 for about 12,500 results.
+
+## Addendum (Kobi, 18 Oct 2026): OpenStreetMap as a later discovery source
+
+- OpenStreetMap (Overpass API, free, no account; idea from the Harvey repo) is a DISCOVERY source only, added later for shopfront verticals (clinics, dentists, salons, gyms, shops, cafes; never pubs). It is thin for service-area trades (roofers, electricians, plumbers), so trades stay on Companies House + Google Places.
+- Every OSM business must pass the SAME gate before it can be emailed: matched to a Companies House limited company (no sole traders: PECR), not a micro-entity, 5+ staff or £100k+ net assets (the minimum-size criteria), plus the standing exclusions (no pubs, no cleaning firms, one firm per trade per area, do-not-contact). Unmatched businesses are dropped, never emailed.
+- Overpass is volunteer infrastructure: cache results, walk mirrors, back off on throttling.
