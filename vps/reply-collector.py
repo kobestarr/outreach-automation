@@ -31,6 +31,7 @@ DOMAINS = [
     "dealflowmedia.co", "dealflowmedia.pro", "dealflowmedia.group",              # Dealflow
 ]
 OUR_MAILBOXES = {f"{l}@{d}" for d in DOMAINS for l in LOCALS}
+SEEN_MAX = 8000
 INBOX = "INBOX"
 SENT = "[Gmail]/Sent Mail"
 
@@ -184,12 +185,26 @@ def load_allowlist(path):
         return set()
 
 
+def uidvalidity(M):
+    try:
+        typ, data = M.response("UIDVALIDITY")
+        return data[0].decode() if typ == "OK" and data and data[0] else None
+    except Exception:
+        return None
+
+
 def fetch_new(M, folder, state_key, state, days, build, seen):
-    """Walk UIDs newer than the saved one. Returns (records, new_last_uid)."""
+    """Walk UIDs newer than the saved one. Returns (records, new_last_uid, validity).
+    Stops at the first fetch that fails so that message is retried next run (the saved uid never passes it).
+    A message that cannot be parsed is skipped, not retried forever."""
     typ, _ = M.select(folder, readonly=True)
     if typ != "OK":
-        return [], state.get(state_key)
+        return [], state.get(state_key), state.get(state_key.replace("_uid", "_validity"))
+    validity = uidvalidity(M)
+    vkey = state_key.replace("_uid", "_validity")
     last = state.get(state_key)
+    if validity and state.get(vkey) and state.get(vkey) != validity:
+        last = None          # Gmail renumbered the folder: start again, msgids in `seen` stop duplicates
     if last is None:
         since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%d-%b-%Y")
         typ, data = M.uid("search", None, f'(SINCE "{since}")')
@@ -201,16 +216,21 @@ def fetch_new(M, folder, state_key, state, days, build, seen):
     uids = [u for u in uids if u > floor]      # IMAP 'n:*' always returns the newest message even if it is old
     records, new_last = [], last
     for u in uids:
-        typ, fetched = M.uid("fetch", str(u), "(BODY.PEEK[])")
+        try:
+            typ, fetched = M.uid("fetch", str(u), "(BODY.PEEK[])")
+        except Exception:
+            break
         if typ != "OK" or not fetched or not fetched[0] or not isinstance(fetched[0], tuple):
-            continue
-        msg = email.message_from_bytes(fetched[0][1])
-        rec = build(msg)
-        new_last = u if new_last is None or u > int(new_last) else new_last
+            break                              # do not advance past a failed fetch
+        try:
+            rec = build(email.message_from_bytes(fetched[0][1]))
+        except Exception:
+            rec = None                         # poison message: skip it
+        new_last = u
         if rec and rec["msgid"] and rec["msgid"] not in seen:
-            seen.add(rec["msgid"])
+            seen[rec["msgid"]] = True
             records.append(rec)
-    return records, new_last
+    return records, new_last, validity or state.get(vkey)
 
 
 def run(connect, env, argv, out=print):
@@ -227,13 +247,13 @@ def run(connect, env, argv, out=print):
     state_path = env.get("STATE_PATH", "/root/data/reply-collector-state.json")
     allow = load_allowlist(env.get("ALLOWLIST_PATH", os.path.join(HERE, "data", "outreach-allowlist.txt")))
     state = load_json(state_path, {})
-    seen = set(state.get("seen", []))
+    seen = dict.fromkeys(state.get("seen", []), True)   # insertion ordered
 
     M = connect()
     M.login(user, pw)
     try:
-        inbound, last_in = fetch_new(M, INBOX, "inbox_uid", state, days, lambda m: inbound_record(m, allow), seen)
-        sent, last_sent = fetch_new(M, SENT, "sent_uid", state, days, sent_record, seen)
+        inbound, last_in, val_in = fetch_new(M, INBOX, "inbox_uid", state, days, lambda m: inbound_record(m, allow), seen)
+        sent, last_sent, val_sent = fetch_new(M, SENT, "sent_uid", state, days, sent_record, seen)
     finally:
         try: M.logout()
         except Exception: pass
@@ -244,12 +264,13 @@ def run(connect, env, argv, out=print):
     if dry:
         out(f"[dry-run] {len(inbound)} inbound, {len(sent)} sent; nothing written")
         return 0
-    if records:
-        os.makedirs(os.path.dirname(replies_path), exist_ok=True)
-        with open(replies_path, "a") as f:
-            for r in records:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    state.update({"inbox_uid": last_in, "sent_uid": last_sent, "seen": list(seen)[-8000:],
+    os.makedirs(os.path.dirname(replies_path), exist_ok=True)
+    # always create the file, so the Mac side reads 0 lines instead of an error
+    with open(replies_path, "a") as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    state.update({"inbox_uid": last_in, "sent_uid": last_sent, "inbox_validity": val_in, "sent_validity": val_sent,
+                  "seen": list(seen)[-SEEN_MAX:],
                   "updated": datetime.now(timezone.utc).isoformat()})
     os.makedirs(os.path.dirname(state_path), exist_ok=True)
     with open(state_path, "w") as f:

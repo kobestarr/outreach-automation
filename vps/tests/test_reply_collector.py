@@ -20,8 +20,12 @@ def mail(frm, to, subject, body, msgid, date="Sun, 18 Oct 2026 08:00:00 +0000", 
 
 
 class FakeIMAP:
-    def __init__(self, folders):
+    def __init__(self, folders, validity=None, fail_uids=()):
         self.folders, self.cur, self.logged_in, self.fetched = folders, None, False, []
+        self.validity, self.fail_uids = validity or {}, set(fail_uids)
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "OK", [str(self.validity.get(self.cur, 1)).encode()]
     def login(self, u, p): self.logged_in = True
     def logout(self): pass
     def select(self, folder, readonly=False):
@@ -38,18 +42,19 @@ class FakeIMAP:
                 uids = [u for u in uids if u >= n] or uids[-1:]    # IMAP quirk: n:* returns the last message even if lower
             return "OK", [b" ".join(str(u).encode() for u in uids)]
         if cmd == "fetch":
+            if int(args[0]) in self.fail_uids: return "NO", [None]
             self.fetched.append((self.cur, args[1]))
             assert "PEEK" in args[1], "must not mark mail as read"
             return "OK", [(b"1 (BODY[] {1})", box[int(args[0])]), b")"]
         raise AssertionError(cmd)
 
 
-def run_collector(folders, argv=(), allow="", env_extra=None):
+def run_collector(folders, argv=(), allow="", env_extra=None, **fake_kw):
     d = tempfile.mkdtemp()
     al = os.path.join(d, "allow.txt"); open(al, "w").write(allow)
     env = {"GMAIL_USER": "kobi@kobestarr.io", "GMAIL_APP_PASSWORD": "x", "REPLIES_PATH": os.path.join(d, "replies.jsonl"),
            "STATE_PATH": os.path.join(d, "state.json"), "ALLOWLIST_PATH": al, **(env_extra or {})}
-    fake = FakeIMAP(folders)
+    fake = FakeIMAP(folders, **fake_kw)
     lines = []
     code = rc.run(lambda: fake, env, list(argv), out=lines.append)
     recs = []
@@ -173,6 +178,62 @@ class DryRunAndSafety(unittest.TestCase):
         folders = {"INBOX": {1: mail("a@b.com", OURS, "Re: 1", "one", "<m1>")}, "[Gmail]/Sent Mail": {}}
         _, _, lines, _, _ = run_collector(folders, env_extra={"GMAIL_APP_PASSWORD": "hunter2hunter2"})
         self.assertFalse(any("hunter2" in l for l in lines))
+
+
+class Resilience(unittest.TestCase):
+    def three(self):
+        return {"INBOX": {i: mail(f"p{i}@x.com", OURS, f"Re: {i}", f"body {i}", f"<m{i}>") for i in (1, 2, 3)}, "[Gmail]/Sent Mail": {}}
+
+    def test_a_failed_fetch_stops_the_walk_and_is_retried_next_run(self):
+        folders = self.three()
+        code, recs, _, env, _ = run_collector(folders, fail_uids={2})
+        self.assertEqual([r["msgid"] for r in recs], ["<m1>"])
+        self.assertEqual(json.load(open(env["STATE_PATH"]))["inbox_uid"], 1)
+        rc.run(lambda: FakeIMAP(folders), env, [], out=lambda *_: None)
+        self.assertEqual([json.loads(l)["msgid"] for l in open(env["REPLIES_PATH"])], ["<m1>", "<m2>", "<m3>"])
+
+    def test_one_bad_message_does_not_stop_the_rest(self):
+        folders = self.three()
+        real = rc.inbound_record
+        def flaky(msg, allow):
+            if "Re: 2" in str(msg["Subject"]): raise ValueError("boom")
+            return real(msg, allow)
+        rc.inbound_record = flaky
+        try:
+            code, recs, _, env, _ = run_collector(folders)
+        finally:
+            rc.inbound_record = real
+        self.assertEqual([r["msgid"] for r in recs], ["<m1>", "<m3>"])
+        self.assertEqual(json.load(open(env["STATE_PATH"]))["inbox_uid"], 3)
+
+    def test_uidvalidity_change_resets_the_uid_and_does_not_duplicate(self):
+        folders = {"INBOX": {1: mail("a@b.com", OURS, "Re: 1", "one", "<m1>"), 2: mail("c@d.com", OURS, "Re: 2", "two", "<m2>")}, "[Gmail]/Sent Mail": {}}
+        code, recs, _, env, _ = run_collector(folders, validity={"INBOX": 1, "[Gmail]/Sent Mail": 1})
+        # Gmail renumbers: same mail, new validity, new uids
+        folders2 = {"INBOX": {7: folders["INBOX"][1], 8: folders["INBOX"][2], 9: mail("e@f.com", OURS, "Re: 3", "three", "<m3>")}, "[Gmail]/Sent Mail": {}}
+        rc.run(lambda: FakeIMAP(folders2, validity={"INBOX": 2, "[Gmail]/Sent Mail": 1}), env, [], out=lambda *_: None)
+        self.assertEqual([json.loads(l)["msgid"] for l in open(env["REPLIES_PATH"])], ["<m1>", "<m2>", "<m3>"])
+        st = json.load(open(env["STATE_PATH"]))
+        self.assertEqual((st["inbox_validity"], st["inbox_uid"]), ("2", 9))
+
+    def test_seen_is_an_ordered_list_capped_by_insertion(self):
+        old = rc.SEEN_MAX
+        rc.SEEN_MAX = 3
+        try:
+            folders = {"INBOX": {i: mail(f"p{i}@x.com", OURS, f"Re: {i}", "b", f"<s{i}>") for i in range(1, 6)}, "[Gmail]/Sent Mail": {}}
+            _, _, _, env, _ = run_collector(folders)
+        finally:
+            rc.SEEN_MAX = old
+        self.assertEqual(json.load(open(env["STATE_PATH"]))["seen"], ["<s3>", "<s4>", "<s5>"])
+
+    def test_the_replies_file_always_exists_after_a_run(self):
+        _, recs, _, env, _ = run_collector({"INBOX": {}, "[Gmail]/Sent Mail": {}})
+        self.assertTrue(os.path.exists(env["REPLIES_PATH"]))
+        self.assertEqual(os.path.getsize(env["REPLIES_PATH"]), 0)
+
+    def test_dry_run_does_not_create_the_file(self):
+        _, _, _, env, _ = run_collector({"INBOX": {}, "[Gmail]/Sent Mail": {}}, argv=["--dry-run"])
+        self.assertFalse(os.path.exists(env["REPLIES_PATH"]))
 
 
 if __name__ == "__main__":
