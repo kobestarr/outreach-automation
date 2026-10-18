@@ -99,6 +99,7 @@ const WARM_ONEWORD = /^(?:audit|yes|yes please|sure|go ahead|ok|okay|please do|p
 const WARM_RULES = [
   /\bplease (?:feel free to )?send (?:me |us )?(?:over|it|that|this|the|your|a (?=[a-z])|through|across|\d)/i, /\bsend (?:it |that |this |the |your |us |me )?(?:over|video|the video|proposal|audit|details|info)/i, /\bgo ahead (?:and )?send\b/i,
   /\b(?:like|love|want) to (?:see|hear|watch)\b/i, /\blet(?:'|’)?s see (?:your|the)\b|\blet see your\b/i, /\bkeen to hear more\b/i, /\binterested in (?:seeing|hearing)\b/i,
+  /\bpass on the (?:audit|video|details|info)\b/i,
 ];
 
 const stripNoise = body => String(body || '')
