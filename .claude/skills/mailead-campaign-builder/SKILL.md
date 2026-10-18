@@ -12,7 +12,7 @@ The Mailead **API** (personal key) can only list campaigns, add leads and remove
 1. Lead file ready and checked (see Leads).
 2. UI build (steps A to F), leave as **Draft**.
 3. Register in `config/campaign-sheets.json`, make the tracking sheet, load leads by API.
-4. Register reply + bounce webhooks for the new campaign id: `M.req('create_webhook', {body:{campaign_id, enabled_events:['email_answered'], url: receiver}})`, then the same for `email_bounced`; receiver URL and ids live in `config/mailead-webhooks.json`. Without them replies are never WhatsApped and bounces never removed.
+4. Register reply + bounce webhooks for the new campaign id: `M.req('create_webhook', {body:{campaign_id, enabled_events:['email_answered'], url: receiver}})`, then the same for `email_bounced`; ids live in `config/mailead-webhooks.json`. The URL there has a `<secret>` placeholder: build the real one by replacing it with HOOK_SECRET from the VPS (`ssh clawdbot "systemctl cat mailead-webhook"`), never register the placeholder and never commit the secret. Test with a POST to the real URL (expect 200). Without webhooks replies never reach Buzz ~outreach and bounces are never removed. There is no list-webhooks endpoint, so record every id you create.
 5. Reconcile the count, then hand Kobi the launch checklist.
 
 ## UI methods that persist (verified 2026-10-15; re-verify if a step reverts)
@@ -20,7 +20,7 @@ The Mailead **API** (personal key) can only list campaigns, add leads and remove
 - **B. Emails:** Email Sequence, Create Manually. Click Subject, type. Click body, `type` the email with `\n\n` between paragraphs. Add step, click the new step card, click body, type. Follow-up subjects copy step 1 (same thread).
 - **C. Wait days:** each step's "Days to wait before next message" = gap AFTER that step. Day 0/3/7/14 = step1 3, step2 4, step3 7 (last step blank). ONLY the small up/down arrows commit; typing, `form_input` and JS revert.
 - **D. Schedule:** click day checkboxes (first touch never Friday: Mon to Thu), Save, wait for "Schedule Saved". Leave hours at default 9am to 5pm: the hour dropdowns and timezone picker do not persist or open. Picker is labelled "UTC +2 CEST" (UK+1 in summer); after the clocks change (25 Oct 2026) check whether it is now UK+2.
-- **E. Senders:** Settings & Sending, click the email-account search box, type ONE full address, press Return; repeat; then Save. Mouse clicks and jQuery `.val()` do not persist.
+- **E. Senders:** Settings & Sending, click the email-account search box, type ONE full address, press Return; repeat; then Save. Mouse clicks and jQuery `.val()` do not persist. **Senders only stick if Launch is clicked in the same page session**: after a reload they can show 0 again. So add senders last, then hand Kobi the tab to launch without reloading; if he launches later, re-add them first.
 - **F. Text-only:** tick "Send emails as text-only (no HTML)" (turns both trackers off), Save. Never click Launch Campaign.
 - **Reload and check:** emails, waits, days, "Emails Account Connected" = expected number.
 
@@ -54,7 +54,7 @@ Draft campaigns show nothing in Contacts. After up to 15 min, the campaign list'
 5. Do not delete the old campaign without Kobi.
 
 ## Launch checklist for Kobi
-Pending (Analytics) = ledger count; "Emails Account Connected" = sender count; then Launch Campaign.
+Pending (Analytics) = ledger count; "Emails Account Connected" = sender count (re-add if 0, see E); webhooks registered with the real URL; then Launch Campaign in that same tab.
 
 ## Chrome keeps asking permission
 Kobi runs `jq '.permissions.allow += ["mcp__claude-in-chrome"]' ~/.claude/settings.json > /tmp/s.json && mv /tmp/s.json ~/.claude/settings.json` in Terminal. Claude cannot edit its own permissions.

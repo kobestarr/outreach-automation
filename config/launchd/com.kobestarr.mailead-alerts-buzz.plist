@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.kobestarr.mailead-alerts-buzz</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/kobestarr/Development/One Hour Vibe Coder/outreach-automation/mailead-alerts-buzz.sh</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <!-- Every 5 minutes -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/kobestarr/.config/dev-autosave/logs/mailead-alerts-buzz.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kobestarr/.config/dev-autosave/logs/mailead-alerts-buzz.err.log</string>
+</dict>
+</plist>

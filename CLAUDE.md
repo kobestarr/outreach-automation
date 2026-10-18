@@ -19,4 +19,4 @@ Multi-campaign local-business outreach: discover → enrich → verify → multi
 - `batch-bramhall-all-categories.js`, `explore-football-clubs.js` — original KSD/UFH scrapers
 
 ## Node note
-`node`/`gcloud` live at `/opt/homebrew/bin` (may be off the sandbox PATH — prefix `PATH="/opt/homebrew/bin:$PATH"` if a command isn't found).
+`node` lives at `/usr/local/bin` (moved from `/opt/homebrew/bin` by Oct 2026; `gcloud` may still be there). Prefix `PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"` if a command isn't found. LaunchAgents cannot write to `~/Downloads` (macOS blocks it): scheduled jobs write to `exports/`. Notifications go to Buzz ~outreach via `node mailead-alerts-buzz.js --post "msg"` (WhatsApp bridge down since 13 Oct 2026).

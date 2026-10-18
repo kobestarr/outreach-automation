@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+/**
+ * Post new Mailead replies and bounces to the Buzz ~outreach channel.
+ * Run every 5 min by LaunchAgent com.kobestarr.mailead-alerts-buzz.
+ * Reads new lines of clawdbot:/opt/mailead-webhook/events.jsonl since the saved line offset.
+ * First run (no offset file) starts at the current end: old events are never re-posted.
+ *
+ * Usage: node mailead-alerts-buzz.js [--dry-run] [--post "message"]
+ */
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+const { formatEvent, parseNewEvents } = require('./shared/outreach-core/notify/buzz-alerts');
+
+const CHANNEL = '22517fe0-56ff-48d6-96a6-e2c668032c6f'; // Buzz ~outreach
+const LOG = '/opt/mailead-webhook/events.jsonl';
+const STATE_DIR = path.join(os.homedir(), '.config', 'outreach-alerts');
+const OFFSET_FILE = path.join(STATE_DIR, 'events-offset');
+const BUZZ = path.join(os.homedir(), '.local', 'bin', 'buzz');
+const DRY = process.argv.includes('--dry-run');
+
+function buzzEnv() {
+  const env = { ...process.env };
+  const file = path.join(os.homedir(), '.buzz', '.secrets', 'buzz.env');
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Z0-9_]+)=(.*)$/);
+    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  return env;
+}
+
+function post(content) {
+  if (DRY) { console.log('[dry-run] would post:\n' + content + '\n'); return; }
+  execFileSync(BUZZ, ['messages', 'send', '--channel', CHANNEL, '--content', '-'], { input: content, env: buzzEnv(), stdio: ['pipe', 'ignore', 'inherit'] });
+}
+
+const ssh = cmd => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', 'clawdbot', cmd], { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+
+function main() {
+  const t = Math.max(process.argv.indexOf('--post'), process.argv.indexOf('--test'));
+  if (t >= 0) { post(process.argv[t + 1] || 'Outreach alerts test'); console.log('posted'); return; }
+
+  fs.mkdirSync(STATE_DIR, { recursive: true });
+  const total = parseInt(ssh(`wc -l < ${LOG}`).trim(), 10);
+  if (!Number.isFinite(total)) throw new Error('could not read event log length');
+  if (!fs.existsSync(OFFSET_FILE)) { fs.writeFileSync(OFFSET_FILE, String(total)); console.log(`first run: starting at line ${total}`); return; }
+
+  let offset = parseInt(fs.readFileSync(OFFSET_FILE, 'utf8'), 10) || 0;
+  if (total < offset) offset = 0; // log was rotated or truncated
+  if (total === offset) return;
+
+  const chunk = ssh(`sed -n '${offset + 1},${total}p' ${LOG}`);
+  let posted = 0;
+  for (const ev of parseNewEvents(chunk)) {
+    const msg = formatEvent(ev);
+    if (!msg) continue;
+    post(msg);
+    posted++;
+  }
+  if (!DRY) fs.writeFileSync(OFFSET_FILE, String(total));
+  console.log(`${new Date().toISOString()} lines ${offset + 1}-${total}, posted ${posted}`);
+}
+
+try { main(); } catch (e) { console.error(`${new Date().toISOString()} ${e.message}`); process.exit(1); }

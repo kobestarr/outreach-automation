@@ -25,12 +25,13 @@
   {
    "campaign_id": 8986,
    "event": "email_answered",
-   "webhook_id": "a6f601c9-afcc-4b16-a837-431a2394bbad"
+   "webhook_id": "dc3d1ddf-39b0-4c4f-b940-9c96654587f8"
   },
   {
    "campaign_id": 8986,
    "event": "email_bounced",
-   "webhook_id": "52620db4-6bb0-4d5c-a6a9-5210cb89d9e3"
+   "webhook_id": "7d7ed3d7-31c3-4402-982c-67043d786d78"
   }
- ]
+ ],
+ "receiverNote": "Real URL = receiver with <secret> replaced by HOOK_SECRET from VPS systemd unit mailead-webhook (never commit it)."
 }
