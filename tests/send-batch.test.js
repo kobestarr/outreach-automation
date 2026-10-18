@@ -8,6 +8,8 @@ function tmpDir() { return fs.mkdtempSync(path.join(os.tmpdir(), 'sb-')); }
 
 function makeIo(overrides = {}) {
   const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, 'sent-ledger.txt'), '');
+  fs.writeFileSync(path.join(dir, 'do-not-contact.txt'), '');
   const registryFile = path.join(dir, 'campaign-sheets.json');
   fs.writeFileSync(registryFile, JSON.stringify({
     'test-camp': { sheetId: 'SHEET1', sheetUrl: 'https://docs.google.com/spreadsheets/d/SHEET1', label: 'Test', carriers: { last_name: 'ask for a good {category} in {town}' } },
@@ -36,7 +38,7 @@ function makeIo(overrides = {}) {
 
 const CSV = 'first_name,last_name,email,company,category,town\n' +
   'Ann,Ash,ann@x.com,Ann Ltd,accountant,Bramhall\n' +
-  'Bob,Best,bad@x.com,Bob Ltd,solicitor,Poynton\n' +      // fails Reoon
+  'Bob,Best,bad@y.com,Bob Ltd,solicitor,Poynton\n' +      // fails Reoon
   'Cat,Cole,already@sheet.com,Cat Ltd,accountant,Sale\n' + // already in sheet
   'Dan,Dew,ann@x.com,Dup Ltd,accountant,Bramhall\n';       // dupe in file
 
@@ -47,7 +49,7 @@ test('dry-run reports counts and appends nothing', async () => {
   assert.strictEqual(appended.length, 0);
   assert.strictEqual(res.wouldPush, 2); // ann + bad (verify NOT spent on dry-run)
   assert.strictEqual(res.skipped.length, 2); // sheet-dupe + file-dupe
-  assert.strictEqual(fs.existsSync(io.ledgerFile), false);
+  assert.strictEqual(fs.readFileSync(io.ledgerFile, 'utf8'), '');
 });
 
 test('live run verifies, drops bad, appends, records ledger', async () => {
@@ -84,12 +86,12 @@ test('limit caps processed rows', async () => {
 test('leads with no verify result (quota truncation) are skipped, not pushed', async () => {
   const { io, appended, dir } = makeIo({ verifyEmails: async emails => emails.slice(0, 1).map(e => ({ email: e, status: 'safe', score: 90, isSafeToSend: true })) });
   const csvPath = path.join(dir, 'in.csv');
-  fs.writeFileSync(csvPath, 'first_name,email,company,category,town\nAnn,q1@x.com,A,accountant,Sale\nBob,q2@x.com,B,solicitor,Sale\n');
+  fs.writeFileSync(csvPath, 'first_name,email,company,category,town\nAnn,q1@x.com,A,accountant,Sale\nBob,q2@y.com,B,solicitor,Sale\n');
   const res = await runBatch({ csvPath, campaign: 'test-camp' }, io);
   assert.strictEqual(res.pushed, 1); // only the verified lead
   assert.ok(res.skipped.some(s => s.reason === 'reoon_no_result'));
   const ledger = fs.readFileSync(io.ledgerFile, 'utf8');
-  assert.ok(!ledger.includes('q2@x.com')); // unverified lead NOT ledgered
+  assert.ok(!ledger.includes('q2@y.com')); // unverified lead NOT ledgered
 });
 
 test('unknown campaign with no sheet triggers createSpreadsheet and registry save', async () => {

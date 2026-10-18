@@ -1,0 +1,10 @@
+{
+  "_about": "Domains shared by many unrelated firms or people. Never a firm identity: not used for firm dedupe, the company ledger or the loaded-domain check. A domain matches itself and every subdomain (nhs.uk covers rbht.nhs.uk). Add to this list freely; it is read on every run.",
+  "domains": [
+    "nhs.net", "nhs.uk", "nhs.scot", "hscni.net", "gov.uk", "gov.scot", "gov.wales", "police.uk", "sch.uk", "ac.uk", "edu",
+    "doctors.org.uk", "gmc-uk.org", "taxassist.co.uk", "ukbusinessforsale.com",
+    "btconnect.com", "btinternet.com", "btopenworld.com", "sky.com", "virginmedia.com", "virgin.net", "talktalk.net", "ntlworld.com",
+    "blueyonder.co.uk", "tiscali.co.uk", "plus.com", "orange.net", "freeserve.co.uk", "wanadoo.co.uk", "lineone.net", "supanet.com",
+    "aol.com", "aol.co.uk", "gmx.com", "gmx.co.uk", "yandex.com", "mail.ru", "qq.com", "126.com", "163.com"
+  ]
+}

@@ -6,7 +6,7 @@
 // Usage: node send-batch.js <csv> --campaign <key> [--dry-run] [--limit N] [--skip-verify]
 // Files with email_status columns (enrich-owner-emails.js) are routed main / inbox / probable per config/campaign-sheets.json finderRoutes.
 // Env: OA_DATA_DIR pins where ledgers live (required for a live run from a git worktree).
-const fs = require('fs'), path = require('path');
+const fs = require('fs'), path = require('path'), os = require('os');
 const { parseCSV, toCSV } = require('./shared/outreach-core/csv/csv-util');
 const { normalise } = require('./shared/outreach-core/csv/normalise');
 const { dedupe } = require('./shared/outreach-core/csv/dedup');
@@ -23,6 +23,7 @@ const BAD_STATUSES = new Set(['invalid', 'disabled', 'disposable', 'spamtrap']);
 const ROUTES = ['main', 'inbox', 'probable'];
 const SKIP_REOON_STATUSES = new Set(['safe', 'role_account', 'inbox_full']); // what the finder's own Reoon check can vouch for
 const REOON_FRESH_MS = 30 * 86400000;
+const HEADROOM = 300; // Reoon credits always left for the funded daily batch, which shares the key
 
 // Spec: docs/superpowers/specs/2026-10-18-email-finder-integration-design.md (revisions 1-6)
 async function runBatch(opts, io) {
@@ -38,20 +39,32 @@ async function runBatch(opts, io) {
   if (!dryRun && (typeof finder.isSuppressed !== 'function')) throw new Error('This email finder is too old: it has no isSuppressed(). Update kobestarr-tools engines/email-finder.');
   if (dryRun && (!finder || typeof finder.isSuppressed !== 'function')) log('NOTE: finder suppression was not checked (finder unavailable or too old). A live run would refuse to start.');
 
+  // Live runs fail closed: the gate files must exist (an empty file is fine, a missing one is not). Dry runs may read them as empty.
+  if (!dryRun) {
+    G.assertGateFiles(dataDir, { sentLedger: io.ledgerFile });
+    const cl = path.join(dataDir, 'company-ledger.txt');
+    if (!fs.existsSync(cl)) fs.writeFileSync(cl, ''); // ours to create: first live run
+  }
+  const required = !dryRun;
+  // Dry runs never write into the data dir: held and excluded files go to --out-dir or a fresh temp folder.
+  const outDir = dryRun ? (opts.outDir || io.outDir || fs.mkdtempSync(path.join(os.tmpdir(), 'send-batch-dry-'))) : dataDir;
+  const headroom = Number.isFinite(io.headroom) ? io.headroom : HEADROOM;
+
   // 1. Load + normalise
   const rows = parseCSV(io.readFile ? io.readFile(csvPath) : fs.readFileSync(csvPath, 'utf8'));
   const { leads: allLeads, skipped: badRows } = normalise(rows);
   const leads = limit > 0 ? allLeads.slice(0, limit) : allLeads;
   const skipped = [...badRows];
+  for (const l of leads) if (l.ref) delete l.ref.email_suggested; // a guess never reaches a sheet row
 
   // 2. Route every lead by how its address was found (fail closed), then the never-send gates
   const routed = leads.map(lead => ({ lead, ...routeFor(lead) }));
   const excluded = routed.filter(x => x.route === 'excluded').map(x => ({ ...x.lead, route: 'excluded', reason: x.reason }));
-  const dnc = G.readDoNotContact(path.join(dataDir, 'do-not-contact.txt'));
+  const dnc = G.readDoNotContact(path.join(dataDir, 'do-not-contact.txt'), { required });
   const isSuppressed = lead => !!finder && typeof finder.isSuppressed === 'function' &&
-    [lead.email, G.firmDomain(lead.website)].filter(Boolean).some(x => finder.isSuppressed(x));
-  const ledgerSet = readLedger(io.ledgerFile);
-  const firms = G.firmContext(dataDir);
+    [lead.email, G.firmDomain(lead.website), G.leadFirmDomain(lead)].filter(Boolean).some(x => finder.isSuppressed(x));
+  const ledgerSet = readLedger(io.ledgerFile, { required });
+  const firms = G.firmContext(dataDir, { required });
   const routeOf = new Map(routed.map(x => [x.lead, x.route]));
   let gated = [];
   const emailSeen = new Set();
@@ -129,14 +142,14 @@ async function runBatch(opts, io) {
   // 6. Held (route with no campaign key) and excluded rows are written out, never dropped silently
   const heldOut = {};
   for (const [route, h] of Object.entries(held)) {
-    const file = path.join(dataDir, `held-${campaign}-${route}.csv`);
+    const file = path.join(outDir, `held-${campaign}-${route}.csv`);
     writeRows(file, h.items.map(x => x.lead), route, `no campaign key for route '${route}'`);
     heldOut[route] = { n: h.items.length, file };
     log(`HELD ${h.items.length} ${route} rows (no campaign configured for this route): ${file}`);
   }
   let excludedFile = null;
   if (excluded.length) {
-    excludedFile = path.join(dataDir, `excluded-${campaign}-${today}.csv`);
+    excludedFile = path.join(outDir, `excluded-${campaign}-${today}.csv`);
     writeRows(excludedFile, excluded, 'excluded', null);
     const why = {}; excluded.forEach(e => { why[e.reason] = (why[e.reason] || 0) + 1; });
     log(`EXCLUDED ${excluded.length} rows (${JSON.stringify(why)}): ${excludedFile}`);
@@ -175,8 +188,9 @@ async function runBatch(opts, io) {
       log('ABORTED: ' + aborted);
       return { ...base, pushed: 0, aborted };
     }
-    if (toVerify.length > daily) {
-      const aborted = `Reoon daily credits too low: ${toVerify.length} addresses need checking, ${daily} left today. Nothing was verified or pushed (the reserve is never touched). Use --limit ${Math.max(0, daily)} or wait for tomorrow.`;
+    if (toVerify.length > daily - headroom) {
+      const usable = Math.max(0, daily - headroom);
+      const aborted = `Reoon daily credits too low: ${toVerify.length} addresses need checking, ${daily} left today minus ${headroom} kept back for the funded daily batch (headroom) leaves ${usable}. Nothing was verified or pushed (the reserve is never touched). Use --limit ${usable} or wait for tomorrow.`;
       log('ABORTED: ' + aborted);
       return { ...base, pushed: 0, aborted };
     }
@@ -219,7 +233,7 @@ async function runBatch(opts, io) {
     const res = await io.sheets.appendRows(t.entry.sheetId, TAB, header, outRows);
     pushedByRoute[route] = res.appended;
     appendLedger(io.ledgerFile, survivors.map(l => l.email));
-    G.appendCompanyLedger(path.join(dataDir, 'company-ledger.txt'), survivors.map(l => ({ company_number: l.ref && l.ref.company_number, domain: G.firmDomain(l.website) })));
+    G.appendCompanyLedger(path.join(dataDir, 'company-ledger.txt'), survivors.map(l => ({ company_number: l.ref && l.ref.company_number, domain: G.leadFirmDomain(l) })));
     urls[route] = t.entry.sheetUrl;
   }
   G.seedCompanyLedger(dataDir);
@@ -280,10 +294,11 @@ if (require.main === module) {
     // All ledgers, do-not-contact and load files come from ONE pinned folder (OA_DATA_DIR, default the main checkout).
     // A live run from a git worktree without OA_DATA_DIR is refused: a worktree's data/ is a stale copy.
     const dataDir = G.resolveDataDir({ repoDir: __dirname, dryRun });
+    const outDir = val('out-dir') || undefined; // dry runs write held/excluded files here (default: a temp folder)
 
     // Read-only finder: suppression, 30-day Reoon memory and the Reoon balance. No finding, no credits spent.
     let finder = null;
-    try { finder = require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits: 0, maxIcypeas: 0 }); }
+    try { finder = require('./shared/outreach-core/enrichment/email-finder-adapter').openGateFinder(); }
     catch (e) { console.error(`Email finder unavailable: ${e.message}`); }
 
     const sheets = require('./shared/outreach-core/sheets/sheets-client');
@@ -291,6 +306,7 @@ if (require.main === module) {
     const io = {
       registryFile,
       dataDir,
+      outDir,
       ledgerFile: path.join(dataDir, 'sent-ledger.txt'),
       sheets,
       finder,

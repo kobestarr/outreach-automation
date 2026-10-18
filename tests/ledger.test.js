@@ -18,3 +18,9 @@ test('appendLedger then readLedger round-trips, lowercased and deduped', () => {
   const lines = fs.readFileSync(f, 'utf8').trim().split('\n');
   assert.strictEqual(lines.length, 3); // no duplicate line written
 });
+
+test('readLedger: a missing file is empty only when not required (dry run); required throws', () => {
+  const { readLedger } = require('../shared/outreach-core/csv/ledger');
+  assert.strictEqual(readLedger('/nonexistent/sent-ledger.txt').size, 0);
+  assert.throws(() => readLedger('/nonexistent/sent-ledger.txt', { required: true }), /ledger not found/);
+});

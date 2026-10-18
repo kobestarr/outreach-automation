@@ -8,12 +8,15 @@ const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'sg-'));
 const write = (dir, name, text) => { fs.writeFileSync(path.join(dir, name), text); return path.join(dir, name); };
 
 // ---- data dir pinning ----
-test('OA_DATA_DIR wins, in a worktree or not', () => {
-  assert.strictEqual(G.resolveDataDir({ env: { OA_DATA_DIR: '/x/data' }, repoDir: '/r', dryRun: false, isWorktree: () => true }), path.resolve('/x/data'));
+const gateDir = (files = ['sent-ledger.txt', 'do-not-contact.txt']) => { const d = tmp(); files.forEach(f => fs.writeFileSync(path.join(d, f), '')); return d; };
+
+test('OA_DATA_DIR wins, in a worktree or not, when it holds the gate files', () => {
+  const d = gateDir();
+  assert.strictEqual(G.resolveDataDir({ env: { OA_DATA_DIR: d }, repoDir: '/r', dryRun: false, isWorktree: () => true }), path.resolve(d));
 });
 
-test('the default is the main checkout data dir', () => {
-  const d = G.resolveDataDir({ env: {}, repoDir: '/r', dryRun: false, isWorktree: () => false });
+test('the default is the main checkout data dir (dry run: no gate-file check)', () => {
+  const d = G.resolveDataDir({ env: {}, repoDir: '/r', dryRun: true, isWorktree: () => false });
   assert.strictEqual(d, G.DEFAULT_DATA_DIR);
   assert.match(d, /outreach-automation[\\/]data$/);
 });
@@ -24,6 +27,20 @@ test('a live run from a worktree without OA_DATA_DIR is refused, naming the fix'
 
 test('a dry run from a worktree is allowed and reads the main checkout ledgers', () => {
   assert.strictEqual(G.resolveDataDir({ env: {}, repoDir: '/wt', dryRun: true, isWorktree: () => true }), G.DEFAULT_DATA_DIR);
+});
+
+test('live: a data dir that does not exist, or lacks sent-ledger.txt or do-not-contact.txt, is refused (fail closed)', () => {
+  assert.throws(() => G.resolveDataDir({ env: { OA_DATA_DIR: '/nonexistent/nowhere' }, dryRun: false, isWorktree: () => false }), /does not exist/);
+  assert.throws(() => G.resolveDataDir({ env: { OA_DATA_DIR: gateDir(['do-not-contact.txt']) }, dryRun: false, isWorktree: () => false }), /sent-ledger\.txt/);
+  assert.throws(() => G.resolveDataDir({ env: { OA_DATA_DIR: gateDir(['sent-ledger.txt']) }, dryRun: false, isWorktree: () => false }), /do-not-contact\.txt/);
+});
+
+test('dry run with a bad OA_DATA_DIR is allowed (it only previews)', () => {
+  assert.strictEqual(G.resolveDataDir({ env: { OA_DATA_DIR: '/nonexistent/nowhere' }, dryRun: true, isWorktree: () => false }), path.resolve('/nonexistent/nowhere'));
+});
+
+test('assertGateFiles passes with both files present', () => {
+  assert.doesNotThrow(() => G.assertGateFiles(gateDir()));
 });
 
 test('isWorktreeDir: .git as a file is a worktree, a directory is a checkout, missing is not', () => {
@@ -51,9 +68,15 @@ test('do-not-contact: emails, @domain and bare domain entries, comments and tab 
   assert.strictEqual(G.isDoNotContact(d, { email: 'ok@fine.co.uk', website: 'https://fine.co.uk' }), null);
 });
 
-test('do-not-contact: a missing file means an empty list, not a crash', () => {
+test('do-not-contact: a missing file is empty ONLY in a dry run; live it throws', () => {
   const d = G.readDoNotContact('/nonexistent/dnc.txt');
   assert.strictEqual(d.emails.size + d.domains.size, 0);
+  assert.throws(() => G.readDoNotContact('/nonexistent/dnc.txt', { required: true }), /do-not-contact/);
+});
+
+test('company ledger: a missing file is empty only in a dry run; live it throws', () => {
+  assert.strictEqual(G.readCompanyLedger('/nonexistent/c.txt').numbers.size, 0);
+  assert.throws(() => G.readCompanyLedger('/nonexistent/c.txt', { required: true }), /company-ledger/);
 });
 
 // ---- domains ----
@@ -137,4 +160,61 @@ test('firmSeen: company number, domain, or a domain seen in a loaded email', () 
   assert.strictEqual(G.firmSeen(ctx, { website: 'https://www.acme.co.uk', ref: {} }), 'firm_already_loaded_domain');
   assert.strictEqual(G.firmSeen(ctx, { website: 'https://new.co.uk', ref: { company_number: '9' } }), null);
   assert.strictEqual(G.firmSeen(ctx, { website: 'https://gmail.com', ref: {} }), null);
+});
+
+// ---- shared domains (data-driven) ----
+test('shared multi-firm domains are never firm keys: the real top offenders', () => {
+  for (const d of ['doctors.org.uk', 'rbht.nhs.uk', 'taxassist.co.uk', 'nhs.net', 'wales.nhs.uk', 'imperial.ac.uk', 'btconnect.com', 'btinternet.com', 'www.nhs.net']) {
+    assert.strictEqual(G.isSharedDomain(d), true, d);
+    assert.strictEqual(G.firmDomain('https://' + d), '', d);
+    assert.strictEqual(G.firmDomain('someone@' + d), '', d);
+  }
+  assert.strictEqual(G.isSharedDomain('acme.co.uk'), false);
+  assert.strictEqual(G.isSharedDomain('notnhs.uk'), false, 'suffix match is on a dot boundary');
+});
+
+test('the shared list comes from config/shared-domains.json and a custom list can be supplied', () => {
+  const f = path.join(tmp(), 's.json');
+  fs.writeFileSync(f, JSON.stringify({ domains: ['bigfranchise.co.uk'] }));
+  assert.deepStrictEqual(G.loadSharedDomains(f), ['bigfranchise.co.uk']);
+  assert.ok(G.loadSharedDomains().includes('nhs.net'));
+  assert.deepStrictEqual(G.loadSharedDomains('/nonexistent.json').slice(0, 1), G.FALLBACK_SHARED.slice(0, 1));
+});
+
+test('shared domains are not seeded into the company ledger, and are ignored on read if already there', () => {
+  const dir = tmp();
+  write(dir, 'mailead-loaded-1-a.txt', 'dr@doctors.org.uk\nx@rbht.nhs.uk\ny@taxassist.co.uk\nz@real.co.uk\n');
+  assert.deepStrictEqual([...G.loadedDomains(dir)], ['real.co.uk']);
+  G.seedCompanyLedger(dir);
+  assert.strictEqual(fs.readFileSync(path.join(dir, 'company-ledger.txt'), 'utf8'), '\treal.co.uk\n');
+  const f = write(dir, 'old-ledger.txt', '1\tdoctors.org.uk\n2\tnhs.net\n3\tfine.co.uk\n');
+  assert.deepStrictEqual([...G.readCompanyLedger(f).domains], ['fine.co.uk']);
+  assert.strictEqual(G.appendCompanyLedger(path.join(dir, 'c2.txt'), [{ company_number: '', domain: 'imperial.ac.uk' }]), 0);
+});
+
+test('firmSeen and dedupeFirms never treat a shared domain as the same firm', () => {
+  const ctx = { companyNumbers: new Set(), domains: new Set(['doctors.org.uk']) };
+  assert.strictEqual(G.firmSeen(ctx, { website: '', email: 'dr@doctors.org.uk', ref: {} }), null);
+  const { kept } = G.dedupeFirms([L('a@nhs.net', 'main', '', ''), L('b@nhs.net', 'main', '', '')]);
+  assert.strictEqual(kept.length, 2);
+});
+
+// ---- email domain as firm key when the website is missing or a platform ----
+test('firmKey: the website domain, else the email domain, never shared, platform or freemail', () => {
+  assert.strictEqual(G.leadFirmDomain({ website: 'https://a.co.uk', email: 'x@b.co.uk' }), 'a.co.uk');
+  assert.strictEqual(G.leadFirmDomain({ website: '', email: 'x@b.co.uk' }), 'b.co.uk');
+  assert.strictEqual(G.leadFirmDomain({ website: 'https://facebook.com/x', email: 'x@b.co.uk' }), 'b.co.uk');
+  assert.strictEqual(G.leadFirmDomain({ website: '', email: 'x@gmail.com' }), '');
+  assert.strictEqual(G.leadFirmDomain({ website: '', email: 'x@nhs.net' }), '');
+});
+
+test('firm dedupe falls back to the email domain when there is no website', () => {
+  const { kept, dropped } = G.dedupeFirms([L('a@same.co.uk', 'main', '', ''), L('b@same.co.uk', 'inbox', '', ''), L('c@other.co.uk', 'main', '', '')]);
+  assert.deepStrictEqual(kept.map(i => i.lead.email), ['a@same.co.uk', 'c@other.co.uk']);
+  assert.strictEqual(dropped.length, 1);
+});
+
+test('firmSeen uses the email domain when there is no website', () => {
+  const ctx = { companyNumbers: new Set(), domains: new Set(['same.co.uk']) };
+  assert.strictEqual(G.firmSeen(ctx, { website: '', email: 'q@same.co.uk', ref: {} }), 'firm_already_loaded_domain');
 });

@@ -25,6 +25,8 @@ function setup({ registry, finder = {}, io: over = {}, files = {} } = {}) {
     probable: { sheetId: 'S_PROB', sheetUrl: 'u-prob', carriers: {} },
   };
   fs.writeFileSync(registryFile, JSON.stringify(reg));
+  fs.writeFileSync(path.join(dir, 'sent-ledger.txt'), '');
+  fs.writeFileSync(path.join(dir, 'do-not-contact.txt'), '');
   for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), text);
   const appended = {}, verified = [], calls = { balance: 0, lastVerified: [] };
   const io = {
@@ -108,7 +110,7 @@ test('pre-flight: a configured route whose sheet is missing aborts with NOTHING 
     { email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' },
     { email: 'info@b.co.uk', website: 'https://b.co.uk', company_number: '2', email_status: 'found_generic', email_confidence: 'medium' })), /inbox/);
   assert.deepStrictEqual(t.appended, {});
-  assert.strictEqual(fs.existsSync(t.io.ledgerFile), false);
+  assert.strictEqual(fs.readFileSync(t.io.ledgerFile, 'utf8'), '');
 });
 
 test('a main campaign that is registered but has no sheet yet is refused live, never pushed to a null sheet', async () => {
@@ -218,7 +220,7 @@ test('a dry run never writes the ledgers', async () => {
   const t = setup({ files: { 'mailead-loaded-1-x.txt': 'a@loaded.co.uk\n' } });
   await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }), { dryRun: true });
   assert.strictEqual(fs.existsSync(path.join(t.dir, 'company-ledger.txt')), false);
-  assert.strictEqual(fs.existsSync(t.io.ledgerFile), false);
+  assert.strictEqual(fs.readFileSync(t.io.ledgerFile, 'utf8'), '');
 });
 
 // ---------- Reoon skip ----------
@@ -265,17 +267,17 @@ test('a mixed batch verifies only the rows that need it', async () => {
 
 // ---------- balance ----------
 test('finder balance is checked before verifying: if the rows to verify exceed the daily credits it stops cleanly, nothing pushed', async () => {
-  const t = setup({ finder: { balance: async () => ({ daily: 1, instant: 99999 }) } });
+  const t = setup({ finder: { balance: async () => ({ daily: 301, instant: 99999 }) } });
   const res = await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }, { email: 'b@b.co.uk', website: 'https://b.co.uk', company_number: '2' }));
   assert.match(res.aborted, /daily/);
   assert.strictEqual(res.pushed, 0);
   assert.deepStrictEqual(t.verified, []);
   assert.deepStrictEqual(t.appended, {});
-  assert.strictEqual(fs.existsSync(t.io.ledgerFile), false);
+  assert.strictEqual(fs.readFileSync(t.io.ledgerFile, 'utf8'), '');
 });
 
 test('rows skipped by lastVerified do not count against the balance', async () => {
-  const t = setup({ finder: { balance: async () => ({ daily: 1, instant: 0 }), lastVerified: e => (e === 'a@a.co.uk' ? { status: 'safe', verified_at: NOW - DAY } : null) } });
+  const t = setup({ finder: { balance: async () => ({ daily: 301, instant: 0 }), lastVerified: e => (e === 'a@a.co.uk' ? { status: 'safe', verified_at: NOW - DAY } : null) } });
   const res = await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }, { email: 'b@b.co.uk', website: 'https://b.co.uk', company_number: '2' }));
   assert.strictEqual(res.pushed, 2);
 });
@@ -308,4 +310,80 @@ test('--register on a new key still works', () => {
   const t = setup({ registry: {} });
   registerCampaign({ registryFile: t.registryFile, key: 'fresh', url: 'https://x/d/ZZ/edit', extractSheetId: u => u.split('/d/')[1].split('/')[0] });
   assert.strictEqual(getCampaign(t.registryFile, 'fresh').sheetId, 'ZZ');
+});
+
+// ---------- round 2 ----------
+test('live: refuses when sent-ledger.txt or do-not-contact.txt is missing from the data dir', async () => {
+  for (const missing of ['sent-ledger.txt', 'do-not-contact.txt']) {
+    const t = setup();
+    fs.unlinkSync(path.join(t.dir, missing));
+    await assert.rejects(t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk' })), new RegExp(missing.replace('.', '\\.')));
+    assert.deepStrictEqual(t.appended, {});
+  }
+});
+
+test('dry run is allowed without the gate files (and reads them as empty)', async () => {
+  const t = setup();
+  fs.unlinkSync(path.join(t.dir, 'do-not-contact.txt'));
+  const res = await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk' }), { dryRun: true });
+  assert.strictEqual(res.wouldPush, 1);
+});
+
+test('dry run writes held and excluded files to a temp or --out folder, never the data dir', async () => {
+  const t = setup({ registry: { main: { sheetId: 'S', sheetUrl: 'u', carriers: {} } } });
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dry-out-'));
+  const res = await t.run(csv(
+    { email: 'c@c.co.uk', website: 'https://c.co.uk', company_number: '3', email_status: 'catch_all_found', email_confidence: 'low' },
+    { email: 'u@u.co.uk', website: 'https://u.co.uk', company_number: '2', email_status: 'unverifiable' }), { dryRun: true, outDir });
+  assert.ok(fs.existsSync(path.join(outDir, 'held-main-probable.csv')));
+  assert.ok(fs.existsSync(path.join(outDir, 'excluded-main-2026-10-18.csv')));
+  assert.ok(!fs.readdirSync(t.dir).some(f => /^(held|excluded)-/.test(f)), 'nothing leaks into the data dir');
+  const t2 = setup({ registry: { main: { sheetId: 'S', sheetUrl: 'u', carriers: {} } } });
+  const r2 = await t2.run(csv({ email: 'u@u.co.uk', website: 'https://u.co.uk', email_status: 'unverifiable' }), { dryRun: true });
+  assert.ok(!fs.readdirSync(t2.dir).some(f => /^(held|excluded)-/.test(f)));
+  assert.ok(r2.excludedFile && !r2.excludedFile.startsWith(t2.dir));
+  assert.ok(res.excludedFile.startsWith(outDir));
+});
+
+test('balance check also keeps 300 credits of headroom', async () => {
+  const t = setup({ finder: { balance: async () => ({ daily: 301, instant: 0 }) } });
+  const two = await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }, { email: 'b@b.co.uk', website: 'https://b.co.uk', company_number: '2' }));
+  assert.match(two.aborted, /headroom|300/);
+  const t2 = setup({ finder: { balance: async () => ({ daily: 301, instant: 0 }) } });
+  const one = await t2.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }));
+  assert.strictEqual(one.pushed, 1);
+});
+
+test('email_suggested in the input never reaches a sheet row', async () => {
+  const t = setup();
+  const text = 'first_name,email,company,category,town,website,company_number,email_status,email_confidence,email_source,email_suggested\nAnn,ann@a.co.uk,A,a roofer,Sale,https://a.co.uk,1,found,high,finder,guess@a.co.uk\n';
+  await t.run(text);
+  const a = t.appended.S_MAIN[0];
+  assert.ok(!a.header.includes('email_suggested'));
+  assert.ok(!JSON.stringify(a.rows).includes('guess@a.co.uk'));
+});
+
+test('firm dedupe uses the email domain when the website is missing or a platform, but never shared or freemail domains', async () => {
+  const t = setup();
+  const res = await t.run(csv(
+    { email: 'a@same.co.uk', website: '', company_number: '1' },
+    { email: 'b@same.co.uk', website: 'https://facebook.com/b', company_number: '2', email_status: 'found_generic', email_confidence: 'medium' },
+    { email: 'dr1@doctors.org.uk', website: '', company_number: '3' },
+    { email: 'dr2@doctors.org.uk', website: '', company_number: '4' },
+    { email: 'g1@gmail.com', website: '', company_number: '5' },
+    { email: 'g2@gmail.com', website: '', company_number: '6' }));
+  assert.deepStrictEqual(t.emailsIn('S_MAIN').sort(), ['a@same.co.uk', 'dr1@doctors.org.uk', 'dr2@doctors.org.uk', 'g1@gmail.com', 'g2@gmail.com']);
+  assert.ok(res.skipped.some(s => s.reason === 'firm_dupe_in_file' && s.email === 'b@same.co.uk'));
+});
+
+test('shared domains already sitting in company-ledger.txt are ignored and never block a firm', async () => {
+  const t = setup({ files: { 'company-ledger.txt': '\tdoctors.org.uk\n\trbht.nhs.uk\n' } });
+  const res = await t.run(csv({ email: 'dr@doctors.org.uk', website: 'https://www.doctors.org.uk', company_number: '9' }));
+  assert.strictEqual(res.pushed, 1);
+});
+
+test('a live run creates an empty company-ledger.txt if none exists yet (it is ours, unlike the two gate files)', async () => {
+  const t = setup();
+  await t.run(csv({ email: 'a@a.co.uk', website: 'https://a.co.uk', company_number: '1' }));
+  assert.ok(fs.existsSync(path.join(t.dir, 'company-ledger.txt')));
 });
