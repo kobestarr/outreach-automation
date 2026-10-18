@@ -22,7 +22,7 @@ test('missing draft says so', () => {
   assert.match(f.formatActionable({ ...base, draft: '', draftError: 'boom' }), /no draft/i);
 });
 test('actionable alerts contain no dashes of the em kind', () => {
-  assert.doesNotMatch(f.formatActionable(base) + f.formatBlocked({ ...base, label: 'no', result: { complete: true } }) + f.formatUnibox(base) + f.formatReAlert(base), /—|–/);
+  assert.doesNotMatch(f.formatActionable(base) + f.formatBlocked({ ...base, label: 'no', result: { complete: true } }) + f.formatUnibox(base) + f.formatReAlert(base), /\u2014|\u2013/);
 });
 test('blocked note says what happened, partial blocks shout', () => {
   assert.match(f.formatBlocked({ ...base, label: 'no', reason: 'not interested', result: { complete: true } }), /Blocked everywhere/);
