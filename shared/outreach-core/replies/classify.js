@@ -223,7 +223,12 @@ function parseModelJson(text) {
   const s = String(text || '');
   const start = s.indexOf('{'), end = s.lastIndexOf('}');
   if (start < 0 || end <= start) return null;
-  try { return JSON.parse(s.slice(start, end + 1)); } catch { return null; }
+  try { return JSON.parse(s.slice(start, end + 1)); } catch { /* malformed: salvage below */ }
+  // Haiku occasionally emits a stray `","}` after the reason (seen live 18 Oct). Read the fields we need directly.
+  const label = (s.match(/"label"\s*:\s*"([a-z_]+)"/) || [])[1];
+  if (!label) return null;
+  const field = k => (s.match(new RegExp(`"${k}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`)) || [])[1];
+  return { label, reason: field('reason') || '', resume_date: field('resume_date'), referral_email: field('referral_email') };
 }
 
 function fallback(reason) { return { label: 'maybe', reason, fallback: true }; }
@@ -232,9 +237,12 @@ async function classifyReply(reply, { llm, now } = {}) {
   const det = classifyDeterministic(reply, now);
   if (det) return det;
   if (!llm) return fallback('no model available, read it yourself');
-  let raw;
-  try { raw = await llm(buildPrompt(reply)); } catch (e) { return fallback(`classifier unavailable (${e.message}), read it yourself`); }
-  const j = parseModelJson(raw);
+  let j = null;
+  for (let attempt = 0; attempt < 2 && !(j && LABELS.includes(j.label)); attempt++) {
+    let raw;
+    try { raw = await llm(buildPrompt(reply)); } catch (e) { return fallback(`classifier unavailable (${e.message}), read it yourself`); }
+    j = parseModelJson(raw);
+  }
   if (!j || !LABELS.includes(j.label)) return fallback('classifier gave no usable answer, read it yourself');
   const out = { label: j.label, reason: String(j.reason || '').slice(0, 200) };
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(j.resume_date || ''))) out.resume_date = j.resume_date;

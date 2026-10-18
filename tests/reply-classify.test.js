@@ -239,3 +239,35 @@ test('model prompt fences the reply as data', () => {
   assert.match(p.user, /<reply>[\s\S]*<\/reply>/);
   assert.strictEqual(p.user.split('</reply>').length, 2, 'a closing tag inside the body must not escape the fence');
 });
+
+// ---- malformed model JSON (seen live 18 Oct: trailing `","}` after the reason) ----
+const warmAsk = { subject: 'Re: AI search for X', body: 'Yes please! Unsubscribe me from the generic list but I would like the audit.', from: 'a9@x.co.uk' };
+
+test('malformed JSON with a clear label is still read, not dropped to the fallback', async () => {
+  const raw = '{"label":"warm","reason":"Asks for the audit they were offered.","}';
+  const r = await classifyReply(warmAsk, { llm: async () => raw });
+  assert.strictEqual(r.label, 'warm');
+  assert.ok(!r.fallback);
+});
+
+test('an unusable answer is retried once before falling back', async () => {
+  let calls = 0;
+  const llm = async () => (++calls === 1 ? 'Sure! Here you go' : '{"label":"warm","reason":"wants the audit"}');
+  const r = await classifyReply(warmAsk, { llm });
+  assert.strictEqual(calls, 2);
+  assert.strictEqual(r.label, 'warm');
+});
+
+test('two unusable answers fall back to maybe', async () => {
+  let calls = 0;
+  const r = await classifyReply(warmAsk, { llm: async () => { calls++; return 'no json here'; } });
+  assert.strictEqual(calls, 2);
+  assert.strictEqual(r.label, 'maybe');
+  assert.ok(r.fallback);
+});
+
+test('a salvaged label still goes through the never-no guard', async () => {
+  const raw = '{"label":"no","reason":"x","}';
+  const r = await classifyReply(warmAsk, { llm: async () => raw });
+  assert.notStrictEqual(r.label, 'no');
+});
