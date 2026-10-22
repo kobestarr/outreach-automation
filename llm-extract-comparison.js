@@ -17,6 +17,9 @@ const Database = require('better-sqlite3');
 const { fetchWebsite } = require('./shared/outreach-core/enrichment/website-scraper');
 const { needsBrowserRendering, fetchWithBrowser, closeBrowser } = require('./shared/outreach-core/enrichment/browser-fetcher');
 const fs = require('fs');
+const { resolveModel } = require('./shared/outreach-core/llm-models');
+const { callAnthropic } = require('./shared/outreach-core/anthropic-call');
+const { RunBudgetExceededError, getRunBudget } = require('./shared/outreach-core/llm-budget');
 
 const DB_PATH = './ksd/local-outreach/orchestrator/data/businesses.db';
 const CREDS = JSON.parse(fs.readFileSync(require('os').homedir() + '/.credentials/api-keys.json', 'utf8'));
@@ -33,10 +36,8 @@ const useSonnet = args.includes('--model=sonnet');
 // Provider config
 let PROVIDER, MODEL, client;
 if (useAnthropic) {
-  const Anthropic = require('@anthropic-ai/sdk');
   PROVIDER = 'anthropic';
-  MODEL = useSonnet ? 'claude-sonnet-4-5-20250514' : 'claude-haiku-4-5-20251001';
-  client = new Anthropic({ apiKey: CREDS.anthropic.apiKey });
+  MODEL = useSonnet ? resolveModel('email') : resolveModel('mechanical');
 } else {
   const OpenAI = require('openai');
   PROVIDER = 'openai';
@@ -144,12 +145,11 @@ async function llmExtractOwners(businessName, websiteText) {
   let text, inputTokens, outputTokens;
 
   if (PROVIDER === 'anthropic') {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 300,
-      messages: [{ role: 'user', content: prompt }]
+    const response = await callAnthropic({
+      apiKey: CREDS.anthropic.apiKey,
+      body: { model: MODEL, max_tokens: 300, messages: [{ role: 'user', content: prompt }] }
     });
-    text = response.content[0].text.trim();
+    text = response.text.trim();
     inputTokens = response.usage.input_tokens;
     outputTokens = response.usage.output_tokens;
   } else {
@@ -382,6 +382,11 @@ async function main() {
         console.log(`  ---   ${label}  no names found`);
       }
     } catch (err) {
+      if (err instanceof RunBudgetExceededError) {
+        const left = toProcess.length - toProcess.indexOf(biz);
+        console.error(`BUDGET CAP HIT (${err.reason}): stopped with ${left} of ${toProcess.length} businesses not processed. ${getRunBudget().summary()}. Finished ones are saved; rerun to continue.`);
+        break;
+      }
       errors++;
       console.log(`  ERR   ${label}  ${err.message.substring(0, 60)}`);
     }

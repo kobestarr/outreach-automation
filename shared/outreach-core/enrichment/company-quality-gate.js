@@ -290,16 +290,14 @@ async function resolveDomainReal(companyName, _location) {
 
 // Fetch the site + ask Haiku for a one-liner/sizeBand/businessType read. Lazy-loaded client,
 // same credential path as llm-owner-extractor.js.
-let _client = null;
-function getLLMClient() {
-  if (_client) return _client;
+let _apiKey = null;
+function getApiKey() {
+  if (_apiKey) return _apiKey;
   const fs = require('fs');
   const path = require('path');
   const credsPath = path.join(require('os').homedir(), '.credentials/api-keys.json');
-  const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-  const Anthropic = require('@anthropic-ai/sdk');
-  _client = new Anthropic({ apiKey: creds.anthropic.apiKey });
-  return _client;
+  _apiKey = JSON.parse(fs.readFileSync(credsPath, 'utf8')).anthropic.apiKey;
+  return _apiKey;
 }
 
 const PROFILE_PROMPT = `You are reading a company website to triage it for B2B outreach.
@@ -327,15 +325,16 @@ async function companyProfileReal(domain) {
     }
     if (!text) return null;
 
-    const client = getLLMClient();
+    const { resolveModel } = require('../llm-models');
+    const { callAnthropic } = require('../anthropic-call');
     const prompt = PROFILE_PROMPT.replace('{COMPANY}', domain).replace('{TEXT}', text.slice(0, 4000));
     const response = await withTimeout(
-      client.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
+      callAnthropic({ apiKey: getApiKey(), body: { model: resolveModel('mechanical'), max_tokens: 200, messages: [{ role: 'user', content: prompt }] } }),
       IO_TIMEOUT_MS,
       'companyProfile LLM call'
     );
 
-    const raw = response.content[0].text.trim();
+    const raw = response.text.trim();
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return null;
     const parsed = JSON.parse(match[0]);

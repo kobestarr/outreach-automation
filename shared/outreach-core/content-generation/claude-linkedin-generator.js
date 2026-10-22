@@ -8,14 +8,12 @@
  * @module claude-linkedin-generator
  */
 
-const https = require("https");
 const { getCredential } = require("../credentials-loader");
-const logger = require("../logger");
 const { getCategoryGroup, getCategoryLinkedInAngles } = require("./category-mapper");
+const { resolveModel } = require("../llm-models");
+const { callAnthropic } = require("../anthropic-call");
 
-const ANTHROPIC_BASE_URL = "api.anthropic.com";
 const REQUEST_TIMEOUT_MS = 60000;
-const ANTHROPIC_VERSION = "2023-06-01";
 
 // 21-Rule LinkedIn System Prompt
 const LINKEDIN_SYSTEM_PROMPT = `You are a professional LinkedIn communicator who writes concise, value-focused messages.
@@ -47,7 +45,8 @@ const LINKEDIN_SYSTEM_PROMPT = `You are a professional LinkedIn communicator who
  * Generate LinkedIn connection note
  *
  * @param {Object} params - Business data
- * @param {string} params.model - Claude model to use (default: claude-sonnet-4-5-20250929)
+ * @param {string} params.model - Claude model (default: OUTREACH_LINKEDIN_MODEL, then OUTREACH_COPY_MODEL, then claude-sonnet-5-5)
+ * @param {string} params.existingText - copy already stored for this record; returned as is with no API call
  * @returns {Promise<string>} Connection note text
  */
 async function generateConnectionNote(params) {
@@ -56,9 +55,13 @@ async function generateConnectionNote(params) {
     ownerFirstName,
     category,
     location,
-    model = "claude-sonnet-4-5-20250929"
+    model: requestedModel,
+    existingText // already generated and stored: reuse, no call
   } = params;
 
+  if (existingText) return existingText;
+
+  const model = resolveModel("linkedin", requestedModel);
   const apiKey = getCredential("anthropic", "apiKey");
 
   // Get category group for context
@@ -81,87 +84,31 @@ Requirements:
 
 Output just the connection note text (no labels or formatting).`;
 
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      model: model,
-      max_tokens: 300,
+  const result = await callAnthropic({
+    apiKey,
+    body: {
+      model,
+      max_tokens: Number(process.env.OUTREACH_LINKEDIN_NOTE_MAX_TOKENS) || 300,
       temperature: 0.75,
       system: LINKEDIN_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    });
-
-    const options = {
-      hostname: ANTHROPIC_BASE_URL,
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "Content-Length": Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        try {
-          const result = JSON.parse(data);
-
-          if (result.error) {
-            logger.error('claude-linkedin-generator', 'Anthropic API error', {
-              error: result.error
-            });
-            reject(new Error(`Anthropic API error: ${result.error.message}`));
-            return;
-          }
-
-          if (!result.content || !result.content[0] || !result.content[0].text) {
-            reject(new Error("Anthropic API returned unexpected response structure"));
-            return;
-          }
-
-          const note = result.content[0].text.trim();
-          resolve(note);
-
-        } catch (error) {
-          logger.error('claude-linkedin-generator', 'Failed to parse connection note response', {
-            error: error.message
-          });
-          reject(new Error(`Failed to parse Anthropic response: ${error.message}`));
-        }
-      });
-    });
-
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy();
-      reject(new Error("Anthropic API request timeout"));
-    });
-
-    req.on("error", (error) => {
-      reject(new Error(`Anthropic API request error: ${error.message}`));
-    });
-
-    req.write(postData);
-    req.end();
+      messages: [{ role: "user", content: prompt }]
+    },
+    timeoutMs: REQUEST_TIMEOUT_MS
   });
+
+  const text = result.text.trim();
+  if (!text) {
+    throw new Error("Anthropic API returned unexpected response structure");
+  }
+  return text;
 }
 
 /**
  * Generate LinkedIn message (post-connection)
  *
  * @param {Object} params - Business data and email context
- * @param {string} params.model - Claude model to use (default: claude-sonnet-4-5-20250929)
+ * @param {string} params.model - Claude model (default: OUTREACH_LINKEDIN_MODEL, then OUTREACH_COPY_MODEL, then claude-sonnet-5-5)
+ * @param {string} params.existingText - copy already stored for this record; returned as is with no API call
  * @returns {Promise<string>} LinkedIn message text
  */
 async function generateLinkedInMessage(params) {
@@ -172,9 +119,13 @@ async function generateLinkedInMessage(params) {
     location,
     emailSubject,
     emailBody,
-    model = "claude-sonnet-4-5-20250929"
+    model: requestedModel,
+    existingText // already generated and stored: reuse, no call
   } = params;
 
+  if (existingText) return existingText;
+
+  const model = resolveModel("linkedin", requestedModel);
   const apiKey = getCredential("anthropic", "apiKey");
 
   // Get category group and LinkedIn angles (different from email)
@@ -211,80 +162,23 @@ Requirements:
 
 Output just the message text (no labels or formatting).`;
 
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      model: model,
-      max_tokens: 800,
+  const result = await callAnthropic({
+    apiKey,
+    body: {
+      model,
+      max_tokens: Number(process.env.OUTREACH_LINKEDIN_MESSAGE_MAX_TOKENS) || 400,
       temperature: 0.75,
       system: LINKEDIN_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    });
-
-    const options = {
-      hostname: ANTHROPIC_BASE_URL,
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "Content-Length": Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        try {
-          const result = JSON.parse(data);
-
-          if (result.error) {
-            logger.error('claude-linkedin-generator', 'Anthropic API error', {
-              error: result.error
-            });
-            reject(new Error(`Anthropic API error: ${result.error.message}`));
-            return;
-          }
-
-          if (!result.content || !result.content[0] || !result.content[0].text) {
-            reject(new Error("Anthropic API returned unexpected response structure"));
-            return;
-          }
-
-          const message = result.content[0].text.trim();
-          resolve(message);
-
-        } catch (error) {
-          logger.error('claude-linkedin-generator', 'Failed to parse LinkedIn message response', {
-            error: error.message
-          });
-          reject(new Error(`Failed to parse Anthropic response: ${error.message}`));
-        }
-      });
-    });
-
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy();
-      reject(new Error("Anthropic API request timeout"));
-    });
-
-    req.on("error", (error) => {
-      reject(new Error(`Anthropic API request error: ${error.message}`));
-    });
-
-    req.write(postData);
-    req.end();
+      messages: [{ role: "user", content: prompt }]
+    },
+    timeoutMs: REQUEST_TIMEOUT_MS
   });
+
+  const text = result.text.trim();
+  if (!text) {
+    throw new Error("Anthropic API returned unexpected response structure");
+  }
+  return text;
 }
 
 module.exports = {

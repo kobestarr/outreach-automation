@@ -11,22 +11,17 @@
 const fs = require('fs');
 const { fetchWebsite } = require('./website-scraper');
 const { needsBrowserRendering, fetchWithBrowser } = require('./browser-fetcher');
+const { resolveModel } = require('../llm-models');
+const { callAnthropic } = require('../anthropic-call');
 
 const CREDS_PATH = require('os').homedir() + '/.credentials/api-keys.json';
 
 // Lazy-loaded client
-let _client = null;
-let _model = null;
+let _apiKey = null;
 
-function getClient() {
-  if (_client) return { client: _client, model: _model };
-
-  const creds = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
-  const Anthropic = require('@anthropic-ai/sdk');
-  _client = new Anthropic({ apiKey: creds.anthropic.apiKey });
-  _model = 'claude-haiku-4-5-20251001';
-
-  return { client: _client, model: _model };
+function getApiKey() {
+  if (!_apiKey) _apiKey = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8')).anthropic.apiKey;
+  return _apiKey;
 }
 
 const PROMPT = `You are extracting business owner/founder/director information and email addresses from a website.
@@ -140,16 +135,15 @@ async function fetchWebsiteText(url) {
  * @returns {Promise<{owners: Array, model: string, inputTokens: number, outputTokens: number}>}
  */
 async function llmExtractOwners(businessName, websiteText) {
-  const { client, model } = getClient();
+  const model = resolveModel('mechanical');
   const prompt = PROMPT.replace('{BUSINESS}', businessName).replace('{TEXT}', websiteText);
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 500,
-    messages: [{ role: 'user', content: prompt }]
+  const response = await callAnthropic({
+    apiKey: getApiKey(),
+    body: { model, max_tokens: 500, messages: [{ role: 'user', content: prompt }] }
   });
 
-  const text = response.content[0].text.trim();
+  const text = response.text.trim();
   const inputTokens = response.usage.input_tokens;
   const outputTokens = response.usage.output_tokens;
 

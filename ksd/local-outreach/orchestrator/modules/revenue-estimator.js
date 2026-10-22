@@ -4,10 +4,8 @@
  */
 
 const { getCredential } = require("../../../../shared/outreach-core/credentials-loader");
-const https = require("https");
-
-const ANTHROPIC_BASE_URL = "api.anthropic.com";
-const ANTHROPIC_VERSION = "2023-06-01";
+const { resolveModel } = require("../../../../shared/outreach-core/llm-models");
+const { callAnthropic } = require("../../../../shared/outreach-core/anthropic-call");
 
 /**
  * Estimate revenue using Claude (Anthropic)
@@ -53,87 +51,36 @@ Output as JSON only:
   "reasoning": "string"
 }`;
 
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+  const result = await callAnthropic({
+    apiKey,
+    body: {
+      model: resolveModel("mechanical"),
       max_tokens: 500,
       temperature: 0.3,
       system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: userPrompt
-        }
-      ]
-    });
-
-    const options = {
-      hostname: ANTHROPIC_BASE_URL,
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "Content-Length": Buffer.byteLength(postData)
-      }
-    };
-    
-    const req = https.request(options, (res) => {
-      let data = "";
-
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        try {
-          const result = JSON.parse(data);
-
-          if (result.error) {
-            reject(new Error(`Anthropic API error: ${result.error.message}`));
-            return;
-          }
-
-          // Anthropic response structure: result.content[0].text
-          let content = result.content[0].text.trim();
-
-          // Extract JSON from text if Claude added explanations
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            content = jsonMatch[0];
-          }
-
-          // Remove markdown code blocks if present
-          content = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
-          const estimate = JSON.parse(content);
-
-          resolve({
-            estimatedRevenue: estimate.estimatedRevenue || 0,
-            revenueBand: estimate.revenueBand || "unknown",
-            confidence: estimate.confidence || 0,
-            reasoning: estimate.reasoning || "",
-            method: "claude_multi_signal"
-          });
-        } catch (error) {
-          reject(new Error(`Failed to parse revenue estimate: ${error.message}`));
-        }
-      });
-    });
-
-    req.on("error", (error) => {
-      reject(new Error(`Anthropic API request error: ${error.message}`));
-    });
-
-    // Set request timeout (must be before write/end)
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(new Error('Anthropic API request timed out after 30s'));
-    });
-    
-    req.write(postData);
-    req.end();
+      messages: [{ role: "user", content: userPrompt }]
+    },
+    timeoutMs: 30000
   });
+
+  let content = result.text.trim();
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      content = jsonMatch[0];
+    }
+    content = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+    const estimate = JSON.parse(content);
+    return {
+      estimatedRevenue: estimate.estimatedRevenue || 0,
+      revenueBand: estimate.revenueBand || "unknown",
+      confidence: estimate.confidence || 0,
+      reasoning: estimate.reasoning || "",
+      method: "claude_multi_signal"
+    };
+  } catch (error) {
+    throw new Error(`Failed to parse revenue estimate: ${error.message}`);
+  }
 }
 
 module.exports = {

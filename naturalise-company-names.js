@@ -14,7 +14,9 @@ const OUT_CSV = path.join(__dirname, 'exports/pilot-mailead-2026-06-22.csv');
 const REVIEW = path.join(__dirname, 'exports/company-naturalise-review.tsv');
 const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
-const MODEL = 'claude-haiku-4-5-20251001';
+const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
+const { getRunBudget } = require('./shared/outreach-core/llm-budget');
+const MODEL = resolveModel('mechanical');
 
 // --- minimal CSV parser (handles double-quoted fields) ---
 function parseCSV(text) {
@@ -47,7 +49,18 @@ function csvField(v) {
   const header = rows[0];
   const ci = Object.fromEntries(header.map((h, i) => [h.trim(), i]));
   const data = rows.slice(1);
-  const companies = [...new Set(data.map(r => r[ci.company]).filter(Boolean))];
+  const allCompanies = [...new Set(data.map(r => r[ci.company]).filter(Boolean))];
+
+  // Names cleaned on an earlier run live in the review TSV: reuse them, only send the rest.
+  const map = new Map();
+  if (fs.existsSync(REVIEW)) {
+    for (const line of fs.readFileSync(REVIEW, 'utf8').split('\n').slice(1)) {
+      const [full, short] = line.split('\t');
+      if (full && short) map.set(full, short);
+    }
+  }
+  const companies = allCompanies.filter(c => !map.has(c));
+  console.log(`Names: ${allCompanies.length} total, ${map.size} already cleaned, ${companies.length} to send`);
 
   const prompt = `You are naturalising UK firm names so they read the way a person would casually refer to the firm in a friendly email. For each name, return the short, natural spoken version.
 
@@ -71,29 +84,36 @@ Examples:
 Return ONLY a JSON array of objects {"full": "...", "short": "..."} for these ${companies.length} names, in order:
 ${JSON.stringify(companies, null, 0)}`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 4000,
-      temperature: 0,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  if (!res.ok) { console.error('API error', res.status, await res.text()); process.exit(1); }
-  const json = await res.json();
-  let txt = json.content[0].text.trim();
-  txt = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/,'').trim();
-  const map = new Map(JSON.parse(txt).map(o => [o.full, o.short]));
+  if (companies.length) {
+    const budget = getRunBudget();
+    budget.assertCanCall();
+    // ~25 output tokens per {"full","short"} pair, plus headroom
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(shapeBody({
+        model: MODEL,
+        max_tokens: Math.min(4000, 300 + 40 * companies.length),
+        temperature: 0,
+        messages: [{ role: 'user', content: prompt }],
+      })),
+    });
+    if (!res.ok) { console.error('API error', res.status, await res.text()); process.exit(1); }
+    const json = await res.json();
+    budget.record(MODEL, json.usage);
+    let txt = extractText(json.content).trim();
+    txt = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/,'').trim();
+    for (const o of JSON.parse(txt)) map.set(o.full, o.short);
+    console.log(`Spend this run: ${budget.summary()}`);
+  }
 
   // Review file (only the ones that actually changed shown first)
   const changed = [], same = [];
-  for (const c of companies) {
+  for (const c of allCompanies) {
     const s = map.get(c) || c;
     (s === c ? same : changed).push([c, s]);
   }
@@ -115,7 +135,7 @@ ${JSON.stringify(companies, null, 0)}`;
   }
   fs.writeFileSync(OUT_CSV, lines.join('\n') + '\n');
 
-  console.log(`Total firms: ${companies.length}  |  shortened: ${changed.length}  |  unchanged: ${same.length}`);
+  console.log(`Total firms: ${allCompanies.length}  |  shortened: ${changed.length}  |  unchanged: ${same.length}`);
   console.log(`Review: ${REVIEW}`);
   console.log(`Candidate CSV: ${OUT_CSV}`);
   console.log('\n--- CHANGED (first 30) ---');

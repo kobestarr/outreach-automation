@@ -19,7 +19,9 @@ const OUT = path.join(__dirname, 'exports/ksd-proservices-batch2-2026-06-24.csv'
 const REVIEW = path.join(__dirname, 'exports/ksd-proservices-batch2-naturalise-review.tsv');
 const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
-const MODEL = 'claude-haiku-4-5-20251001';
+const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
+const { getRunBudget } = require('./shared/outreach-core/llm-budget');
+const MODEL = resolveModel('mechanical');
 
 const args = Object.fromEntries(process.argv.slice(2).flatMap(a => { const m = a.match(/^--([^=]+)(?:=(.*))?$/); return m ? [[m[1], m[2] ?? true]] : []; }));
 const DRY = !!args['dry-run'];
@@ -49,14 +51,17 @@ Return ONLY a JSON array of {"full":"<name verbatim>","short":"<naturalised>","k
 - short: naturalise for casual email — strip Ltd/Limited/LLP/PLC and trailing descriptors (Chartered Accountants, Accountants, Accountancy, Solicitors, Law, Legal, & Co, Associates) ONLY when a recognisable name remains; keep ampersand surname pairs; never reduce to a bare ambiguous single word or under 2 chars; never add words; keep original spelling/caps.
 Items:
 ${JSON.stringify(items)}`;
+  const budget = getRunBudget();
+  budget.assertCanCall();
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify(shapeBody({ model: MODEL, max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: prompt }] })),
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
   const j = await res.json();
-  let txt = j.content[0].text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/, '').trim();
+  budget.record(MODEL, j.usage);
+  let txt = extractText(j.content).trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/, '').trim();
   return JSON.parse(txt);
 }
 

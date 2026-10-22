@@ -8,7 +8,6 @@
  * @module claude-email-generator
  */
 
-const https = require("https");
 const { getCredential } = require("../credentials-loader");
 const logger = require("../logger");
 const { getCategoryGroup, getCategoryEmailAngles } = require("./category-mapper");
@@ -17,10 +16,10 @@ const { getCurrencyForLocation } = require("./currency-localization");
 const { generateMultiOwnerEmailBody } = require("./multi-owner-templates");
 const { humanizeCompanyName } = require("./company-name-humanizer");
 const { getBusinessType } = require("./business-type-helper");
+const { resolveModel } = require("../llm-models");
+const { callAnthropic } = require("../anthropic-call");
 
-const ANTHROPIC_BASE_URL = "api.anthropic.com";
 const REQUEST_TIMEOUT_MS = 60000;
-const ANTHROPIC_VERSION = "2023-06-01"; // Required header
 
 // 24-Rule Email System Prompt (Micro-Offer System)
 const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a busy business owner reaching out to a peer, not a marketer pitching a stranger.
@@ -55,7 +54,8 @@ const EMAIL_SYSTEM_PROMPT = `You are a cold email copywriter who writes like a b
  * Generate email content using Claude with micro-offer system
  *
  * @param {Object} params - Business data and configuration
- * @param {string} params.model - Claude model to use (default: claude-sonnet-4-5-20250929)
+ * @param {string} params.model - Claude model (default: OUTREACH_EMAIL_MODEL, then OUTREACH_COPY_MODEL, then claude-sonnet-5-5)
+ * @param {{subject: string, body: string}} params.existingEmail - copy already stored for this record; returned as is with no API call
  * @param {string} params.customPrompt - (DEPRECATED) Custom prompt override - bypasses micro-offer system. Only use for testing.
  * @returns {Promise<Object>} Email with subject, body, fullContent, and metadata
  */
@@ -74,10 +74,21 @@ async function generateEmailContent(params) {
     instagramUrl,
     facebookUrl,
     socialMedia,
-    model = "claude-sonnet-4-5-20250929", // Default to Sonnet 4.5 (best balance)
+    model: requestedModel,
+    existingEmail, // already generated and stored: reuse, no call
     customPrompt // DEPRECATED: kept for backward compatibility, bypasses micro-offer system
   } = params;
 
+  if (existingEmail && existingEmail.body) {
+    return {
+      subject: existingEmail.subject,
+      body: existingEmail.body,
+      fullContent: existingEmail.fullContent || `Subject: ${existingEmail.subject}\n\n${existingEmail.body}`,
+      metadata: { reused: true }
+    };
+  }
+
+  const model = resolveModel("email", requestedModel);
   const apiKey = getCredential("anthropic", "apiKey");
 
   // Humanize company name for natural tone
@@ -93,129 +104,58 @@ async function generateEmailContent(params) {
   // Build prompt (use custom prompt if provided for backward compatibility, otherwise use micro-offer system)
   const prompt = customPrompt || buildEmailPrompt(paramsWithHumanizedName);
 
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({
-      model: model,
-      max_tokens: 1500,
+  const result = await callAnthropic({
+    apiKey,
+    body: {
+      model,
+      max_tokens: Number(process.env.OUTREACH_EMAIL_MAX_TOKENS) || 800,
       temperature: 0.7,
-      system: EMAIL_SYSTEM_PROMPT, // Claude uses separate system parameter
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    });
-
-    const options = {
-      hostname: ANTHROPIC_BASE_URL,
-      path: "/v1/messages",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "Content-Length": Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        try {
-          const result = JSON.parse(data);
-
-          if (result.error) {
-            logger.error('claude-email-generator', 'Anthropic API error', {
-              error: result.error
-            });
-            reject(new Error(`Anthropic API error: ${result.error.message}`));
-            return;
-          }
-
-          if (!result.content || !result.content[0] || !result.content[0].text) {
-            logger.error('claude-email-generator', 'Unexpected response structure', {
-              hasContent: !!result.content,
-              contentLength: result.content?.length
-            });
-            reject(new Error("Anthropic API returned unexpected response structure"));
-            return;
-          }
-
-          const content = result.content[0].text;
-
-          // Parse subject and body from response
-          const parsed = parseEmailContent(content);
-
-          // Get metadata from params if available (set by buildEmailPrompt)
-          const metadata = params._metadata || {};
-
-          // Multi-owner support: Apply multi-owner template if owners array exists
-          let finalBody = parsed.body;
-          let multiOwner = false;
-
-          if (params.owners && params.owners.length > 1) {
-            // Use multi-owner template generator
-            finalBody = generateMultiOwnerEmailBody(parsed.body, params.owners);
-            multiOwner = true;
-            logger.info('claude-email-generator', 'Applied multi-owner template', {
-              businessName: params.businessName,
-              ownerCount: params.owners.length,
-              owners: params.owners.map(o => o.fullName)
-            });
-          }
-
-          resolve({
-            subject: parsed.subject,
-            body: finalBody,
-            fullContent: content,
-            metadata: {
-              primaryHook: metadata.primarySignal || null,
-              toneRegion: metadata.country || "UK",
-              categoryAngle: metadata.primaryAngle || null,
-              categoryGroup: metadata.categoryGroup || null,
-              observationSignals: metadata.signals || [],
-              microOfferPrice: metadata.microOfferPrice || null,
-              fullOfferPrice: metadata.fullOfferPrice || null,
-              multiOwner: multiOwner,
-              ownerCount: params.owners?.length || 1,
-              model: model,
-              temperature: 0.7,
-              generatedAt: new Date().toISOString()
-            }
-          });
-        } catch (error) {
-          logger.error('claude-email-generator', 'Failed to parse response', {
-            error: error.message,
-            rawDataPreview: data.substring(0, 200)
-          });
-          reject(new Error(`Failed to parse Anthropic response: ${error.message}`));
-        }
-      });
-    });
-
-    // Set request timeout
-    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      req.destroy();
-      reject(new Error(`Anthropic API request timeout after ${REQUEST_TIMEOUT_MS}ms`));
-    });
-
-    req.on("error", (error) => {
-      if (error.code === "ECONNRESET") {
-        reject(new Error("Anthropic API connection reset - request may have timed out"));
-      } else {
-        reject(new Error(`Anthropic API request error: ${error.message}`));
-      }
-    });
-
-    req.write(postData);
-    req.end();
+      system: EMAIL_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: prompt }]
+    },
+    timeoutMs: REQUEST_TIMEOUT_MS
   });
+
+  const content = result.text;
+  if (!content) {
+    logger.error('claude-email-generator', 'Unexpected response structure', { stopReason: result.raw.stop_reason });
+    throw new Error("Anthropic API returned unexpected response structure");
+  }
+
+  const parsed = parseEmailContent(content);
+  const metadata = params._metadata || {};
+
+  let finalBody = parsed.body;
+  let multiOwner = false;
+
+  if (params.owners && params.owners.length > 1) {
+    finalBody = generateMultiOwnerEmailBody(parsed.body, params.owners);
+    multiOwner = true;
+    logger.info('claude-email-generator', 'Applied multi-owner template', {
+      businessName: params.businessName,
+      ownerCount: params.owners.length,
+      owners: params.owners.map(o => o.fullName)
+    });
+  }
+
+  return {
+    subject: parsed.subject,
+    body: finalBody,
+    fullContent: content,
+    metadata: {
+      primaryHook: metadata.primarySignal || null,
+      toneRegion: metadata.country || "UK",
+      categoryAngle: metadata.primaryAngle || null,
+      categoryGroup: metadata.categoryGroup || null,
+      observationSignals: metadata.signals || [],
+      microOfferPrice: metadata.microOfferPrice || null,
+      fullOfferPrice: metadata.fullOfferPrice || null,
+      multiOwner: multiOwner,
+      ownerCount: params.owners?.length || 1,
+      model: model,
+      generatedAt: new Date().toISOString()
+    }
+  };
 }
 
 /**
