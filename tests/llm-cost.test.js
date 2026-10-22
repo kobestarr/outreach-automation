@@ -8,9 +8,13 @@ const path = require('path');
 const { EventEmitter } = require('events');
 
 const ENV_KEYS = ['OUTREACH_COPY_MODEL', 'OUTREACH_EMAIL_MODEL', 'OUTREACH_LINKEDIN_MODEL', 'OUTREACH_MECHANICAL_MODEL',
-  'OUTREACH_RUN_USD_CAP', 'OUTREACH_RUN_MAX_CALLS', 'OUTREACH_RUN_MAX_SEARCHES', 'OUTREACH_WEB_SEARCH_MAX_USES', 'OUTREACH_CREDENTIALS_PATH'];
+  'OUTREACH_RUN_USD_CAP', 'OUTREACH_RUN_MAX_CALLS', 'OUTREACH_RUN_MAX_SEARCHES', 'OUTREACH_WEB_SEARCH_MAX_USES', 'OUTREACH_CREDENTIALS_PATH', 'OUTREACH_DAY_USD_CAP', 'OUTREACH_LLM_LEDGER_DIR'];
 let saved;
-beforeEach(() => { saved = {}; for (const k of ENV_KEYS) { saved[k] = process.env[k]; delete process.env[k]; } });
+beforeEach(() => {
+  saved = {};
+  for (const k of ENV_KEYS) { saved[k] = process.env[k]; delete process.env[k]; }
+  process.env.OUTREACH_LLM_LEDGER_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'llmledger-'));
+});
 afterEach(() => { for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } mock.restoreAll(); });
 
 const models = require('../shared/outreach-core/llm-models');
@@ -33,14 +37,20 @@ test('env overrides: shared copy switch, per-site beats shared, explicit param b
   assert.strictEqual(models.resolveModel('mechanical'), 'claude-haiku-4-5-20251001');
 });
 
-test('request shaping: 5.x models never get temperature, Sonnet 5.5 gets between_tools, Haiku 5.5 gets low effort', () => {
+test('request shaping: 5.x models never get temperature, Sonnet 5.5 gets between_tools, Haiku 5.5 thinking off at low effort', () => {
   const s = models.shapeBody({ model: 'claude-sonnet-5-5', max_tokens: 800, temperature: 0.7, messages: [] });
   assert.strictEqual(s.temperature, undefined);
   assert.deepStrictEqual(s.thinking, { type: 'between_tools' });
   const h = models.shapeBody({ model: 'claude-haiku-5-5', max_tokens: 200, temperature: 0.7, messages: [] });
   assert.strictEqual(h.temperature, undefined);
   assert.deepStrictEqual(h.output_config, { effort: 'low' });
-  assert.ok(h.max_tokens >= 1024, 'headroom for thinking tokens');
+  assert.deepStrictEqual(h.thinking, { type: 'disabled' });
+  assert.strictEqual(h.max_tokens, 200, 'no floor needed once thinking is off');
+  assert.deepStrictEqual(models.shapeBody({ model: 'claude-sonnet-5', max_tokens: 300, messages: [] }).thinking, { type: 'disabled' });
+  const o = models.shapeBody({ model: 'claude-opus-5-5', max_tokens: 300, temperature: 1, messages: [] });
+  assert.strictEqual(o.thinking, undefined, 'Opus 5.5 cannot turn thinking off');
+  assert.strictEqual(o.temperature, undefined);
+  assert.ok(o.max_tokens >= 4096, 'headroom instead');
   const old = models.shapeBody({ model: 'claude-sonnet-4-5-20250929', max_tokens: 800, temperature: 0.7, messages: [] });
   assert.strictEqual(old.temperature, 0.7);
   assert.strictEqual(old.thinking, undefined);
@@ -139,7 +149,8 @@ function fakeCreds() {
   fs.writeFileSync(p, JSON.stringify({ anthropic: { apiKey: 'fake-key' } }), { mode: 0o600 });
   process.env.OUTREACH_CREDENTIALS_PATH = p;
 }
-const emailReply = { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'Subject: hi there\n\nHi Sam,\n\nbody\n\nSent from my iPhone' }], usage: { input_tokens: 900, output_tokens: 150 } };
+const PROD_TEXT = 'Subject: quick thought for the cutting room\nBody: Hi Sam,\n\nI noticed you have 20 reviews. From just \u00a339 I can help.\n\nSent from my iPhone';
+const emailReply = { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: PROD_TEXT }], usage: { input_tokens: 900, output_tokens: 150 }, stop_reason: 'end_turn' };
 
 test('email generator: defaults to Sonnet 5.5, no temperature, records usage, reuses stored copy', async () => {
   fakeCreds();
@@ -154,7 +165,8 @@ test('email generator: defaults to Sonnet 5.5, no temperature, records usage, re
   assert.strictEqual(calls[0].body.temperature, undefined);
   assert.ok(calls[0].body.max_tokens <= 1000);
   assert.strictEqual(budgetLib.getRunBudget().snapshot().calls, 1);
-  assert.ok(r.body.includes('body'));
+  assert.strictEqual(r.subject, 'quick thought for the cutting room');
+  assert.strictEqual(r.body, 'Hi Sam,\n\nI noticed you have 20 reviews. From just \u00a339 I can help.\n\nSent from my iPhone');
   const again = await gen.generateEmailContent({ ...base, existingEmail: { subject: r.subject, body: r.body } });
   assert.strictEqual(calls.length, 1, 'no second call');
   assert.strictEqual(again.metadata.reused, true);

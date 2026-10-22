@@ -23,6 +23,7 @@
 //   companyProfile(domain)               -> { oneLiner, sizeBand, businessType } | null
 
 const { normName } = require('./decision-maker-resolver');
+const { RunBudgetExceededError } = require('../llm-budget');
 
 // ---------------------------------------------------------------------------
 // Stage A regexes — see docs/hiring-signals-architecture.md "Hard rules (gate stage A)"
@@ -178,7 +179,7 @@ async function enrichCompany(companyName, location, io) {
   if (typeof io.companyProfile === 'function') {
     try {
       profile = await withTimeout(io.companyProfile(domain), IO_TIMEOUT_MS, 'companyProfile');
-    } catch { profile = null; }
+    } catch (e) { if (e instanceof RunBudgetExceededError) throw e; profile = null; }
   }
 
   if (!profile) {
@@ -343,7 +344,8 @@ async function companyProfileReal(domain) {
       sizeBand: ['small', 'mid', 'large'].includes(parsed.sizeBand) ? parsed.sizeBand : 'unknown',
       businessType: ['business', 'brand', 'agency'].includes(parsed.businessType) ? parsed.businessType : 'unknown',
     };
-  } catch {
+  } catch (e) {
+    if (e instanceof RunBudgetExceededError) throw e;
     return null;
   }
 }

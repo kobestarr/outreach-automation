@@ -13,6 +13,7 @@ const { exportToLemlist } = require("../../../shared/outreach-core/export-manage
 const { exportToProsp } = require("../../../shared/outreach-core/export-managers/prosp-exporter");
 const { saveBusiness, updateBusiness, loadBusinesses } = require("./modules/database");
 const logger = require("../../../shared/outreach-core/logger");
+const { RunBudgetExceededError, getRunBudget } = require("../../../shared/outreach-core/llm-budget");
 const { scrapeWebsite, parseName } = require("../../../shared/outreach-core/enrichment/website-scraper");
 const { extractEmailsFromWebsite } = require('../../../shared/outreach-core/email-discovery/website-email-extractor');
 const { extractEmailsFromSocialMedia } = require('../../../shared/outreach-core/email-discovery/social-media-email-extractor');
@@ -632,6 +633,10 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
         tier: business.assignedOfferTier
       });
     } catch (error) {
+      if (error instanceof RunBudgetExceededError) {
+        logger.error('main', `BUDGET CAP HIT (${error.reason}): stopped with ${enrichedBusinesses.length - enrichedBusinesses.indexOf(business)} of ${enrichedBusinesses.length} businesses not processed. ${getRunBudget().summary()}. Exported so far are kept; rerun to continue.`);
+        break;
+      }
       logger.error('main', 'Error exporting business', { businessName: business.name, error: error.message });
     }
   }

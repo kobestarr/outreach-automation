@@ -21,6 +21,7 @@ const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
 const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
 const { getRunBudget } = require('./shared/outreach-core/llm-budget');
+const { classifyInBatches } = require('./shared/outreach-core/enrichment/batch-classify');
 const MODEL = resolveModel('mechanical');
 
 const args = Object.fromEntries(process.argv.slice(2).flatMap(a => { const m = a.match(/^--([^=]+)(?:=(.*))?$/); return m ? [[m[1], m[2] ?? true]] : []; }));
@@ -103,17 +104,13 @@ ${JSON.stringify(items)}`;
   const byName = new Map();
   for (const r of rows) if (!byName.has(r.name)) byName.set(r.name, { website: r.website || '', category: r.category || '' });
   const uniqNames = [...byName.keys()];
-  const map = new Map(); // name -> {short, keep}
-  const BATCH = 80;
-  for (let i = 0; i < uniqNames.length; i += BATCH) {
-    const chunk = uniqNames.slice(i, i + BATCH);
-    const items = chunk.map(n => ({ name: n, website: byName.get(n).website, category: byName.get(n).category }));
-    let out;
-    try { out = await classifyBatch(items); }
-    catch (e) { console.error(`batch @${i} failed (${e.message}); keeping all in batch as fallback`); out = items.map(it => ({ full: it.name, short: it.name, keep: true })); }
-    out.forEach(o => map.set(o.full, { short: o.short || o.full, keep: o.keep !== false }));
-    console.log(`classified ${Math.min(i + BATCH, uniqNames.length)}/${uniqNames.length}`);
-  }
+  const { decided: map, held } = await classifyInBatches(
+    uniqNames,
+    classifyBatch,
+    { describe: (n) => ({ name: n, website: byName.get(n).website, category: byName.get(n).category }) }
+  );
+  const heldSet = new Set(held);
+  if (held.length) console.error(`HELD BACK ${held.length} of ${uniqNames.length} names (not classified): left out of the CSV, listed in the review file.`);
 
   // 4. filter to kept practices, write Mailead CSV + dropped list
   const header = ['first_name','email','company','category','town','linkedin_url','website','company_full'];
@@ -122,8 +119,9 @@ ${JSON.stringify(items)}`;
   let kept = 0;
   for (const r of rows) {
     const full = r.name || '';
-    const m = map.get(full) || { short: full, keep: true };
-    if (!m.keep) { dropped.push(`${full}\t${r.category}\t${r.location}`); continue; }
+    if (heldSet.has(full)) { dropped.push(`${full}\tHELD (not classified)\t${r.location}`); continue; }
+    const m = map.get(full);
+    if (!m || !m.keep) { dropped.push(`${full}\t${r.category}\t${r.location}`); continue; }
     let short = m.short || full;
     if (!short || short.length < 2) short = full;
     lines.push([

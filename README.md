@@ -212,3 +212,19 @@ All API keys stored in `~/.credentials/api-keys.json` (not committed):
 - Usage tracking per service per day
 - No credentials in code or environment variables
 - Database excluded from git (local only)
+
+## LLM cost controls (environment variables)
+
+All optional. Caps must be positive numbers; anything else falls back to the default with a warning.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `OUTREACH_COPY_MODEL` | `claude-sonnet-5-5` | Model for outgoing email and LinkedIn copy. Set to `claude-haiku-5-5` to A/B Haiku. |
+| `OUTREACH_EMAIL_MODEL` / `OUTREACH_LINKEDIN_MODEL` | (copy model) | Per-channel override; beats `OUTREACH_COPY_MODEL`. |
+| `OUTREACH_MECHANICAL_MODEL` | `claude-haiku-5-5` | Name cleaning, owner extraction, company profile, revenue estimate. |
+| `OUTREACH_RUN_USD_CAP` | `1.50` | Spend cap for one process, for call sites that use the shared caller. |
+| `OUTREACH_RUN_MAX_CALLS` | `400` | Call cap for one process. |
+| `OUTREACH_DAY_USD_CAP` | `3.00` | Cap across all processes per UTC day, from `data/llm-spend-YYYY-MM-DD.json`. |
+| `OUTREACH_RUN_MAX_SEARCHES` / `OUTREACH_WEB_SEARCH_MAX_USES` | `30` / `3` | Web searches per process / `max_uses` per request (only where `webSearchTool()` is used). |
+
+When a cap is hit the run stops with a `BUDGET CAP HIT` line saying how many records were left. `OUTREACH_LLM_LEDGER_DIR` moves the daily ledger.

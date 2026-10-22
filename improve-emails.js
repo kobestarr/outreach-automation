@@ -17,6 +17,7 @@
 
 const Database = require('better-sqlite3');
 const fs = require('fs');
+const { RunBudgetExceededError, getRunBudget } = require('./shared/outreach-core/llm-budget');
 const { fetchWebsiteText, llmExtractOwners } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
 const { verifyEmail, getQuotaRemaining: getReoonQuota } = require('./shared/outreach-core/email-verification/reoon-verifier');
 const { findEmail } = require('./shared/outreach-core/email-discovery/icypeas-finder');
@@ -186,6 +187,10 @@ async function runLlmExtraction(db, businesses) {
 
       await new Promise(r => setTimeout(r, 300));
     } catch (err) {
+      if (err instanceof RunBudgetExceededError) {
+        console.error(`BUDGET CAP HIT (${err.reason}): stopped with ${targets.length - targets.indexOf(biz)} of ${targets.length} businesses not processed. ${getRunBudget().summary()}. Finished records are saved; rerun to continue.`);
+        break;
+      }
       console.log(`  ERR   ${label} ${err.message.substring(0, 60)}`);
     }
   }

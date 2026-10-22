@@ -18,6 +18,7 @@
 const path = require('path');
 const { initDatabase, loadBusinesses, saveBusiness, getBusinessStats, closeDatabase } = require('./ksd/local-outreach/orchestrator/modules/database');
 const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/website-scraper');
+const { RunBudgetExceededError, getRunBudget } = require('./shared/outreach-core/llm-budget');
 const { extractOwnersFromWebsite } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
 
 // Per-website timeout wrapper — auto-skips any site that takes too long
@@ -264,6 +265,10 @@ async function main() {
       console.log(`Name: ${nameStr} | Email: ${emailStr}`);
 
     } catch (err) {
+      if (err instanceof RunBudgetExceededError) {
+        console.error(`BUDGET CAP HIT (${err.reason}): stopped with ${llmBatch.length - i} of ${llmBatch.length} businesses not processed. ${getRunBudget().summary()}. Finished records are saved; rerun to continue.`);
+        break;
+      }
       console.log(`ERROR: ${err.message.substring(0, 60)}`);
     }
   }

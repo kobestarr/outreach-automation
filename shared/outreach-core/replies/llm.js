@@ -3,16 +3,21 @@
 // anthropic-version 2023-06-01, required model + max_tokens + messages, system is top level,
 // response content is an array of blocks: join the type "text" ones).
 const os = require('os'), path = require('path');
+const { shapeBody } = require('../llm-models');
+const { getRunBudget } = require('../llm-budget');
+const { AnthropicStopError } = require('../anthropic-call');
 
 const MODELS = { classify: 'claude-haiku-5-5', draft: 'claude-sonnet-5-5' };
 
-function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, timeoutMs = 60_000 }) {
+function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, timeoutMs = 60_000, budget }) {
   if (!apiKey) throw new Error('No Anthropic key');
   return async function llm({ system, user }) {
+    const b = budget || getRunBudget();
+    b.assertCanCall();
     const r = await fetchImpl('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
+      body: JSON.stringify(shapeBody({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] })),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!r.ok) {
@@ -20,7 +25,9 @@ function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, t
       throw new Error(`Anthropic ${r.status}: ${String(t).slice(0, 200)}`);
     }
     const j = await r.json();
-    return (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    b.record(model, j.usage);
+    if (j.stop_reason === 'max_tokens' || j.stop_reason === 'refusal') throw new AnthropicStopError(j.stop_reason, model);
+    return (j.content || []).filter(blk => blk.type === 'text').map(blk => blk.text).join('');
   };
 }
 

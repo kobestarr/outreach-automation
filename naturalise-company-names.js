@@ -16,6 +16,7 @@ const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
 const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
 const { getRunBudget } = require('./shared/outreach-core/llm-budget');
+const { parseCache, chunk, maxTokensFor, buildReview } = require('./shared/outreach-core/enrichment/naturalise-lib');
 const MODEL = resolveModel('mechanical');
 
 // --- minimal CSV parser (handles double-quoted fields) ---
@@ -52,17 +53,11 @@ function csvField(v) {
   const allCompanies = [...new Set(data.map(r => r[ci.company]).filter(Boolean))];
 
   // Names cleaned on an earlier run live in the review TSV: reuse them, only send the rest.
-  const map = new Map();
-  if (fs.existsSync(REVIEW)) {
-    for (const line of fs.readFileSync(REVIEW, 'utf8').split('\n').slice(1)) {
-      const [full, short] = line.split('\t');
-      if (full && short) map.set(full, short);
-    }
-  }
+  const map = fs.existsSync(REVIEW) ? parseCache(fs.readFileSync(REVIEW, 'utf8')) : new Map();
   const companies = allCompanies.filter(c => !map.has(c));
   console.log(`Names: ${allCompanies.length} total, ${map.size} already cleaned, ${companies.length} to send`);
 
-  const prompt = `You are naturalising UK firm names so they read the way a person would casually refer to the firm in a friendly email. For each name, return the short, natural spoken version.
+  const buildPrompt = (names) => `You are naturalising UK firm names so they read the way a person would casually refer to the firm in a friendly email. For each name, return the short, natural spoken version.
 
 Rules:
 - Remove legal suffixes: Ltd, Limited, LLP, PLC.
@@ -81,53 +76,54 @@ Examples:
 "Cowgills Limited" -> "Cowgills"
 "Beever and Struthers" -> "Beever and Struthers"
 
-Return ONLY a JSON array of objects {"full": "...", "short": "..."} for these ${companies.length} names, in order:
-${JSON.stringify(companies, null, 0)}`;
+Return ONLY a JSON array of objects {"full": "...", "short": "..."} for these ${names.length} names, in order:
+${JSON.stringify(names, null, 0)}`;
 
-  if (companies.length) {
-    const budget = getRunBudget();
-    budget.assertCanCall();
-    // ~25 output tokens per {"full","short"} pair, plus headroom
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(shapeBody({
-        model: MODEL,
-        max_tokens: Math.min(4000, 300 + 40 * companies.length),
-        temperature: 0,
-        messages: [{ role: 'user', content: prompt }],
-      })),
-    });
-    if (!res.ok) { console.error('API error', res.status, await res.text()); process.exit(1); }
-    const json = await res.json();
-    budget.record(MODEL, json.usage);
-    let txt = extractText(json.content).trim();
-    txt = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/,'').trim();
-    for (const o of JSON.parse(txt)) map.set(o.full, o.short);
-    console.log(`Spend this run: ${budget.summary()}`);
+  const budget = getRunBudget();
+  const returned = new Map(map);
+  const batches = chunk(companies);
+  for (let i = 0; i < batches.length; i++) {
+    try {
+      budget.assertCanCall();
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify(shapeBody({
+          model: MODEL,
+          max_tokens: maxTokensFor(batches[i].length),
+          temperature: 0,
+          messages: [{ role: 'user', content: buildPrompt(batches[i]) }],
+        })),
+      });
+      if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+      const json = await res.json();
+      budget.record(MODEL, json.usage);
+      if (json.stop_reason === 'max_tokens' || json.stop_reason === 'refusal') throw new Error(`stop_reason ${json.stop_reason}`);
+      let txt = extractText(json.content).trim();
+      txt = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/,'').trim();
+      const sent = new Set(batches[i]);
+      for (const o of JSON.parse(txt)) if (sent.has(o.full) && typeof o.short === 'string' && o.short) returned.set(o.full, o.short);
+    } catch (e) {
+      const left = batches.slice(i).reduce((n, b) => n + b.length, 0);
+      console.error(`STOPPED at batch ${i + 1} of ${batches.length}: ${e.message}. ${left} names not cleaned (kept as full names, resent next run). ${budget.summary()}`);
+      break;
+    }
   }
+  console.log(`Spend this run: ${budget.summary()}`);
 
-  // Review file (only the ones that actually changed shown first)
   const changed = [], same = [];
   for (const c of allCompanies) {
-    const s = map.get(c) || c;
+    const s = returned.get(c) || c;
     (s === c ? same : changed).push([c, s]);
   }
-  const review = ['FULL\tSHORT\tCHANGED',
-    ...changed.map(([f, s]) => `${f}\t${s}\tYES`),
-    ...same.map(([f, s]) => `${f}\t${s}\t-`)].join('\n');
-  fs.writeFileSync(REVIEW, review);
+  fs.writeFileSync(REVIEW, buildReview(allCompanies, returned));
 
   // Candidate CSV: company column becomes short; append company_full
   const newHeader = [...header, 'company_full'];
   const lines = [newHeader.map(csvField).join(',')];
   for (const r of data) {
     const full = r[ci.company];
-    const short = map.get(full) || full;
+    const short = returned.get(full) || full;
     const out = [...r];
     out[ci.company] = short;
     out.push(full);

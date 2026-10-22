@@ -2,6 +2,7 @@
 // One-off: re-profile the resolved records with the now-working crawl4ai+LLM profiler, recompute
 // lanes, keep dm/email, rebuild the digest action-first. Skips re-source/re-resolve (reuses 04-final).
 const fs = require('fs'), path = require('path');
+const { RunBudgetExceededError } = require('../shared/outreach-core/llm-budget');
 const { companyProfileReal, laneFromEnrichment, estimatedHeadcountFor } = require('../shared/outreach-core/enrichment/company-quality-gate');
 const { enrichDecisionMaker } = require('../shared/outreach-core/enrichment/enrich-decision-maker');
 const { withVerdicts, splitBuckets, renderDigest } = require('./build-digest');
@@ -18,7 +19,7 @@ const records = JSON.parse(fs.readFileSync(path.join(dir, '04-final.json'), 'utf
   console.log(`re-profiling ${uniqueDomains.length} unique domains via crawl4ai...`);
   let i = 0;
   for (const domain of uniqueDomains) {
-    try { profileCache.set(domain, await companyProfileReal(domain)); } catch { profileCache.set(domain, null); }
+    try { profileCache.set(domain, await companyProfileReal(domain)); } catch (e) { if (e instanceof RunBudgetExceededError) { console.error(`BUDGET CAP HIT (${e.reason}): re-profiling stopped at ${i} of ${uniqueDomains.length} domains. ${e.message}`); process.exit(1); } profileCache.set(domain, null); }
     if (++i % 10 === 0) console.log(`  ...${i}/${uniqueDomains.length}`);
   }
   // apply profiles + recompute lane (never override a hard-rule drop)

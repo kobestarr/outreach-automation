@@ -24,6 +24,7 @@ const { addLeadToCampaign } = require('./shared/outreach-core/export-managers/le
 const { verifyEmail } = require('./shared/outreach-core/email-verification/reoon-verifier');
 const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/database');
 const { isValidEmail } = require('./shared/outreach-core/validation/data-quality');
+const { RunBudgetExceededError, getRunBudget } = require('./shared/outreach-core/llm-budget');
 const { extractOwnersFromWebsite } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
 const { closeBrowser } = require('./shared/outreach-core/enrichment/browser-fetcher');
 const logger = require('./shared/outreach-core/logger');
@@ -355,6 +356,10 @@ async function run() {
       // Rate limit between website scrapes
       await new Promise(r => setTimeout(r, 500));
     } catch (err) {
+      if (err instanceof RunBudgetExceededError) {
+        console.error(`BUDGET CAP HIT (${err.reason}): stopped with ${needsLlm.length - needsLlm.indexOf(business)} of ${needsLlm.length} businesses not processed. ${getRunBudget().summary()}. Finished records are saved; rerun to continue.`);
+        break;
+      }
       console.log(`  ERR   ${label} ${err.message.substring(0, 60)}`);
       enrichedBusinesses.push({
         ...business,

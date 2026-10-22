@@ -10,7 +10,7 @@
 
 const { getCredential } = require("../credentials-loader");
 const { getCategoryGroup, getCategoryLinkedInAngles } = require("./category-mapper");
-const { resolveModel } = require("../llm-models");
+const { resolveModel, stripDashes } = require("../llm-models");
 const { callAnthropic } = require("../anthropic-call");
 
 const REQUEST_TIMEOUT_MS = 60000;
@@ -96,7 +96,7 @@ Output just the connection note text (no labels or formatting).`;
     timeoutMs: REQUEST_TIMEOUT_MS
   });
 
-  const text = result.text.trim();
+  const text = stripDashes(result.text.trim());
   if (!text) {
     throw new Error("Anthropic API returned unexpected response structure");
   }
@@ -174,7 +174,7 @@ Output just the message text (no labels or formatting).`;
     timeoutMs: REQUEST_TIMEOUT_MS
   });
 
-  const text = result.text.trim();
+  const text = stripDashes(result.text.trim());
   if (!text) {
     throw new Error("Anthropic API returned unexpected response structure");
   }

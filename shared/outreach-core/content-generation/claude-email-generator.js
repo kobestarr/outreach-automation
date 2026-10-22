@@ -16,7 +16,7 @@ const { getCurrencyForLocation } = require("./currency-localization");
 const { generateMultiOwnerEmailBody } = require("./multi-owner-templates");
 const { humanizeCompanyName } = require("./company-name-humanizer");
 const { getBusinessType } = require("./business-type-helper");
-const { resolveModel } = require("../llm-models");
+const { resolveModel, stripDashes } = require("../llm-models");
 const { callAnthropic } = require("../anthropic-call");
 
 const REQUEST_TIMEOUT_MS = 60000;
@@ -141,7 +141,7 @@ async function generateEmailContent(params) {
   return {
     subject: parsed.subject,
     body: finalBody,
-    fullContent: content,
+    fullContent: stripDashes(content),
     metadata: {
       primaryHook: metadata.primarySignal || null,
       toneRegion: metadata.country || "UK",
@@ -275,49 +275,41 @@ Body: [email body]`;
 /**
  * Parse email content from Claude response
  */
+const MARKER = (name) => new RegExp(`^[\\s>#*_\`]*${name}[\\s*_\`]*:[\\s*_\`]*(.*)$`, "i");
+const SUBJECT_LINE = MARKER("subject");
+const BODY_LINE = MARKER("body");
+const DEFAULT_SUBJECT = "Quick question about your business";
+
 function parseEmailContent(content) {
   const lines = content.split("\n");
+  const subjectIdx = lines.findIndex((l) => SUBJECT_LINE.test(l));
   let subject = "";
-  let bodyLines = [];
-  let inBody = false;
-  let foundSubject = false;
+  let rest;
 
-  for (const line of lines) {
-    if (line.toLowerCase().startsWith("subject:")) {
-      subject = line.replace(/^subject:\s*/i, "").trim();
-      foundSubject = true;
-      continue; // Skip adding this line to body
-    } else if (line.toLowerCase().startsWith("body:")) {
-      inBody = true;
-      const bodyStart = line.replace(/^body:\s*/i, "").trim();
-      if (bodyStart) {
-        bodyLines.push(bodyStart);
-      }
-      continue;
-    } else if (inBody) {
-      bodyLines.push(line);
-    } else if (!foundSubject && !line.trim()) {
-      // Skip empty lines before we've found the subject
-      continue;
-    }
+  if (subjectIdx >= 0) {
+    subject = lines[subjectIdx].match(SUBJECT_LINE)[1].replace(/[*_`]+$/, "").trim();
+    rest = lines.slice(subjectIdx + 1);
+  } else {
+    const parts = content.trim().split("\n\n");
+    subject = (parts[0] || "").trim();
+    rest = parts.slice(1).join("\n\n").split("\n");
   }
 
-  const body = bodyLines.join("\n").trim();
-
-  // Fallback: if no subject/body markers, use first line as subject, rest as body
-  if (!subject && !body) {
-    const parts = content.split("\n\n");
-    subject = parts[0] || "";
-    return {
-      subject: subject || "Quick question about your business",
-      body: parts.slice(1).join("\n\n") || content
-    };
+  const bodyIdx = rest.findIndex((l) => BODY_LINE.test(l));
+  let bodyLines;
+  if (bodyIdx >= 0) {
+    const first = rest[bodyIdx].match(BODY_LINE)[1].trim();
+    bodyLines = [...(first ? [first] : []), ...rest.slice(bodyIdx + 1)];
+  } else {
+    bodyLines = rest;
   }
 
-  return {
-    subject: subject || "Quick question about your business",
-    body: body || content
-  };
+  const body = stripDashes(bodyLines.join("\n").trim());
+  if (!body) throw new Error("Generated email has no body");
+  if (/^[\s*_#>`]*subject[\s*_`]*:/i.test(body)) {
+    throw new Error("Generated email body starts with a Subject line: refusing to return it");
+  }
+  return { subject: stripDashes(subject || DEFAULT_SUBJECT), body };
 }
 
 /**
@@ -425,6 +417,7 @@ module.exports = {
   generateEmailContent,
   generateEmailSequence,
   buildEmailPrompt,
+  parseEmailContent,
   // Export for testing/debugging
   EMAIL_SYSTEM_PROMPT
 };
