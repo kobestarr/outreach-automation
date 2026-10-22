@@ -289,6 +289,13 @@ function parseEmailContent(content) {
   if (subjectIdx >= 0) {
     subject = lines[subjectIdx].match(SUBJECT_LINE)[1].replace(/[*_`]+$/, "").trim();
     rest = lines.slice(subjectIdx + 1);
+    if (!subject) {
+      const next = rest.findIndex((l) => l.trim());
+      if (next >= 0 && !BODY_LINE.test(rest[next])) {
+        subject = rest[next].replace(/^[\s*_`#>]+|[*_`]+\s*$/g, "").trim();
+        rest = rest.slice(next + 1);
+      }
+    }
   } else {
     const parts = content.trim().split("\n\n");
     subject = (parts[0] || "").trim();

@@ -16,7 +16,7 @@ const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
 const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
 const { getRunBudget } = require('./shared/outreach-core/llm-budget');
-const { parseCache, chunk, maxTokensFor, buildReview } = require('./shared/outreach-core/enrichment/naturalise-lib');
+const { parseCache, chunk, maxTokensFor, buildReview, plausibleShort } = require('./shared/outreach-core/enrichment/naturalise-lib');
 const MODEL = resolveModel('mechanical');
 
 // --- minimal CSV parser (handles double-quoted fields) ---
@@ -102,7 +102,7 @@ ${JSON.stringify(names, null, 0)}`;
       let txt = extractText(json.content).trim();
       txt = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/,'').trim();
       const sent = new Set(batches[i]);
-      for (const o of JSON.parse(txt)) if (sent.has(o.full) && typeof o.short === 'string' && o.short) returned.set(o.full, o.short);
+      for (const o of JSON.parse(txt)) if (sent.has(o.full) && plausibleShort(o.full, o.short)) returned.set(o.full, o.short);
     } catch (e) {
       const left = batches.slice(i).reduce((n, b) => n + b.length, 0);
       console.error(`STOPPED at batch ${i + 1} of ${batches.length}: ${e.message}. ${left} names not cleaned (kept as full names, resent next run). ${budget.summary()}`);

@@ -23,7 +23,7 @@ afterEach(() => { mock.restoreAll(); delete process.env.OUTREACH_LLM_LEDGER_DIR;
 const quiet = () => {};
 const newBudget = (o = {}) => budgetLib.createRunBudget({ log: quiet, ...o });
 
-// plan: array of { status, json | raw } or 'timeout'
+// plan: array of { status, json | raw, headers, asyncEmit, dropMidBody } | { netError: code, written } | 'timeout'
 function fakeHttpsPlan(plan, calls = []) {
   let n = 0;
   mock.method(https, 'request', (opts, cb) => {
@@ -35,12 +35,23 @@ function fakeHttpsPlan(plan, calls = []) {
     req.destroy = () => {};
     req.end = () => {
       calls.push(step);
-      if (step === 'timeout') return onTimeout();
-      const res = new EventEmitter();
-      res.statusCode = step.status;
-      cb(res);
-      res.emit('data', step.raw !== undefined ? step.raw : JSON.stringify(step.json));
-      res.emit('end');
+      const go = () => {
+        if (step === 'timeout') return onTimeout();
+        if (step.netError) {
+          if (step.written) req.emit('finish');
+          return req.emit('error', Object.assign(new Error(step.netError), { code: step.netError }));
+        }
+        req.emit('finish');
+        const res = new EventEmitter();
+        res.statusCode = step.status;
+        res.headers = step.headers || {};
+        cb(res);
+        res.emit('data', step.raw !== undefined ? step.raw : JSON.stringify(step.json));
+        if (step.dropMidBody) return res.emit('close');
+        res.emit('end');
+        res.emit('close');
+      };
+      if (step && step.asyncEmit) setImmediate(go); else go();
     };
     return req;
   });
@@ -103,8 +114,14 @@ test('daily ledger is shared across budgets and stops calls at OUTREACH_DAY_USD_
   assert.ok(fs.readdirSync(ledgerDir).some((f) => /^llm-spend-\d{4}-\d{2}-\d{2}\.json$/.test(f)));
 });
 
-test('invalid caps fall back to the defaults instead of disabling the cap', () => {
-  for (const bad of ['abc', '-1', '0', 'Infinity']) {
+test('a zero USD cap blocks all spend; typos fall back to the defaults instead of disabling the cap', () => {
+  process.env.OUTREACH_RUN_USD_CAP = '0';
+  process.env.OUTREACH_DAY_USD_CAP = '0';
+  const z = newBudget();
+  assert.strictEqual(z.usdCap, 0);
+  assert.strictEqual(z.dayUsdCap, 0);
+  assert.throws(() => z.assertCanCall(), budgetLib.RunBudgetExceededError);
+  for (const bad of ['abc', '-1', 'Infinity']) {
     process.env.OUTREACH_DAY_USD_CAP = bad;
     process.env.OUTREACH_RUN_USD_CAP = bad;
     const b = newBudget();
@@ -114,10 +131,10 @@ test('invalid caps fall back to the defaults instead of disabling the cap', () =
   delete process.env.OUTREACH_RUN_USD_CAP;
 });
 
-test('unknown models are charged at the dearest known rate', () => {
-  const known = budgetLib.costOf('claude-sonnet-4-5-20250929', { input_tokens: 1_000_000, output_tokens: 1_000_000 });
-  const unknown = budgetLib.costOf('claude-fable-5-1', { input_tokens: 1_000_000, output_tokens: 1_000_000 });
-  assert.ok(unknown >= 12 && unknown >= known, 'at least the dearest table rate');
+test('unknown models are charged at exactly $10 in / $50 out', () => {
+  assert.strictEqual(budgetLib.costOf('claude-something-new', { input_tokens: 1_000_000, output_tokens: 1_000_000 }), 60);
+  assert.strictEqual(budgetLib.costOf('claude-something-new', { cache_read_input_tokens: 1_000_000 }), 1);
+  assert.strictEqual(budgetLib.costOf('claude-something-new', { cache_creation_input_tokens: 1_000_000 }), 12.5);
 });
 
 test('email parser: production format, bold markdown, missing Body marker, and the Subject guard', () => {
@@ -134,7 +151,10 @@ test('email parser: production format, bold markdown, missing Body marker, and t
 });
 
 test('dash filter: em and en dashes never survive in generated copy', () => {
-  assert.strictEqual(stripDashes('a — b–c'), 'a - b - c');
+  assert.strictEqual(stripDashes('a — b'), 'a - b');
+  assert.strictEqual(stripDashes('Short one.\n\n— Kobi'), 'Short one.\n\n- Kobi');
+  assert.strictEqual(stripDashes('open 9–5'), 'open 9-5');
+  assert.strictEqual(stripDashes('Hall–Wood Ltd'), 'Hall-Wood Ltd');
   const parsed = parseEmailContent('Subject: a — b\nBody: Hi Sam – quick one — ok');
   assert.ok(!/[—–]/.test(parsed.subject + parsed.body));
 });
@@ -197,4 +217,146 @@ test('reply-engine LLM path: shaped body, budget booked, truncation raises inste
   const capped = newBudget({ maxCalls: 0 });
   const llm2 = makeAnthropicLlm({ apiKey: 'k', model: 'claude-sonnet-5-5', fetchImpl, budget: capped });
   await assert.rejects(() => llm2({ system: 's', user: 'u' }), budgetLib.RunBudgetExceededError);
+});
+
+const { shapeBody } = require('../shared/outreach-core/llm-models');
+const { priceLeads, holdOnBudgetStop } = require('../shared/outreach-core/enrichment/price-leads');
+const { classifyReply } = require('../shared/outreach-core/replies/classify');
+const { draftReply } = require('../shared/outreach-core/replies/draft');
+const { processNew } = require('../shared/outreach-core/replies/engine');
+const replyLlm = require('../shared/outreach-core/replies/llm');
+
+const stop = () => new budgetLib.RunBudgetExceededError('usd_cap', newBudget().snapshot());
+
+test('priceLeads: a budget stop holds the remaining leads, never defaults a tier, one loud line', async () => {
+  const logs = [], errs = [];
+  const leads = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+  let n = 0;
+  const out = await priceLeads(leads, {
+    estimateRevenue: async () => { if (++n === 2) throw stop(); return { estimatedRevenue: 500000, revenueBand: '500k', confidence: 5 }; },
+    assignTier: () => ({ tierId: 'tier3', setupFee: 1, monthlyPrice: 2 }),
+    log: (m) => logs.push(m), logError: (m) => errs.push(m),
+  });
+  assert.deepStrictEqual(leads.map((l) => l.name), ['A'], 'only the priced lead stays in the send list');
+  assert.deepStrictEqual(out.held.map((l) => l.name), ['B', 'C']);
+  assert.ok(out.held.every((l) => l.assignedOfferTier === undefined));
+  assert.strictEqual(errs.length, 1);
+  assert.match(errs[0], /BUDGET CAP HIT.*2 of 3 leads held back/);
+});
+
+test('priceLeads: an ordinary failure still takes the visible default tier', async () => {
+  const leads = [{ name: 'A' }];
+  await priceLeads(leads, { estimateRevenue: async () => { throw new Error('parse'); }, assignTier: () => ({}), log: quiet, logError: quiet });
+  assert.strictEqual(leads[0].assignedOfferTier, 'tier1');
+});
+
+test('holdOnBudgetStop ignores other errors', () => {
+  assert.strictEqual(holdOnBudgetStop(new Error('x'), [1], 0), null);
+});
+
+test('anthropic-call: DNS and connect failures are never booked; a reset after sending is; retried HTTP errors are not', async () => {
+  for (const code of ['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED']) {
+    const b = newBudget();
+    fakeHttpsPlan([{ netError: code, written: false }]);
+    await assert.rejects(() => call(b));
+    assert.strictEqual(b.snapshot().calls, 0, code);
+    assert.strictEqual(b.snapshot().usd, 0);
+    mock.restoreAll();
+  }
+  let b = newBudget();
+  fakeHttpsPlan([{ netError: 'ECONNRESET', written: false }]);
+  await assert.rejects(() => call(b));
+  assert.strictEqual(b.snapshot().calls, 0, 'reset before the request was written');
+  mock.restoreAll();
+  b = newBudget();
+  fakeHttpsPlan([{ netError: 'ECONNRESET', written: true }]);
+  await assert.rejects(() => call(b));
+  assert.strictEqual(b.snapshot().unknownCalls, 3, 'each of the 3 attempts was written and reset');
+  mock.restoreAll();
+  b = newBudget();
+  fakeHttpsPlan([{ status: 429, json: { error: { message: 'slow down' } } }]);
+  await assert.rejects(() => call(b));
+  assert.strictEqual(b.snapshot().calls, 0, 'retried HTTP errors are not booked');
+});
+
+test('anthropic-call: a connection dropped mid-body rejects, retries and is booked as unknown', async () => {
+  const b = newBudget();
+  const calls = fakeHttpsPlan([{ status: 200, raw: '{"content":', dropMidBody: true, asyncEmit: true }, ok()]);
+  const out = await call(b);
+  assert.strictEqual(out.text, 'fine');
+  assert.strictEqual(calls.length, 2);
+  assert.strictEqual(b.snapshot().unknownCalls, 1);
+});
+
+test('anthropic-call: Retry-After is honoured and capped at 30 seconds', async () => {
+  const sleeps = [];
+  fakeHttpsPlan([{ status: 429, headers: { 'retry-after': '7' }, json: { error: { message: 'x' } } }, { status: 429, headers: { 'retry-after': '600' }, json: { error: { message: 'x' } } }, ok()]);
+  await call(newBudget(), { sleep: async (ms) => sleeps.push(ms) });
+  assert.ok(sleeps[0] >= 7000);
+  assert.strictEqual(sleeps[1], 30000);
+});
+
+test('shapeBody treats dated and -latest ids like the bare id and strips sampling on older no-sampling models', () => {
+  assert.deepStrictEqual(shapeBody({ model: 'claude-haiku-5-5-latest', max_tokens: 100 }).thinking, { type: 'disabled' });
+  assert.deepStrictEqual(shapeBody({ model: 'claude-sonnet-5-5-20261001', max_tokens: 100 }).thinking, { type: 'between_tools' });
+  assert.strictEqual(shapeBody({ model: 'claude-opus-4-7', max_tokens: 100, temperature: 0.5 }).temperature, undefined);
+  assert.strictEqual(shapeBody({ model: 'claude-opus-4-5', max_tokens: 100, temperature: 0.5 }).temperature, 0.5);
+});
+
+test('email parser: Subject alone on its line takes the next line as the subject', () => {
+  assert.deepStrictEqual(parseEmailContent('Subject:\nquick thought\n\nBody:\nHi Sam'), { subject: 'quick thought', body: 'Hi Sam' });
+  assert.deepStrictEqual(parseEmailContent('**Subject:**\n\nquick thought\n\nHi Sam,\n\nok'), { subject: 'quick thought', body: 'Hi Sam,\n\nok' });
+});
+
+test('naturalise only accepts a short name that comes from the full name', () => {
+  assert.strictEqual(nat.plausibleShort('Smith Cooper Solicitors LLP', 'Smith Cooper'), true);
+  assert.strictEqual(nat.plausibleShort('Smith Cooper Solicitors LLP', 'smith cooper'), true);
+  assert.strictEqual(nat.plausibleShort('Smith Cooper Solicitors LLP', 'Jones'), false);
+  assert.strictEqual(nat.plausibleShort('X', ''), false);
+});
+
+test('classifyReply marks budget and API failures retryable, but not a truncated answer', async () => {
+  const reply = { subject: 'Re: hello', body: 'Please can you tell me more about this?' };
+  const budgetFail = await classifyReply(reply, { llm: async () => { throw stop(); } });
+  assert.strictEqual(budgetFail.label, 'maybe');
+  assert.strictEqual(budgetFail.retry, 'budget');
+  const apiFail = await classifyReply(reply, { llm: async () => { throw new Error('Anthropic 500'); } });
+  assert.strictEqual(apiFail.retry, 'api');
+  const cut = await classifyReply(reply, { llm: async () => { throw new AnthropicStopError('max_tokens', 'm'); } });
+  assert.strictEqual(cut.retry, undefined);
+  assert.ok(cut.fallback);
+});
+
+test('draftReply degrades to an empty draft with the error when the budget throws', async () => {
+  const d = await draftReply({ lead: { email: 'a@b.test', firstName: 'Sam' }, reply: { subject: 's', body: 'tell me more' }, label: 'warm' }, { llm: async () => { throw stop(); }, config: {} });
+  assert.strictEqual(d.text, '');
+  assert.match(d.error, /budget/i);
+});
+
+test('engine: an unclassifiable reply stays unseen, one loud Buzz line, not repeated within 6 hours', async () => {
+  const posts = [];
+  const now = new Date('2026-10-22T10:00:00Z');
+  const state = {};
+  const rec = { msgid: 'm1', from: 'Sam <sam@lead.test>', to: 'kobi@kobestarr.io', subject: 'Re: hi', body: 'please remove me from your list?', date: now.toISOString() };
+  const deps = (when) => ({ now: () => when, classify: async () => ({ label: 'maybe', reason: 'x', fallback: true, retry: 'budget' }), draft: async () => ({ text: '' }), post: async (t) => { posts.push(t); }, block: async () => ({ complete: true }) });
+  const r1 = await processNew({ replies: [rec], events: [], state }, deps(now));
+  assert.strictEqual(state.seen.m1, undefined, 'not marked seen, so it is retried');
+  assert.strictEqual(r1.errors.length, 1);
+  assert.strictEqual(posts.filter((t) => /AI cap hit, 1 reply unclassified/.test(t)).length, 1);
+  await processNew({ replies: [rec], events: [], state }, deps(new Date(now.getTime() + 5 * 60_000)));
+  assert.strictEqual(posts.length, 1, 'no repeat alert within 6 hours');
+  await processNew({ replies: [rec], events: [], state }, deps(new Date(now.getTime() + 7 * 3_600_000)));
+  assert.strictEqual(posts.length, 2);
+});
+
+test('reply budget is separate: batch work at its daily cap does not stop reply classification', async () => {
+  process.env.OUTREACH_DAY_USD_CAP = '0.01';
+  const batch = newBudget();
+  batch.record('claude-sonnet-5-5', { input_tokens: 100_000, output_tokens: 10_000 });
+  assert.throws(() => batch.assertCanCall(), budgetLib.RunBudgetExceededError);
+  replyLlm.resetReplyBudget();
+  const llm = replyLlm.makeAnthropicLlm({ apiKey: 'k', model: 'claude-haiku-5-5', fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 }, stop_reason: 'end_turn' }) }) });
+  assert.strictEqual(await llm({ system: 's', user: 'u' }), 'ok');
+  assert.ok(fs.existsSync(path.join(ledgerDir, 'reply-llm')), 'its own ledger directory');
+  replyLlm.resetReplyBudget();
 });

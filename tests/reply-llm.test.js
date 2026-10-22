@@ -1,6 +1,7 @@
 // tests/reply-llm.test.js
 const { test } = require('node:test');
 const assert = require('node:assert');
+process.env.OUTREACH_LLM_LEDGER_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'replyllm-'));
 const { makeAnthropicLlm, MODELS } = require('../shared/outreach-core/replies/llm');
 
 const okFetch = (calls, text = 'hello') => async (url, opts) => {

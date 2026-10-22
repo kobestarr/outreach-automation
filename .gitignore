@@ -77,3 +77,4 @@ hiring-signals/runs/
 data/hiring-signals-seen.txt
 data/llm-spend-*.json
 data/llm-spend-*.tmp
+data/reply-llm/

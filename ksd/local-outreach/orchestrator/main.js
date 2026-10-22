@@ -564,6 +564,10 @@ async function processBusinesses(location, postcode, businessTypes = [], extract
       // Small delay to avoid rate limits
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
+      if (error instanceof RunBudgetExceededError) {
+        logger.error('main', `BUDGET CAP HIT (${error.reason}): enrichment stopped with ${filteredBusinesses.length - filteredBusinesses.indexOf(business)} of ${filteredBusinesses.length} businesses not enriched, no further paid scraping or email finding. ${getRunBudget().summary()}`);
+        break;
+      }
       logger.error('main', 'Error enriching business', { businessName: business.name, error: error.message });
     }
   }
@@ -634,7 +638,7 @@ async function generateAndExport(enrichedBusinesses, config = {}) {
       });
     } catch (error) {
       if (error instanceof RunBudgetExceededError) {
-        logger.error('main', `BUDGET CAP HIT (${error.reason}): stopped with ${enrichedBusinesses.length - enrichedBusinesses.indexOf(business)} of ${enrichedBusinesses.length} businesses not processed. ${getRunBudget().summary()}. Exported so far are kept; rerun to continue.`);
+        logger.error('main', `BUDGET CAP HIT (${error.reason}): stopped with ${enrichedBusinesses.length - enrichedBusinesses.indexOf(business)} of ${enrichedBusinesses.length} businesses not processed. ${getRunBudget().summary()}. Exported so far are kept. A rerun regenerates the copy from scratch: nothing already generated is reused.`);
         break;
       }
       logger.error('main', 'Error exporting business', { businessName: business.name, error: error.message });

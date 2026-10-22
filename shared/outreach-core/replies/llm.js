@@ -4,15 +4,29 @@
 // response content is an array of blocks: join the type "text" ones).
 const os = require('os'), path = require('path');
 const { shapeBody } = require('../llm-models');
-const { getRunBudget } = require('../llm-budget');
-const { AnthropicStopError } = require('../anthropic-call');
+const { createRunBudget, capFromEnv } = require('../llm-budget');
+const { AnthropicStopError, AnthropicHttpError } = require('../anthropic-call');
+
+// The reply engine has its own budget and its own daily ledger so batch work can never switch off reply
+// classification (an unclassified opt-out is a do-not-contact risk).
+let replyBudget = null;
+function getReplyBudget() {
+  if (!replyBudget) {
+    const base = process.env.OUTREACH_LLM_LEDGER_DIR || path.join(__dirname, '..', '..', '..', 'data');
+    replyBudget = createRunBudget({
+      dayUsdCap: capFromEnv('OUTREACH_REPLY_DAY_USD_CAP', 1, { allowZero: true }),
+      ledgerDir: path.join(base, 'reply-llm'),
+    });
+  }
+  return replyBudget;
+}
 
 const MODELS = { classify: 'claude-haiku-5-5', draft: 'claude-sonnet-5-5' };
 
 function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, timeoutMs = 60_000, budget }) {
   if (!apiKey) throw new Error('No Anthropic key');
   return async function llm({ system, user }) {
-    const b = budget || getRunBudget();
+    const b = budget || getReplyBudget();
     b.assertCanCall();
     const r = await fetchImpl('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -22,7 +36,7 @@ function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, t
     });
     if (!r.ok) {
       const t = await r.text().catch(() => '');
-      throw new Error(`Anthropic ${r.status}: ${String(t).slice(0, 200)}`);
+      throw new AnthropicHttpError(`Anthropic ${r.status}: ${String(t).slice(0, 200)}`, r.status, false);
     }
     const j = await r.json();
     b.record(model, j.usage);
@@ -39,4 +53,6 @@ function loadAnthropicKey() {
   return k;
 }
 
-module.exports = { MODELS, makeAnthropicLlm, loadAnthropicKey };
+function resetReplyBudget() { replyBudget = null; }
+
+module.exports = { MODELS, makeAnthropicLlm, loadAnthropicKey, getReplyBudget, resetReplyBudget };

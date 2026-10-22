@@ -34,4 +34,10 @@ function buildReview(allCompanies, returned) {
   return [HEADER, ...rows.filter((r) => r.changed).map(fmt), ...rows.filter((r) => !r.changed).map(fmt)].join('\n');
 }
 
-module.exports = { CHUNK_SIZE, TOKENS_PER_NAME, parseCache, chunk, maxTokensFor, buildReview };
+// A cleaned name must come from the original: a case-insensitive substring of it. Anything else is held for review.
+function plausibleShort(full, short) {
+  if (typeof short !== 'string' || !short.trim()) return false;
+  return String(full).toLowerCase().includes(short.trim().toLowerCase());
+}
+
+module.exports = { plausibleShort, CHUNK_SIZE, TOKENS_PER_NAME, parseCache, chunk, maxTokensFor, buildReview };

@@ -99,6 +99,7 @@ async function processNew({ replies = [], events = [], state }, deps) {
   // 3. Gmail replies: classify and act, taking any matching webhook event along
   const inbound = replies.filter(x => x.kind !== 'sent');
   const autos = [];
+  const classifierDown = [];
   for (const rec of inbound) {
     const from = addrOf(rec.from);
     if (!rec.msgid || state.seen[rec.msgid]) continue;
@@ -116,6 +117,14 @@ async function processNew({ replies = [], events = [], state }, deps) {
     } catch (e) {
       out.errors.push({ where: 'reply', email: from, message: e.message });
     }
+  }
+  if (classifierDown.length && !(state.aiAlertAt > nowMs - 6 * HOUR)) {
+    const why = classifierDown.includes('budget') ? 'AI cap hit' : 'AI unavailable';
+    try {
+      await deps.post(`${why}, ${classifierDown.length} repl${classifierDown.length === 1 ? 'y' : 'ies'} unclassified. They are left unread by the engine and retried every run until the model is back. An opt-out among them is NOT blocked yet: check the inbox.`);
+      state.aiAlertAt = nowMs;
+      act({ type: 'ai-down', label: 'alert', email: '' });
+    } catch (e) { out.errors.push({ where: 'reply', email: 'ai alert', message: e.message }); }
   }
   if (autos.length) {
     try {
@@ -173,6 +182,7 @@ async function processNew({ replies = [], events = [], state }, deps) {
     lead.brand = brandOf(lead.mailbox);
     const msg = { subject: rec.subject, body: rec.body, from, cc: rec.cc, auto_submitted: rec.auto_submitted, precedence: rec.precedence };
     const c = await deps.classify(msg);
+    if (c.retry) { classifierDown.push(c.retry); throw new Error(`classifier unavailable (${c.retry}), left unseen to retry next run: ${c.reason}`); }
     const label = c.label;
     const dateIso = Number.isFinite(Date.parse(rec.date)) ? new Date(rec.date).toISOString() : now.toISOString();
     const trackerEvt = (extra = {}) => ({ email: from, firstName: lead.firstName || '', company: lead.company, brand: lead.brand, campaign: lead.campaign, label, text: String(rec.body || ''), mailbox: lead.mailbox, date: dateIso, ...extra });

@@ -11,9 +11,9 @@ const PRICES = [
   { match: /^claude-sonnet-4-5/, in: 3, out: 15, cacheRead: 0.3, cacheWrite: 3.75 },
   { match: /^claude-haiku-4-5/, in: 1, out: 5, cacheRead: 0.1, cacheWrite: 1.25 },
 ];
-// An unpriced model is charged at the dearest known rate so the cap errs on the safe side (Opus 5.5 is $4/$20 and
-// Fable 5.1 is $10/$50, both dearer than anything in the table).
-const UNKNOWN_MODEL_PRICE = PRICES.reduce((a, b) => (b.out > a.out ? b : a));
+// An unpriced model is charged at Fable 5.1's rate ($10/$50, Opus 5.5 is $4/$20 per the pricing page), dearer than
+// anything in the table, so the cap errs on the safe side.
+const UNKNOWN_MODEL_PRICE = { in: 10, out: 50, cacheRead: 1, cacheWrite: 12.5 };
 const warnedUnknown = new Set();
 const SEARCH_USD = 0.01;
 
@@ -22,7 +22,7 @@ function priceFor(model) {
   if (p) return p;
   if (!warnedUnknown.has(model)) {
     warnedUnknown.add(model);
-    logger.warn('llm-budget', `No price for model ${model}: charging it at the dearest known rate. Add it to PRICES.`);
+    logger.warn('llm-budget', `No price for model ${model}: charging it at $10/$50 per MTok. Add it to PRICES.`);
   }
   return UNKNOWN_MODEL_PRICE;
 }
@@ -91,10 +91,10 @@ function createLedger(dir) {
 const DEFAULT_LEDGER_DIR = path.join(__dirname, '..', '..', 'data');
 
 function createRunBudget(opts = {}) {
-  const usdCap = opts.usdCap ?? capFromEnv('OUTREACH_RUN_USD_CAP', 1.5);
+  const usdCap = opts.usdCap ?? capFromEnv('OUTREACH_RUN_USD_CAP', 1.5, { allowZero: true });
   const maxCalls = opts.maxCalls ?? capFromEnv('OUTREACH_RUN_MAX_CALLS', 400, { allowZero: true });
   const maxSearches = opts.maxSearches ?? capFromEnv('OUTREACH_RUN_MAX_SEARCHES', 30, { allowZero: true });
-  const dayUsdCap = opts.dayUsdCap ?? capFromEnv('OUTREACH_DAY_USD_CAP', 3);
+  const dayUsdCap = opts.dayUsdCap ?? capFromEnv('OUTREACH_DAY_USD_CAP', 3, { allowZero: true });
   const ledger = opts.ledger === false ? null : createLedger(opts.ledgerDir || process.env.OUTREACH_LLM_LEDGER_DIR || DEFAULT_LEDGER_DIR);
   const log = opts.log || ((m) => logger.error('llm-budget', m));
   const state = { usd: 0, calls: 0, searches: 0, byModel: {}, unknownCalls: 0 };
@@ -175,4 +175,4 @@ function webSearchTool({ maxUses } = {}) {
   return { type: 'web_search_20250305', name: 'web_search', max_uses: maxUses ?? num(process.env.OUTREACH_WEB_SEARCH_MAX_USES, 3) };
 }
 
-module.exports = { PRICES, priceFor, costOf, RunBudgetExceededError, createRunBudget, getRunBudget, resetRunBudget, runWithBudget, webSearchTool };
+module.exports = { PRICES, priceFor, capFromEnv, costOf, RunBudgetExceededError, createRunBudget, getRunBudget, resetRunBudget, runWithBudget, webSearchTool };

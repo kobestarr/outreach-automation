@@ -26,37 +26,51 @@ function resolveModel(role, explicit) {
   return d;
 }
 
-const isGen5 = (model) => /^claude-(sonnet|haiku|opus|fable|mythos)-5/.test(model);
+// Models that reject non-default temperature, top_p and top_k (thinking docs, "Sampling parameters", 2026-10-22).
+const isGen5 = (model) => /^claude-(sonnet|haiku|opus|fable|mythos)-5/.test(model)
+  || /^claude-(opus-4-7|opus-4-8|mythos-preview)/.test(model);
 const NO_THINKING_OFF_HEADROOM = 4096;
+// The bare id, or the id with a date or -latest suffix; never a different release (Opus 5 is not Opus 5.5).
+const is = (model, id) => model === id || new RegExp(`^${id}(-\\d{8}|-latest)$`).test(model);
 
-// 5.x models return 400 if temperature/top_p/top_k are sent. Adaptive thinking is on by default and its
-// tokens count toward max_tokens, so thinking is turned off wherever the live thinking docs allow it:
+// Thinking is turned off wherever the live thinking docs allow it:
 //   Sonnet 5.5: "disabled" is a 400, the lowest setting is between_tools
 //   Haiku 5.5, Sonnet 5, Opus 5: "disabled" is accepted (Haiku 5.5 and Opus 5 at effort high or below)
 // Opus 5.5, Fable and Mythos cannot turn thinking off, so they get max_tokens headroom and callAnthropic's
-// stop_reason check catches any truncation.
+// stop_reason check catches any truncation. Opus 4.7 and 4.8 already run with thinking off.
 function shapeBody(body) {
   const out = { ...body };
   if (!isGen5(out.model)) return out;
   delete out.temperature;
   delete out.top_p;
   delete out.top_k;
-  if (out.model === 'claude-sonnet-5-5') {
+  const m = out.model;
+  if (is(m, 'claude-sonnet-5-5')) {
     out.thinking = { type: 'between_tools' };
-  } else if (out.model === 'claude-haiku-5-5') {
+  } else if (is(m, 'claude-haiku-5-5')) {
     out.thinking = { type: 'disabled' };
     out.output_config = { effort: 'low' };
-  } else if (/^claude-(sonnet-5|opus-5)$/.test(out.model)) {
+  } else if (is(m, 'claude-sonnet-5') || is(m, 'claude-opus-5')) {
     out.thinking = { type: 'disabled' };
+  } else if (/^claude-(opus-4-7|opus-4-8)/.test(m)) {
+    // thinking is already off by default
   } else {
     out.max_tokens = Math.max(out.max_tokens || 0, NO_THINKING_OFF_HEADROOM);
   }
   return out;
 }
 
-// The house rule is no em or en dashes in anything that goes out.
+// The house rule is no em or en dashes in anything that goes out. A spaced dash between words becomes " - ",
+// a joined one (9-5, Hall-Wood) a plain hyphen, and a dash at the edge of a line (a signature) keeps its line.
 function stripDashes(text) {
-  return String(text).replace(/\s*[\u2014\u2013]\s*/g, ' - ');
+  const str = String(text);
+  return str.replace(/[ \t]*[\u2014\u2013][ \t]*/g, (m, off) => {
+    const before = str[off - 1];
+    const after = str[off + m.length];
+    const atEdge = off === 0 || before === '\n' || after === '\n' || after === undefined;
+    if (atEdge) return m.replace(/[\u2014\u2013]/, '-');
+    return /\s/.test(m) ? ' - ' : '-';
+  });
 }
 
 function extractText(content) {

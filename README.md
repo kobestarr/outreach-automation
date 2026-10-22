@@ -215,7 +215,7 @@ All API keys stored in `~/.credentials/api-keys.json` (not committed):
 
 ## LLM cost controls (environment variables)
 
-All optional. Caps must be positive numbers; anything else falls back to the default with a warning.
+All optional. Caps are numbers, and 0 blocks all spend; anything non-numeric, negative or infinite falls back to the default with a warning.
 
 | Variable | Default | What it does |
 |---|---|---|
@@ -225,6 +225,7 @@ All optional. Caps must be positive numbers; anything else falls back to the def
 | `OUTREACH_RUN_USD_CAP` | `1.50` | Spend cap for one process, for call sites that use the shared caller. |
 | `OUTREACH_RUN_MAX_CALLS` | `400` | Call cap for one process. |
 | `OUTREACH_DAY_USD_CAP` | `3.00` | Cap across all processes per UTC day, from `data/llm-spend-YYYY-MM-DD.json`. |
+| `OUTREACH_REPLY_DAY_USD_CAP` | `1.00` | Daily cap for the reply engine only, with its own ledger in `data/reply-llm/`, never shared with batch work. |
 | `OUTREACH_RUN_MAX_SEARCHES` / `OUTREACH_WEB_SEARCH_MAX_USES` | `30` / `3` | Web searches per process / `max_uses` per request (only where `webSearchTool()` is used). |
 
 When a cap is hit the run stops with a `BUDGET CAP HIT` line saying how many records were left. `OUTREACH_LLM_LEDGER_DIR` moves the daily ledger.

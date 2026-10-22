@@ -244,7 +244,11 @@ function parseModelJson(text) {
   return { label, reason: field('reason') || '', resume_date: field('resume_date'), referral_email: field('referral_email') };
 }
 
-function fallback(reason) { return { label: 'maybe', reason, fallback: true }; }
+function fallback(reason, extra = {}) { return { label: 'maybe', reason, fallback: true, ...extra }; }
+
+// A budget stop or an API/network failure says nothing about the reply, so the engine must retry it next run
+// instead of marking it seen. A truncated or refused answer will not improve on retry: a human reads it.
+const retryKind = (e) => (e && e.name === 'AnthropicStopError' ? null : e && e.name === 'RunBudgetExceededError' ? 'budget' : 'api');
 
 async function classifyReply(reply, { llm, now } = {}) {
   const det = classifyDeterministic(reply, now);
@@ -253,7 +257,7 @@ async function classifyReply(reply, { llm, now } = {}) {
   let j = null;
   for (let attempt = 0; attempt < 2 && !(j && LABELS.includes(j.label)); attempt++) {
     let raw;
-    try { raw = await llm(buildPrompt(reply)); } catch (e) { return fallback(`classifier unavailable (${e.message}), read it yourself`); }
+    try { raw = await llm(buildPrompt(reply)); } catch (e) { return fallback(`classifier unavailable (${e.message}), read it yourself`, retryKind(e) ? { retry: retryKind(e) } : {}); }
     j = parseModelJson(raw);
   }
   if (!j || !LABELS.includes(j.label)) return fallback('classifier gave no usable answer, read it yourself');

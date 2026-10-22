@@ -25,6 +25,7 @@ const { verifyEmail } = require('./shared/outreach-core/email-verification/reoon
 const { saveBusiness } = require('./ksd/local-outreach/orchestrator/modules/database');
 const { isValidEmail } = require('./shared/outreach-core/validation/data-quality');
 const { RunBudgetExceededError, getRunBudget } = require('./shared/outreach-core/llm-budget');
+const { priceLeads } = require('./shared/outreach-core/enrichment/price-leads');
 const { extractOwnersFromWebsite } = require('./shared/outreach-core/enrichment/llm-owner-extractor');
 const { closeBrowser } = require('./shared/outreach-core/enrichment/browser-fetcher');
 const logger = require('./shared/outreach-core/logger');
@@ -482,34 +483,12 @@ async function run() {
   console.log('STEP 4: REVENUE ESTIMATION & TIER ASSIGNMENT');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  for (let i = 0; i < enrichedBusinesses.length; i++) {
-    const business = enrichedBusinesses[i];
-    const label = `[${i + 1}/${enrichedBusinesses.length}] ${(business.name || '').substring(0, 40).padEnd(40)}`;
-
-    try {
-      const revenueEstimate = await estimateRevenue(business);
-      business.estimatedRevenue = revenueEstimate.estimatedRevenue;
-      business.revenueBand = revenueEstimate.revenueBand;
-      business.revenueConfidence = revenueEstimate.confidence;
-
-      const tier = assignTier(business.estimatedRevenue);
-      business.assignedOfferTier = tier.tierId;
-      business.setupFee = tier.setupFee;
-      business.monthlyPrice = tier.monthlyPrice;
-
-      STATS.revenueEstimated++;
-      console.log(`  ${label} ${business.revenueBand} → ${tier.tierId}`);
-    } catch (err) {
-      business.assignedOfferTier = 'tier1';
-      business.estimatedRevenue = 80000;
-      business.revenueBand = 'under-150k';
-      business.revenueConfidence = 'low';
-      console.log(`  ${label} (default tier1 — ${err.message.substring(0, 40)})`);
-    }
-
-    // Generate merge variables
-    business.mergeVariables = getAllMergeVariables(business);
-  }
+  await priceLeads(enrichedBusinesses, {
+    estimateRevenue, assignTier,
+    labelOf: (b, i, n) => `[${i + 1}/${n}] ${(b.name || '').substring(0, 40).padEnd(40)}`,
+    onEstimated: () => { STATS.revenueEstimated++; },
+  });
+  for (const business of enrichedBusinesses) business.mergeVariables = getAllMergeVariables(business);
 
   console.log(`\n  Revenue estimated: ${STATS.revenueEstimated}/${enrichedBusinesses.length}\n`);
 
