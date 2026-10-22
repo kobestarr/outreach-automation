@@ -144,6 +144,7 @@ const ALL_CATEGORIES = WAVE3_ONLY
     : [...PROFESSIONAL_CATEGORIES, ...CONSUMER_CATEGORIES, ...NEW_TRADE_CATEGORIES, ...WAVE3_SERVICES, ...WAVE3_TRADES];
 
 // ── Stats tracking ─────────────────────────────────────────────────────────
+let EXIT_CODE = 0;
 const STATS = {
   categoriesSearched: 0,
   totalScraped: 0,
@@ -483,14 +484,28 @@ async function run() {
   console.log('STEP 4: REVENUE ESTIMATION & TIER ASSIGNMENT');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  await priceLeads(enrichedBusinesses, {
+  const pricing = await priceLeads(enrichedBusinesses, {
     estimateRevenue, assignTier,
     labelOf: (b, i, n) => `[${i + 1}/${n}] ${(b.name || '').substring(0, 40).padEnd(40)}`,
     onEstimated: () => { STATS.revenueEstimated++; },
   });
   for (const business of enrichedBusinesses) business.mergeVariables = getAllMergeVariables(business);
 
-  console.log(`\n  Revenue estimated: ${STATS.revenueEstimated}/${enrichedBusinesses.length}\n`);
+  for (const business of pricing.held) {
+    try {
+      saveBusiness({
+        name: business.name, businessName: business.name, location: LOCATION, postcode: business.postcode || POSTCODE,
+        address: business.address, website: business.website, phone: business.phone, category: business.category,
+        rating: business.rating, reviewCount: business.reviewCount, ownerFirstName: business.ownerFirstName,
+        ownerLastName: business.ownerLastName, ownerEmail: business.email, emailSource: business.emailSource,
+        emailVerified: business.emailVerified,
+      }, { status: 'held-unpriced', location: LOCATION, postcode: POSTCODE, scrapedAt: new Date().toISOString() });
+    } catch (err) {
+      console.error(`  DB ERROR saving held lead ${business.name}: ${err.message}`);
+    }
+  }
+  if (pricing.stopped) EXIT_CODE = 2;
+  console.log(`\n  Revenue estimated: ${STATS.revenueEstimated}, defaulted to tier1: ${pricing.defaulted.length}, held back (saved as held-unpriced, not exported): ${pricing.held.length}, going on to save and send: ${enrichedBusinesses.length}\n`);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // STEP 5: SAVE TO DATABASE
@@ -658,8 +673,8 @@ async function run() {
 }
 
 run().then(() => {
-  console.log('Done.\n');
-  process.exit(0);
+  console.log(EXIT_CODE ? `Stopped early (exit ${EXIT_CODE}): leads were held back, see above.\n` : 'Done.\n');
+  process.exit(EXIT_CODE);
 }).catch(err => {
   console.error('Fatal error:', err.message);
   console.error(err.stack);

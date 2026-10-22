@@ -244,12 +244,6 @@ test('priceLeads: a budget stop holds the remaining leads, never defaults a tier
   assert.match(errs[0], /BUDGET CAP HIT.*2 of 3 leads held back/);
 });
 
-test('priceLeads: an ordinary failure still takes the visible default tier', async () => {
-  const leads = [{ name: 'A' }];
-  await priceLeads(leads, { estimateRevenue: async () => { throw new Error('parse'); }, assignTier: () => ({}), log: quiet, logError: quiet });
-  assert.strictEqual(leads[0].assignedOfferTier, 'tier1');
-});
-
 test('holdOnBudgetStop ignores other errors', () => {
   assert.strictEqual(holdOnBudgetStop(new Error('x'), [1], 0), null);
 });
@@ -333,22 +327,6 @@ test('draftReply degrades to an empty draft with the error when the budget throw
   assert.match(d.error, /budget/i);
 });
 
-test('engine: an unclassifiable reply stays unseen, one loud Buzz line, not repeated within 6 hours', async () => {
-  const posts = [];
-  const now = new Date('2026-10-22T10:00:00Z');
-  const state = {};
-  const rec = { msgid: 'm1', from: 'Sam <sam@lead.test>', to: 'kobi@kobestarr.io', subject: 'Re: hi', body: 'please remove me from your list?', date: now.toISOString() };
-  const deps = (when) => ({ now: () => when, classify: async () => ({ label: 'maybe', reason: 'x', fallback: true, retry: 'budget' }), draft: async () => ({ text: '' }), post: async (t) => { posts.push(t); }, block: async () => ({ complete: true }) });
-  const r1 = await processNew({ replies: [rec], events: [], state }, deps(now));
-  assert.strictEqual(state.seen.m1, undefined, 'not marked seen, so it is retried');
-  assert.strictEqual(r1.errors.length, 1);
-  assert.strictEqual(posts.filter((t) => /AI cap hit, 1 reply unclassified/.test(t)).length, 1);
-  await processNew({ replies: [rec], events: [], state }, deps(new Date(now.getTime() + 5 * 60_000)));
-  assert.strictEqual(posts.length, 1, 'no repeat alert within 6 hours');
-  await processNew({ replies: [rec], events: [], state }, deps(new Date(now.getTime() + 7 * 3_600_000)));
-  assert.strictEqual(posts.length, 2);
-});
-
 test('reply budget is separate: batch work at its daily cap does not stop reply classification', async () => {
   process.env.OUTREACH_DAY_USD_CAP = '0.01';
   const batch = newBudget();
@@ -359,4 +337,174 @@ test('reply budget is separate: batch work at its daily cap does not stop reply 
   assert.strictEqual(await llm({ system: 's', user: 'u' }), 'ok');
   assert.ok(fs.existsSync(path.join(ledgerDir, 'reply-llm')), 'its own ledger directory');
   replyLlm.resetReplyBudget();
+});
+
+const { priceLeads: priceLeads2 } = require('../shared/outreach-core/enrichment/price-leads');
+const { emptyState, pruneState } = require('../shared/outreach-core/replies/engine');
+const { likelyOptOut } = require('../shared/outreach-core/replies/classify');
+const { AnthropicHttpError } = require('../shared/outreach-core/anthropic-call');
+const { getMicroOfferPrice } = require('../shared/outreach-core/content-generation/email-merge-variables');
+
+const pl = (leads, est, extra = {}) => priceLeads2(leads, { estimateRevenue: est, assignTier: () => ({ tierId: 'tier2', setupFee: 1, monthlyPrice: 2 }), log: quiet, logError: quiet, ...extra });
+const goodEst = async () => ({ estimatedRevenue: 1, revenueBand: 'b', confidence: 1 });
+const named = (n) => Array.from({ length: n }, (_, i) => ({ name: `L${i}` }));
+
+test('priceLeads: a parse error or truncated answer defaults that one lead to tier1 and counts it', async () => {
+  const leads = named(3);
+  let n = 0;
+  const out = await pl(leads, async () => { n++; if (n === 2) throw new SyntaxError('bad json'); if (n === 3) throw new AnthropicStopError('max_tokens', 'm'); return goodEst(); });
+  assert.strictEqual(out.defaulted.length, 2);
+  assert.strictEqual(out.held.length, 0);
+  assert.ok(out.defaulted.every((l) => l.assignedOfferTier === 'tier1'));
+  assert.strictEqual(leads.length, 3);
+});
+
+test('priceLeads: an HTTP failure that survived its retries holds that lead, never defaults it', async () => {
+  const leads = named(4);
+  let n = 0;
+  const out = await pl(leads, async () => { if (++n === 2) throw new AnthropicHttpError('Anthropic API error (HTTP 500): x', 500, true); return goodEst(); });
+  assert.deepStrictEqual(out.held.map((l) => l.name), ['L1']);
+  assert.deepStrictEqual(leads.map((l) => l.name), ['L0', 'L2', 'L3']);
+  assert.strictEqual(out.defaulted.length, 0);
+});
+
+test('priceLeads: a revoked key (401) holds everything via the circuit breaker', async () => {
+  const errs = [];
+  const leads = named(8);
+  const out = await pl(leads, async () => { throw new AnthropicHttpError('Anthropic API error (HTTP 401): invalid x-api-key', 401, false); }, { logError: (m) => errs.push(m) });
+  assert.strictEqual(leads.length, 0, 'nothing left on the send list');
+  assert.strictEqual(out.held.length, 8);
+  assert.strictEqual(out.stopped, 'circuit_breaker');
+  assert.ok(errs.some((m) => /PRICING STOPPED/.test(m)));
+});
+
+test('priceLeads: more than 20 percent failing trips the breaker even when failures are not consecutive', async () => {
+  const leads = named(10);
+  let n = 0;
+  const out = await pl(leads, async () => { n++; if (n === 2 || n === 4 || n === 6) throw new SyntaxError('x'); return goodEst(); });
+  assert.strictEqual(out.stopped, 'circuit_breaker');
+  assert.ok(out.held.length >= 1, 'the rest of the list is held');
+});
+
+test('getMicroOfferPrice: a missing or unknown tier takes the lowest price, never the highest', () => {
+  const base = { name: 'X', location: 'Bramhall' };
+  const low = getMicroOfferPrice({ ...base, assignedOfferTier: 'tier1' });
+  assert.strictEqual(getMicroOfferPrice(base), low);
+  assert.strictEqual(getMicroOfferPrice({ ...base, assignedOfferTier: 'tier9' }), low);
+  assert.notStrictEqual(getMicroOfferPrice({ ...base, assignedOfferTier: 'tier5' }), low);
+});
+
+const optOuts = [
+  'Not interested. Please remove me from your list.',
+  'Please stop emailing me. This is harassment.',
+  'No thanks. Please take us off your list. Kind regards Bob',
+];
+
+test('likelyOptOut flags the two-sentence removal requests the rules leave to the model', () => {
+  for (const body of optOuts) assert.strictEqual(likelyOptOut({ subject: 'Re: hi', body }), true, body);
+  assert.strictEqual(likelyOptOut({ subject: 'Re: hi', body: 'Please send the audit over, thanks' }), false);
+  assert.strictEqual(likelyOptOut({ subject: 'Re: hi', body: 'Can you remove me from the other list? Not this one.' }), false);
+});
+
+function engineDeps(posts, when, retry = 'budget') {
+  return { now: () => when, classify: async () => ({ label: 'maybe', reason: 'x', fallback: true, retry }), draft: async () => ({ text: '' }), post: async (t) => { posts.push(t); }, block: async () => ({ complete: true }) };
+}
+const mk = (id, from, body, subject = 'Re: hi') => ({ msgid: id, from: `X <${from}>`, to: 'kobi@kobestarr.io', subject, body, date: '2026-10-22T10:00:00Z' });
+const T = new Date('2026-10-22T10:00:00Z').getTime();
+const at = (mins) => new Date(T + mins * 60_000);
+
+test('engine: first failure is silent, retried unseen, and the read offset is held by the reply error', async () => {
+  const posts = [], state = emptyState();
+  const r = await processNew({ replies: [mk('m1', 'sam@lead.test', optOuts[0])], events: [], state }, engineDeps(posts, at(0)));
+  assert.strictEqual(state.seen.m1, undefined);
+  assert.strictEqual(posts.length, 0, 'a single blip raises no alarm');
+  assert.ok(r.errors.some((e) => e.where === 'reply'), 'reply-engine.js holds the offset on a reply error');
+  assert.ok(state.classifyWait.m1.first === T);
+});
+
+test('engine: after 15 minutes it names the sender, subject and text and flags a possible opt-out, once', async () => {
+  const posts = [], state = emptyState();
+  const rec = mk('m1', 'sam@lead.test', optOuts[2], 'Re: your offer');
+  await processNew({ replies: [rec], events: [], state }, engineDeps(posts, at(0)));
+  await processNew({ replies: [rec], events: [], state }, engineDeps(posts, at(16)));
+  assert.strictEqual(posts.length, 1);
+  assert.match(posts[0], /AI cap hit, 1 reply unclassified/);
+  assert.match(posts[0], /sam@lead\.test/);
+  assert.match(posts[0], /Re: your offer/);
+  assert.match(posts[0], /possible opt-out, not blocked yet, check the inbox/);
+  assert.match(posts[0], /No thanks/);
+  await processNew({ replies: [rec], events: [], state }, engineDeps(posts, at(30)));
+  assert.strictEqual(posts.length, 1, 'the same reply is not announced again');
+  assert.strictEqual(state.seen.m1, undefined);
+});
+
+test('engine: a second stuck reply arriving after the first alert is still announced', async () => {
+  const posts = [], state = emptyState();
+  const a = mk('m1', 'sam@lead.test', 'Tell me more please?');
+  const b = mk('m2', 'bob@other.test', optOuts[1]);
+  await processNew({ replies: [a], events: [], state }, engineDeps(posts, at(0)));
+  await processNew({ replies: [a], events: [], state }, engineDeps(posts, at(16)));
+  assert.strictEqual(posts.length, 1);
+  await processNew({ replies: [a, b], events: [], state }, engineDeps(posts, at(20)));
+  await processNew({ replies: [a, b], events: [], state }, engineDeps(posts, at(40)));
+  assert.strictEqual(posts.length, 2);
+  assert.match(posts[1], /bob@other\.test/);
+  assert.ok(!/sam@lead\.test/.test(posts[1]), 'only the new one');
+  assert.match(posts[1], /possible opt-out/);
+});
+
+test('engine: after 24 hours of failure the reply degrades to a maybe and is marked seen', async () => {
+  const posts = [], state = emptyState();
+  const rec = mk('m1', 'sam@lead.test', 'Tell me more please?');
+  await processNew({ replies: [rec], events: [], state }, engineDeps(posts, at(0)));
+  const r = await processNew({ replies: [rec], events: [], state }, engineDeps(posts, at(25 * 60)));
+  assert.ok(state.seen.m1, 'no poison reply retried forever');
+  assert.strictEqual(state.classifyWait.m1, undefined);
+  assert.ok(r.actions.some((a) => a.type === 'classified' && a.label === 'maybe'));
+});
+
+test('engine: at most three classifier failures per run, the rest wait without calling the model', async () => {
+  const posts = [], state = emptyState();
+  let calls = 0;
+  const deps = { ...engineDeps(posts, at(0)), classify: async () => { calls++; return { label: 'maybe', reason: 'x', fallback: true, retry: 'api' }; } };
+  const replies = Array.from({ length: 6 }, (_, i) => mk(`m${i}`, `p${i}@lead.test`, 'hello there?'));
+  await processNew({ replies, events: [], state }, deps);
+  assert.strictEqual(calls, 3);
+  assert.strictEqual(Object.keys(state.classifyWait).length, 6);
+});
+
+test('state: emptyState carries classifyWait and aiAlertAt and pruning ages out old waits', () => {
+  const st = emptyState();
+  assert.deepStrictEqual(st.classifyWait, {});
+  assert.strictEqual(st.aiAlertAt, 0);
+  const now = Date.now();
+  st.classifyWait.old = { first: now - 31 * 86_400_000 };
+  st.classifyWait.new = { first: now };
+  pruneState(st, now);
+  assert.deepStrictEqual(Object.keys(st.classifyWait), ['new']);
+});
+
+test('stripDashes: joined em dash, joined en dash, entities, look-alikes and repeats', () => {
+  assert.strictEqual(stripDashes('the price—£97—is'), 'the price - £97 - is');
+  assert.strictEqual(stripDashes('great—really'), 'great - really');
+  assert.strictEqual(stripDashes('Hall–Wood'), 'Hall-Wood');
+  assert.strictEqual(stripDashes('great–really'), 'great - really');
+  assert.strictEqual(stripDashes('a&mdash;b and c&#8212;d'), 'a - b and c - d');
+  assert.strictEqual(stripDashes('x―y − z ‒ w'), 'x - y - z - w');
+  assert.strictEqual(stripDashes('a —— b'), 'a - b');
+  assert.ok(!/[‒-―−]/.test(stripDashes('a—b–c―d')));
+});
+
+test('plausibleShort rejects fragments, suffixes and stop-words', () => {
+  for (const bad of ['Ltd', 'S', 'The', 'LLP', 'ab', 'Co']) assert.strictEqual(nat.plausibleShort('The Smith Partnership Ltd', bad), false, bad);
+  assert.strictEqual(nat.plausibleShort('The Smith Partnership Ltd', 'The Smith Partnership'), true);
+  assert.strictEqual(nat.plausibleShort('Smith Cooper Solicitors LLP', 'Cooper'), true);
+  assert.strictEqual(nat.plausibleShort('Smith Cooper Solicitors LLP', 'Solicitors'), false);
+});
+
+test('fetch timeout in the reply path is booked as unknown spend', async () => {
+  const b = newBudget();
+  const llm = replyLlm.makeAnthropicLlm({ apiKey: 'k', model: 'claude-haiku-5-5', maxTokens: 300, budget: b, fetchImpl: async () => { const e = new Error('timed out'); e.name = 'TimeoutError'; throw e; } });
+  await assert.rejects(() => llm({ system: 's', user: 'u' }), /timed out/);
+  assert.strictEqual(b.snapshot().unknownCalls, 1);
 });

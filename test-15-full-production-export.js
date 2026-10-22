@@ -11,7 +11,7 @@ const { getAllMergeVariables } = require('./shared/outreach-core/content-generat
 const { addLeadToCampaign } = require('./shared/outreach-core/export-managers/lemlist-exporter');
 const { scrapeWebsite, parseName } = require('./shared/outreach-core/enrichment/website-scraper');
 const { estimateRevenue } = require('./ksd/local-outreach/orchestrator/modules/revenue-estimator');
-const { holdOnBudgetStop } = require('./shared/outreach-core/enrichment/price-leads');
+const { priceLeads } = require('./shared/outreach-core/enrichment/price-leads');
 const { assignTier } = require('./ksd/local-outreach/orchestrator/modules/tier-assigner');
 const logger = require('./shared/outreach-core/logger');
 
@@ -153,44 +153,12 @@ async function exportToLemlist() {
     console.log('STEP 3: REVENUE ESTIMATION & TIER ASSIGNMENT 🚀');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
+    const pricing = await priceLeads(enrichedBusinesses, { estimateRevenue, assignTier });
+    if (pricing.held.length) console.error(`${pricing.held.length} leads held back (not priced, not exported): ${pricing.held.map(b => b.name).join(', ')}`);
+
     for (let i = 0; i < enrichedBusinesses.length; i++) {
       const business = enrichedBusinesses[i];
       console.log(`[${i + 1}/${enrichedBusinesses.length}] ${business.name}`);
-
-      try {
-        // Estimate revenue using Claude API
-        console.log(`   🤖 Estimating revenue with Claude...`);
-        const revenueEstimate = await estimateRevenue(business);
-
-        business.estimatedRevenue = revenueEstimate.estimatedRevenue;
-        business.revenueBand = revenueEstimate.revenueBand;
-        business.revenueConfidence = revenueEstimate.confidence;
-
-        console.log(`   💰 Estimated Revenue: ${business.estimatedRevenue.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}`);
-        console.log(`   📊 Revenue Band: ${business.revenueBand}`);
-        console.log(`   🎯 Confidence: ${business.revenueConfidence}`);
-
-        // Assign tier based on revenue
-        const tier = assignTier(business.estimatedRevenue);
-        business.assignedOfferTier = tier.tierId;
-        business.setupFee = tier.setupFee;
-        business.monthlyPrice = tier.monthlyPrice;
-
-        console.log(`   🎟️  Assigned Tier: ${tier.tierId}`);
-        console.log(`   💵 Setup Fee: ${tier.setupFee}`);
-        console.log(`   💳 Monthly Price: ${tier.monthlyPrice}`);
-
-      } catch (error) {
-        if (holdOnBudgetStop(error, enrichedBusinesses, i, { step: 'revenue estimation' })) break;
-        console.log(`   ⚠️  Revenue estimation failed: ${error.message}`);
-        console.log(`   ℹ️  Defaulting to tier5 (£97)`);
-
-        // Default to tier5 if estimation fails
-        business.assignedOfferTier = 'tier5';
-        business.estimatedRevenue = 50000; // Default low estimate
-        business.revenueBand = 'under-100k';
-        business.revenueConfidence = 'low';
-      }
 
       // Generate merge variables (NOW includes dynamic pricing!)
       const mergeVariables = getAllMergeVariables(business);

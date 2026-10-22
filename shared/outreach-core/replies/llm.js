@@ -28,12 +28,18 @@ function makeAnthropicLlm({ apiKey, model, maxTokens = 800, fetchImpl = fetch, t
   return async function llm({ system, user }) {
     const b = budget || getReplyBudget();
     b.assertCanCall();
-    const r = await fetchImpl('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify(shapeBody({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] })),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    let r;
+    try {
+      r = await fetchImpl('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify(shapeBody({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] })),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (e) {
+      if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) b.recordUnknown(model, maxTokens, 'timeout');
+      throw e;
+    }
     if (!r.ok) {
       const t = await r.text().catch(() => '');
       throw new AnthropicHttpError(`Anthropic ${r.status}: ${String(t).slice(0, 200)}`, r.status, false);

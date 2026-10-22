@@ -60,16 +60,25 @@ function shapeBody(body) {
   return out;
 }
 
-// The house rule is no em or en dashes in anything that goes out. A spaced dash between words becomes " - ",
-// a joined one (9-5, Hall-Wood) a plain hyphen, and a dash at the edge of a line (a signature) keeps its line.
+// The house rule is no em or en dashes in anything that goes out.
+//   spaced dash between words        -> " - "
+//   joined em dash (great\u2014really)  -> " - "
+//   joined en dash before a digit or capital (9\u20135, Hall\u2013Wood) -> "-"; other joined en dashes -> " - "
+//   a dash at the edge of a line (a signature) keeps its line
+// HTML entities and the look-alike dashes (U+2012, U+2015, U+2212) are handled, and repeats collapse to one.
+const DASHES = '\\u2012\\u2013\\u2014\\u2015\\u2212';
 function stripDashes(text) {
-  const str = String(text);
-  return str.replace(/[ \t]*[\u2014\u2013][ \t]*/g, (m, off) => {
+  const str = String(text)
+    .replace(/&mdash;|&#8212;|&#x2014;/gi, '\u2014')
+    .replace(/&ndash;|&#8211;|&#x2013;/gi, '\u2013');
+  const re = new RegExp(`[ \\t]*[${DASHES}](?:[ \\t]*[${DASHES}])*[ \\t]*`, 'g');
+  return str.replace(re, (m, off) => {
     const before = str[off - 1];
     const after = str[off + m.length];
-    const atEdge = off === 0 || before === '\n' || after === '\n' || after === undefined;
-    if (atEdge) return m.replace(/[\u2014\u2013]/, '-');
-    return /\s/.test(m) ? ' - ' : '-';
+    if (off === 0 || before === '\n' || after === '\n' || after === undefined) return m.replace(new RegExp(`[${DASHES}](?:[ \\t]*[${DASHES}])*`), '-');
+    if (/\s/.test(m)) return ' - ';
+    const joinedEn = m === '\u2013' && /[0-9A-Za-z]/.test(before) && /[0-9A-Z]/.test(after);
+    return joinedEn ? '-' : ' - ';
   });
 }
 

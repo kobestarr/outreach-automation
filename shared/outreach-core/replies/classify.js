@@ -277,4 +277,11 @@ async function classifyReply(reply, { llm, now } = {}) {
   return out;
 }
 
-module.exports = { LABELS, classifyDeterministic, classifyReply, parseResumeDate, buildPrompt, hasPositive, ASKS_SOURCE, emailsIn, stripBody, cleanSubject, subjectLead };
+// While the model is down: does this look like a removal request the rules could not settle (a second sentence,
+// say)? Used only to raise the alert line; nothing is blocked on this guess.
+function likelyOptOut(reply) {
+  const text = `${subjectLead(cleanSubject(reply.subject))}\n${stripBody(reply.body)}`;
+  return NO_FIRM.some((r) => r.test(text)) && !hasPositive(text) && !/\?/.test(stripBody(reply.body));
+}
+
+module.exports = { likelyOptOut, LABELS, classifyDeterministic, classifyReply, parseResumeDate, buildPrompt, hasPositive, ASKS_SOURCE, emailsIn, stripBody, cleanSubject, subjectLead };

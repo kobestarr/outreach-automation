@@ -10,16 +10,20 @@
  */
 const { isOurMailbox, brandOf, ownMailboxIn, addrOf } = require('./mailboxes');
 const fmt = require('./format');
+const { likelyOptOut, stripBody } = require('./classify');
 
 const MIN = 60_000, HOUR = 3_600_000;
 const UNIBOX_AFTER = 15 * MIN;
 const REALERT_AFTER = 24 * HOUR;
 const EVENT_DEDUP = 24 * HOUR;
+const CLASSIFIER_ALERT_AFTER = 15 * MIN;     // a single timeout or 529 must not raise a false alarm
+const CLASSIFIER_GIVE_UP_AFTER = 24 * HOUR;  // then post it as a "maybe" with its text: no poison reply retried forever
+const MAX_CLASSIFIER_FAILURES_PER_RUN = 3;   // a hung API cannot keep one run (and its lock) busy
 const ACTIONABLE = ['warm', 'maybe', 'referral'];
 const IGNORED_SENDERS = /^(?:mailer-daemon|postmaster)@/i; // not a whole domain: real people use googlemail.com
 
 const DAY = 24 * HOUR;
-const emptyState = () => ({ seen: {}, events: {}, pending: {}, gmailLeads: {}, blocked: {}, resume: {}, awaiting: {}, sent: {}, partial: {}, drafts: {}, warned: {}, evIds: {} });
+const emptyState = () => ({ seen: {}, events: {}, pending: {}, gmailLeads: {}, blocked: {}, resume: {}, awaiting: {}, sent: {}, partial: {}, drafts: {}, warned: {}, evIds: {}, classifyWait: {}, aiAlertAt: 0 });
 
 // Drop anything older than 30 days so the state file stays small.
 function pruneState(st, nowMs, days = 30) {
@@ -27,6 +31,7 @@ function pruneState(st, nowMs, days = 30) {
   for (const k of ['seen', 'events', 'evIds', 'gmailLeads', 'blocked', 'sent', 'partial']) for (const [key, v] of Object.entries(st[k] || {})) if (v < cutoff) delete st[k][key];
   for (const [key, v] of Object.entries(st.awaiting || {})) if (v.ts < cutoff) delete st.awaiting[key];
   for (const [key, v] of Object.entries(st.drafts || {})) if (v.ts < cutoff) delete st.drafts[key];
+  for (const [key, v] of Object.entries(st.classifyWait || {})) if (v.first < cutoff) delete st.classifyWait[key];
   for (const [key, v] of Object.entries(st.pending || {})) if (v.at < cutoff) delete st.pending[key];
   for (const [key, v] of Object.entries(st.resume || {})) if (Date.parse(v) < cutoff) delete st.resume[key];
   return st;
@@ -99,11 +104,23 @@ async function processNew({ replies = [], events = [], state }, deps) {
   // 3. Gmail replies: classify and act, taking any matching webhook event along
   const inbound = replies.filter(x => x.kind !== 'sent');
   const autos = [];
-  const classifierDown = [];
+  let classifierFailures = 0;
+  const noteWait = (rec, from) => {
+    if (!state.classifyWait[rec.msgid]) {
+      const body = stripBody(rec.body);
+      state.classifyWait[rec.msgid] = {
+        first: nowMs, alerted: false, from, subject: String(rec.subject || '').slice(0, 120),
+        snippet: String(body || rec.body || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        optOut: likelyOptOut({ subject: rec.subject, body: rec.body }),
+      };
+    }
+    return state.classifyWait[rec.msgid];
+  };
   for (const rec of inbound) {
     const from = addrOf(rec.from);
     if (!rec.msgid || state.seen[rec.msgid]) continue;
     if (!from || isOurMailbox(from) || from === 'kobi@kobestarr.io' || IGNORED_SENDERS.test(from)) { state.seen[rec.msgid] = nowMs; continue; }
+    if (classifierFailures >= MAX_CLASSIFIER_FAILURES_PER_RUN) { noteWait(rec, from); continue; }
     try {
       const matched = Object.entries(state.pending).filter(([, p]) => leadOf(p.ev) === from);
       const ev = matched.length ? matched[0][1].ev : null;
@@ -114,16 +131,22 @@ async function processNew({ replies = [], events = [], state }, deps) {
         state.seen[rec.msgid] = nowMs;
         delete state.drafts[rec.msgid];
       }
+      if (label !== 'auto') delete state.classifyWait[rec.msgid];
     } catch (e) {
       out.errors.push({ where: 'reply', email: from, message: e.message });
     }
   }
-  if (classifierDown.length && !(state.aiAlertAt > nowMs - 6 * HOUR)) {
-    const why = classifierDown.includes('budget') ? 'AI cap hit' : 'AI unavailable';
+  // Replies the model could not read for 15 minutes or more: announce each one once, naming the sender, so a
+  // new stuck reply is never hidden behind an earlier alert. A likely opt-out is flagged, never blocked on a guess.
+  const due = Object.entries(state.classifyWait).filter(([, w]) => !w.alerted && nowMs - w.first >= CLASSIFIER_ALERT_AFTER);
+  if (due.length) {
+    const why = due.some(([, w]) => w.kind === 'budget') ? 'AI cap hit' : 'AI unavailable';
+    const lines = due.map(([, w]) => `- ${w.from} | "${w.subject}" | ${w.optOut ? 'possible opt-out, not blocked yet, check the inbox | ' : ''}${w.snippet}`);
     try {
-      await deps.post(`${why}, ${classifierDown.length} repl${classifierDown.length === 1 ? 'y' : 'ies'} unclassified. They are left unread by the engine and retried every run until the model is back. An opt-out among them is NOT blocked yet: check the inbox.`);
+      await deps.post(`${why}, ${due.length} repl${due.length === 1 ? 'y' : 'ies'} unclassified. The engine retries them every run until the model is back; after 24 hours each is posted as a maybe.\n${lines.join('\n')}`);
+      for (const [, w] of due) w.alerted = true;
       state.aiAlertAt = nowMs;
-      act({ type: 'ai-down', label: 'alert', email: '' });
+      act({ type: 'ai-down', label: 'alert', email: due.map(([, w]) => w.from).join(',') });
     } catch (e) { out.errors.push({ where: 'reply', email: 'ai alert', message: e.message }); }
   }
   if (autos.length) {
@@ -182,7 +205,13 @@ async function processNew({ replies = [], events = [], state }, deps) {
     lead.brand = brandOf(lead.mailbox);
     const msg = { subject: rec.subject, body: rec.body, from, cc: rec.cc, auto_submitted: rec.auto_submitted, precedence: rec.precedence };
     const c = await deps.classify(msg);
-    if (c.retry) { classifierDown.push(c.retry); throw new Error(`classifier unavailable (${c.retry}), left unseen to retry next run: ${c.reason}`); }
+    if (c.retry) {
+      classifierFailures++;
+      const w = noteWait(rec, from);
+      w.kind = c.retry;
+      if (nowMs - w.first < CLASSIFIER_GIVE_UP_AFTER) throw new Error(`classifier unavailable (${c.retry}), left unseen to retry next run: ${c.reason}`);
+      c.reason = `classifier down for over 24 hours, read it yourself: ${c.reason}`;
+    }
     const label = c.label;
     const dateIso = Number.isFinite(Date.parse(rec.date)) ? new Date(rec.date).toISOString() : now.toISOString();
     const trackerEvt = (extra = {}) => ({ email: from, firstName: lead.firstName || '', company: lead.company, brand: lead.brand, campaign: lead.campaign, label, text: String(rec.body || ''), mailbox: lead.mailbox, date: dateIso, ...extra });

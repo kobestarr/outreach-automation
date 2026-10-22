@@ -21,6 +21,7 @@ const keys = require(path.join(os.homedir(), '.credentials/api-keys.json'));
 const API_KEY = keys.anthropic.apiKey;
 const { resolveModel, shapeBody, extractText } = require('./shared/outreach-core/llm-models');
 const { getRunBudget } = require('./shared/outreach-core/llm-budget');
+const { plausibleShort } = require('./shared/outreach-core/enrichment/naturalise-lib');
 const { classifyInBatches } = require('./shared/outreach-core/enrichment/batch-classify');
 const MODEL = resolveModel('mechanical');
 
@@ -123,7 +124,7 @@ ${JSON.stringify(items)}`;
     const m = map.get(full);
     if (!m || !m.keep) { dropped.push(`${full}\t${r.category}\t${r.location}`); continue; }
     let short = m.short || full;
-    if (!short || short.length < 2) short = full;
+    if (!plausibleShort(full, short)) short = full;
     lines.push([
       r.owner_first_name, r.owner_email, short, normaliseCategory(r.category),
       r.location, r.linkedin_url || '', r.website || '', full,

@@ -144,7 +144,12 @@ function getMeetingOption(postcode) {
  * @returns {string} Formatted price (e.g., "£291", "$635")
  */
 function getMicroOfferPrice(business) {
-  const tier = business.assignedOfferTier || 'tier5';
+  // A lead with no usable tier gets the lowest price, never the highest.
+  let tier = business.assignedOfferTier;
+  if (!TIER_MULTIPLIERS[tier]) {
+    logger.warn('email-merge-variables', 'Missing or unknown tier, using tier1', { business: business.name, tier: tier || null });
+    tier = 'tier1';
+  }
   const multiplier = TIER_MULTIPLIERS[tier];
 
   // Get currency and base price for location

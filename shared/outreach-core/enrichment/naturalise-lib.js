@@ -34,10 +34,24 @@ function buildReview(allCompanies, returned) {
   return [HEADER, ...rows.filter((r) => r.changed).map(fmt), ...rows.filter((r) => !r.changed).map(fmt)].join('\n');
 }
 
-// A cleaned name must come from the original: a case-insensitive substring of it. Anything else is held for review.
+const STOP = new Set(['the', 'and', 'of', 'ltd', 'limited', 'llp', 'plc', 'co', 'company', 'inc', 'partners', 'partnership', 'associates', 'solicitors', 'accountants', 'law', 'legal', 'group']);
+
+// A cleaned name must come from the original: at least 3 characters, not a bare legal suffix or stop-word, a
+// case-insensitive substring of the original, and starting at one of its leading words. Otherwise it is held.
 function plausibleShort(full, short) {
-  if (typeof short !== 'string' || !short.trim()) return false;
-  return String(full).toLowerCase().includes(short.trim().toLowerCase());
+  if (typeof short !== 'string') return false;
+  const s = short.trim().toLowerCase();
+  if (s.length < 3 || STOP.has(s)) return false;
+  const f = String(full).toLowerCase();
+  const at = f.indexOf(s);
+  if (at < 0) return false;
+  const words = f.split(/\s+/);
+  let pos = 0;
+  for (let i = 0; i < Math.min(2, words.length); i++) {
+    if (at === f.indexOf(words[i], pos)) return true;
+    pos = f.indexOf(words[i], pos) + words[i].length;
+  }
+  return false;
 }
 
 module.exports = { plausibleShort, CHUNK_SIZE, TOKENS_PER_NAME, parseCache, chunk, maxTokensFor, buildReview };
