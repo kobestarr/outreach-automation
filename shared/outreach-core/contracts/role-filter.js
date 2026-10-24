@@ -93,7 +93,11 @@ function isRemote(role) {
 /**
  * rows -> { keep, recruiters, dropped }.  keep is one role per company (best score, then earliest row).
  */
-function filterRoles(rows, { minScore = 5 } = {}) {
+// Kobi 20 Oct 2026: allowPermanent keeps non-contract roles (he pitches interim cover while they hire);
+// allowNorthWest keeps office or hybrid roles within reach of Manchester.
+const NORTH_WEST = /\b(manchester|stockport|salford|bolton|trafford|cheshire|macclesfield|wilmslow|warrington|altrincham|north west)\b/i;
+
+function filterRoles(rows, { minScore = 5, allowPermanent = false, allowNorthWest = false } = {}) {
   const keep = [], recruiters = [], dropped = [];
   for (const row of rows) {
     const role = normaliseRow(row);
@@ -103,8 +107,8 @@ function filterRoles(rows, { minScore = 5 } = {}) {
     const ag = isAgency(role);
     if (ag) { recruiters.push({ role, reason: ag }); continue; }
     if (isSenior(role.title)) { drop('senior title'); continue; }
-    if (!isContract(role)) { drop('not a contract role'); continue; }
-    if (!isRemote(role)) { drop('not remote'); continue; }
+    if (!allowPermanent && !isContract(role)) { drop('not a contract role'); continue; }
+    if (!isRemote(role) && !(allowNorthWest && NORTH_WEST.test(`${role.location || ''} ${role.text || ''}`))) { drop('not remote'); continue; }
     if (role.score != null && Number.isFinite(role.score) && role.score < minScore) { drop(`score ${role.score} below ${minScore}`); continue; }
     keep.push(role);
   }

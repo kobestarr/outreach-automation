@@ -56,11 +56,11 @@ function whyFit(role) {
   return skills.length ? `Skills in ad: ${skills.join(', ')}` : 'Contract role in Kobi\'s lane';
 }
 
-async function run({ rows, deps, dataDir, dryRun = false, maxCredits = MAX_CREDITS_CEILING, minScore = 5, concurrency = 3, log = () => {}, descriptions = null }) {
+async function run({ rows, deps, dataDir, dryRun = false, maxCredits = MAX_CREDITS_CEILING, minScore = 5, concurrency = 3, log = () => {}, descriptions = null, allowPermanent = false, allowNorthWest = false }) {
   const cap = Math.min(Math.max(0, Math.floor(maxCredits)), MAX_CREDITS_CEILING);
   const ex = loadExclusions(dataDir, deps.fsFns);
   if (descriptions) for (const r of rows) if (!r.description) { const d = descriptions(r); if (d) r.description = d; }
-  const { keep, recruiters, dropped } = filterRoles(rows, { minScore });
+  const { keep, recruiters, dropped } = filterRoles(rows, { minScore, allowPermanent, allowNorthWest });
   const held = [], candidates = [];
 
   await mapLimit(keep, concurrency, async (role) => {

@@ -221,3 +221,16 @@ test('Synthires and ad-text agencies are routed to the recruiter list', () => {
   const r = RF.filterRoles([curated({ company: 'Synthires', posted_by: 'direct_employer' }), curated({ company: 'Zork', posted_by: '', description: 'An employer is seeking a thing. Apply via Haystack today!' })]);
   assert.strictEqual(r.recruiters.length, 2);
 });
+
+// Kobi 20 Oct 2026: open to permanent roles too (the interim-cover angle), and Manchester-area roles.
+test('allowPermanent keeps a permanent role; the default still drops it', () => {
+  const perm = { title: 'HubSpot Consultant', company_name: 'Aventine', job_url: 'u', job_type: 'fulltime', remote_hint: 'true', description: 'HubSpot, CRM, marketing automation, fully remote' };
+  assert.strictEqual(RF.filterRoles([perm]).keep.length, 0);
+  assert.strictEqual(RF.filterRoles([perm], { allowPermanent: true }).keep.length, 1);
+});
+
+test('allowNorthWest keeps a Manchester office role; the default still drops it', () => {
+  const mcr = { title: 'Marketing Manager', company_name: 'MCR Property Group', job_url: 'u', job_type: 'fulltime', location: 'Manchester', description: 'Marketing manager owning HubSpot CRM, marketing automation, paid media, SEO and digital campaigns, office based in Manchester' };
+  assert.strictEqual(RF.filterRoles([mcr], { allowPermanent: true }).keep.length, 0);
+  assert.strictEqual(RF.filterRoles([mcr], { allowPermanent: true, allowNorthWest: true }).keep.length, 1);
+});

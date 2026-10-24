@@ -4,6 +4,7 @@
  * Contracts lane: for each good remote contract role, find the likely hiring manager and a verified email.
  *   node contracts-lane.js --in exports/contract-roles-2026-10-18.csv --out exports/contracts-send.csv [--dry-run]
  *     [--max-credits 150] [--min-score 5] [--desc-from raw1.csv,raw2.csv] [--no-web] [--no-search]
+ *     [--allow-permanent] [--allow-north-west]   (Kobi 20 Oct: permanent roles + Manchester-area roles)
  * Free HTTP only. Reoon daily credits only (never the reserve), Icypeas cap 0, hard ceiling 150 credits. Never sends or loads anything.
  */
 const fs = require('fs');
@@ -21,7 +22,7 @@ function parseArgs(argv) {
   const o = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith('--')) { const k = a.slice(2); if (['dry-run', 'no-web', 'no-search'].includes(k)) o[k] = true; else o[k] = argv[++i]; } else o._.push(a);
+    if (a.startsWith('--')) { const k = a.slice(2); if (['dry-run', 'no-web', 'no-search', 'allow-permanent', 'allow-north-west'].includes(k)) o[k] = true; else o[k] = argv[++i]; } else o._.push(a);
   }
   return o;
 }
@@ -87,7 +88,7 @@ async function main() {
     openFinder: ({ maxCredits }) => require('./shared/outreach-core/enrichment/email-finder-adapter').openFinder({ maxCredits, maxIcypeas: 0 }),
   };
   for (const r of rows) { const o = verifiedDomains[ck(r)]; if (o) { r.domain_override = o.domain; r.domain_evidence_url = o.evidence_url; } }
-  const res = await P.run({ rows, deps, dataDir, dryRun: !!a['dry-run'], maxCredits: a['max-credits'] === undefined ? P.MAX_CREDITS_CEILING : Number(a['max-credits']), minScore: a['min-score'] === undefined ? 5 : Number(a['min-score']), descriptions, log: (m) => console.error('  ' + m) });
+  const res = await P.run({ rows, deps, dataDir, dryRun: !!a['dry-run'], maxCredits: a['max-credits'] === undefined ? P.MAX_CREDITS_CEILING : Number(a['max-credits']), minScore: a['min-score'] === undefined ? 5 : Number(a['min-score']), descriptions, allowPermanent: !!a['allow-permanent'], allowNorthWest: !!a['allow-north-west'], log: (m) => console.error('  ' + m) });
 
   const base = a.out.replace(/\.csv$/i, '');
   if (!a['dry-run']) {
