@@ -1,0 +1,20 @@
+{
+"AI agent security platforms": {"query":"best AI agent security platforms","named":["Palo Alto Networks Prisma Cloud","CyberArk","BeyondTrust","Zenity","Prompt Security","HiddenLayer","Cisco AI Defense","Lasso Security"]},
+"AI cybersecurity platforms": {"query":"best AI cybersecurity platforms","named":["Microsoft Security Copilot","Palo Alto Networks Cortex XSIAM","CrowdStrike Falcon","Google Security Operations","SentinelOne","Checkmarx"]},
+"AI procurement software": {"query":"best AI procurement software","named":["Coupa","SAP Ariba","Ivalua","Zycus","GEP SMART","JAGGAER","Sievo","Zip"]},
+"AI search and retrieval infrastructure providers": {"query":"best AI search and retrieval infrastructure providers","named":["Elasticsearch","Qdrant","Firecrawl","Tavily","Exa"]},
+"accounting and tax software": {"query":"best accounting and tax software","named":["QuickBooks","FreshBooks","TurboTax","H&R Block","TaxAct","Basil Practice Management","Quicken"]},
+"billing and revenue management software": {"query":"best billing and revenue management software","named":["Zenskar","Chargebee","OneBill","Gotransverse","Maxio","Aria Systems","NetSuite","Salesforce Revenue Cloud"]},
+"cloud security and compliance automation tools": {"query":"best cloud security and compliance automation tools","named":["Wiz","Vanta","Drata","Sprinto","Secureframe","Scrut","Prisma Cloud","Orca"]},
+"defence technology companies": {"query":"best defence technology companies","named":["Anduril","Helsing","Shield AI","ICEYE","Saronic","BAE Systems","Northrop Grumman","QinetiQ"]},
+"ecommerce and retail software": {"query":"best ecommerce and retail software","named":["Shopify","BigCommerce","WooCommerce","Salesforce","HubSpot","Nutshell","Bitrix24"]},
+"food and beverage brands": {"query":"best food and beverage brands","named":["Coca-Cola","Nestle","Chick-fil-A","Starbucks","Red Bull","Kraft","Gatorade","Prime Hydration"]},
+"junior gold and silver mining companies": {"query":"best junior gold and silver mining companies","named":["Avino Silver & Gold Mines","Paramount Gold Nevada","Fortuna Silver Mines","Buenaventura","Coeur Mining"]},
+"logistics and supply chain software": {"query":"best logistics and supply chain software","named":["Blue Yonder","SAP SCM","Oracle SCM Cloud","Infor Nexus","Anvyl","Fishbowl Inventory","ArrowStream","Avaal"]},
+"oil and gas exploration companies": {"query":"best oil and gas exploration companies","named":["Canadian Natural Resources","ConocoPhillips","EOG Resources","ExxonMobil","Eni","Kosmos Energy","Tullow Oil","Tourmaline Oil"]},
+"rare earth and graphite producers": {"query":"best rare earth and graphite producers","named":["China Northern Rare Earth"]},
+"robotics and industrial automation companies": {"query":"best robotics and industrial automation companies","named":["FANUC","ABB","KUKA","Yaskawa","Siemens","Rockwell Automation","Schneider Electric","Boston Dynamics"]},
+"space propulsion and launch companies": {"query":"best space propulsion and launch companies","named":["SpaceX","Blue Origin","Rocket Lab","Stoke Space","Isar Aerospace","Safran","Enpulsion","Impulse Space"]},
+"telehealth and virtual care platforms": {"query":"best telehealth and virtual care platforms","named":["Epic","Teladoc Health","Amwell","Caregility","SOC Telemed","Updox","MDLive","Carepatron"]},
+"wealth and asset management platforms": {"query":"best wealth and asset management platforms","named":["Envestnet","Addepar","Black Diamond","Orion","AssetMark","Wealthfront","Betterment","Personal Capital"]}
+}

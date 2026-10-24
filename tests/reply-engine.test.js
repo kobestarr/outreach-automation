@@ -406,3 +406,23 @@ test('seen is kept for the whole 30 day collector retention', () => {
   pruneState(st, now);
   assert.deepStrictEqual([Object.keys(st.seen).length, Object.keys(st.evIds).length], [1, 1]);
 });
+
+// Kobi 20 Oct 2026: warm replies alert only; we draft the answer together, so no model drafting.
+test('draftReplies false: the draft step never calls a model and the alert says draft it together', async () => {
+  const { makeDraftDep } = require('../reply-engine');
+  let called = 0;
+  const dep = makeDraftDep({ draftReplies: false }, () => { called++; return { text: 'x' }; }, null);
+  const d = await dep({ reply: { body: 'yes please' }, lead: {}, label: 'warm' });
+  assert.strictEqual(called, 0);
+  assert.ok(!d.text);
+  assert.match(d.error, /draft it together/i);
+});
+
+test('draftReplies missing or true: drafting still runs (old behaviour unchanged)', async () => {
+  const { makeDraftDep } = require('../reply-engine');
+  let called = 0;
+  const dep = makeDraftDep({}, () => { called++; return { text: 'hi' }; }, null);
+  const d = await dep({ reply: { body: 'yes' }, lead: {}, label: 'warm' });
+  assert.strictEqual(called, 1);
+  assert.strictEqual(d.text, 'hi');
+});

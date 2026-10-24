@@ -1,0 +1,19 @@
+{
+"AI compliance and regulatory software": {"query":"best AI compliance and regulatory software","named":["Resolver","Compliance.ai","Ask Kaia (360factors)","LogicGate","heyData","Everlaw","CoCounsel","Robin AI"]},
+"AI data analytics and observability platforms": {"query":"best AI data analytics and observability platforms","named":["Arize AI","Fiddler AI","Monte Carlo","Datadog","Dynatrace","Acceldata","Langfuse","Sifflet"]},
+"AI recruitment and HR software": {"query":"best AI recruitment and HR software","named":["Paradox","Eightfold.ai","hireEZ","Workable","VidCruiter","Braintrust"]},
+"B2B payments and fintech platforms": {"query":"best B2B payments and fintech platforms","named":["Bill.com","Tipalti","Stripe","Adyen","Wise Business","Payoneer","Routable","Coupa"]},
+"agtech and sustainable farming companies": {"query":"best agtech and sustainable farming companies","named":["Indigo Ag","Oishii","Gotham Greens","Plenty","Pivot Bio","Apeel Sciences","Iron Ox","Halter"]},
+"carbon capture and decarbonization providers": {"query":"best carbon capture and decarbonization providers","named":["Climeworks","Carbon Engineering","SLB Capturi","Carbfix","Carbonfuture","Senken","Patch","Heirloom"]},
+"construction tech and project software": {"query":"best construction tech and project software","named":["Procore","Autodesk Construction Cloud","Buildertrend","CoConstruct","Contractor Foreman","Fieldwire","Houzz Pro","Knowify"]},
+"developer tools and cloud infrastructure": {"query":"best developer tools and cloud infrastructure for startups","named":["GitHub","GitLab","Vercel","Railway","Supabase","Terraform","Pulumi","AWS"]},
+"edtech and e-learning platforms": {"query":"best edtech and e-learning platforms","named":["LinkedIn Learning","iSpring","Docebo","LearnWorlds","edX","Canvas","Thinkific","Kajabi"]},
+"game studios": {"query":"best game studios","named":["FromSoftware","Rockstar Games","Capcom","Xbox Game Studios","Naughty Dog","Santa Monica Studio","Ninja Theory","Bethesda Game Studios"]},
+"legal tech and litigation software": {"query":"best legal tech and litigation software","named":["Clio","Smokeball","Relativity","Everlaw","DISCO","Lex Machina","CaseFleet","Spellbook"]},
+"medical device companies": {"query":"best medical device companies","named":["Abbott","Medtronic","Johnson & Johnson","Medline","Siemens Healthineers","Stryker","Danaher","Becton Dickinson"]},
+"oncology drug developers": {"query":"best oncology drug developers","named":["Merck","Bristol Myers Squibb","AbbVie","Novartis","AstraZeneca","Roche","Pfizer","Eli Lilly"]},
+"real estate and property technology platforms": {"query":"best real estate and property technology platforms","named":["Digital Heroes","Dev Technosys","ScienceSoft","Fingent","Cubix","Techugo","Hidden Brains","OpenXcell"]},
+"social media and creator marketing platforms": {"query":"best social media and creator marketing platforms","named":["JoinBrands","Billo","Insense","Collabstr","Aspire","CreatorIQ","Upfluence","GRIN"]},
+"sports and fitness gear brands": {"query":"best sports and fitness gear brands","named":["Nike","Under Armour","Adidas","Lululemon","Rogue"]},
+"travel and hospitality technology": {"query":"best travel and hospitality technology","named":["INTELITY","HotelRunner","Cox Business Hospitality Network","GuestTouch","Knowland","RESMARK Systems","Resort Data Processing"]}
+}

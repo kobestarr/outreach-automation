@@ -18,5 +18,6 @@
       "source": "your public Doctify profile"
     }
   ],
-  "replyEngineLive": true
+  "replyEngineLive": true,
+  "draftReplies": false
 }

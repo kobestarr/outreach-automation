@@ -1,0 +1,19 @@
+2026-10-22T08:40:24.489Z Thu 2026-10-22 09:40 UK: quota 10, already sent today 1, queue 9, never-messaged left 150
+2026-10-22T08:40:29.355Z sent 1/9: Gala Jackson-Coombs (5 weeks). response {"message":"success"}
+2026-10-22T08:40:29.355Z next in 57 min
+2026-10-22T09:37:24.914Z sent 2/9: Joanna Youle (5 weeks). response {"message":"success"}
+2026-10-22T09:37:24.915Z next in 53 min
+2026-10-22T10:30:16.087Z sent 3/9: Paul Conn (5 weeks). response {"message":"success"}
+2026-10-22T10:30:16.089Z next in 63 min
+2026-10-22T11:33:47.812Z sent 4/9: Ahasan Habib (4 weeks). response {"message":"success"}
+2026-10-22T11:33:47.814Z next in 48 min
+2026-10-22T12:21:59.278Z sent 5/9: Cathy Bishop (4 weeks). response {"message":"success"}
+2026-10-22T12:21:59.280Z next in 50 min
+2026-10-22T13:12:10.954Z sent 6/9: Chris Deaville (4 weeks). response {"message":"success"}
+2026-10-22T13:12:10.955Z next in 45 min
+2026-10-22T13:56:58.015Z sent 7/9: Frederick Wakulyaka (4 weeks). response {"message":"success"}
+2026-10-22T13:56:58.017Z next in 64 min
+2026-10-22T15:01:17.888Z sent 8/9: Jay Paul (4 weeks). response {"message":"success"}
+2026-10-22T15:01:17.889Z next in 64 min
+2026-10-22T16:05:32.194Z reached 17:00 UK window end, stopping for today
+2026-10-22T16:05:32.197Z done for today. total ever sent 9

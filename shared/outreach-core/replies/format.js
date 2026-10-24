@@ -18,7 +18,7 @@ function formatActionable(r) {
     'They said:',
     `"${trim(r.text, 700)}"`,
     '',
-    r.draft ? `Suggested reply (not sent):\n${trim(r.draft, 1200)}` : `No draft (${clean(r.draftError) || 'model unavailable'}). Write this one yourself.`,
+    r.draft ? `Suggested reply (not sent):\n${trim(r.draft, 1200)}` : (/together/i.test(r.draftError || '') ? 'Paste this reply to Claude and we draft the answer together.' : `No draft (${clean(r.draftError) || 'model unavailable'}). Write this one yourself.`),
   ];
   return lines.filter(l => l !== null).join('\n');
 }

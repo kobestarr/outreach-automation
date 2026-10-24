@@ -1,0 +1,767 @@
+0|Honeycake|Artificial Intelligence (AI), Cyber Secu|Honeycake is a SaaS company that offers an AI driven document security platform.
+1|IQopta||IQopta
+2|HopFlyt||HopFlyt develops tactical, long-endurance, hybrid-electric VTOL aircraft for missions beyond conventional infr
+3|Alvara Therapeutics||Alvara Therapeutics is a biotech developing novel small molecules to slow and stop chronic kidney disease (CKD
+4|Archy||Archy, an all-in-one cloud dental practice management software, replaces 5+ tools with one system for care, bi
+5|BuyWander|E-Commerce, Retail, Shopping|BuyWander is a platform connecting consumers with returned products.
+6|Cloverleaf Bio||Cloverleaf Bio | Developing a new class of RNA therapeutics to revolutionize cancer therapy.
+7|Dot Ai|Consulting, Cyber Security, Finance|Dot Ai is an information technology company.
+8|Audivi AI||The Future Services About Facts Partners News Contact Us Enabling the Drive Thru Transforming the drive‑thru e
+9|Biodexa Pharmaceuticals|Biopharma, Biotechnology, Health Care|Biodexa Pharmaceuticals is a pharmaceutical company focused on particle engineering with an emphasis on microf
+10|Energy Vault|Energy, Energy Management, Energy Storag|Energy Vault offers a utility-scale, gravity-based storage solution for renewable energy.
+11|Eve Security||Eve protects your AI pipelines in real time, detecting threats, enforcing policies and keeping every agent und
+12|ImmunoPhotonics||Immunophotonics' proprietary glycan polymer enhances antigen capture & immune processes, unlocking platform po
+13|Graph AI|5,607|Graph AI is a technology company that specialises in creating AI safety, alignment, and risk management soluti
+14|52 North Health||We build innovative diagnostic and digital solutions to transform emergency care
+15|Alcove|Consumer, Coworking, Productivity Tools|Productivity Platform
+16|Altis Labs||Altis Labs | Home
+17|APERIO|Artificial Intelligence (AI), Big Data, |APERIO AI uses the power of machine learning to solve a wide range of operational data quality issues for indu
+18|ASI Engineering||Canada s leader in asset management engineering. Condition assessments, AM renewal programs, and AI-enabled so
+19|Aslan Protects||America
+20|Big Picture Bio||Big Picture Bio predicts novel synergistic combinations beyond the reach of foundation models and traditional 
+21|DelphX||With the conventional system in crisis, the DelphX market gives institutional investors a new way to hedge cre
+22|Diameter Pay||Services About Contact Services About Contact The Shortest Distance Across the Globe Diameter provides embedde
+23|Galenband||Galenband is developing a long-duration wearable ECG device to improve detection of silent atrial fibrillation
+24|Gridsight|Cloud Management, Consulting|Gridsight is a cloud platform with a feature of degrading neutrals, customer-transformer mapping, integrations
+25|Heron Power|Electrical Distribution|Heron Power is an energy technology startup focused on developing power electronics for the modern electrical 
+26|ID Finance||Building accessible, seamless financial apps that offer responsible and sustainable services, helping people m
+27|Interlune|Aerospace, Information Technology, Natur|Interlune is a space material extraction company that extracts and commercializes space resources for Earth.
+28|Aron||Aron runs the work of procurement. Sourcing, supplier chasing and invoice checks, starting from the files you 
+29|Backbone||AI platform for food & beverage quality teams. Connects standards, audits, supplier data, and customer require
+30|BackOps AI|Artificial Intelligence (AI), Software, |BackOps AI develops software that automates operational workflows for logistics and supply chain teams using a
+31|Bioinsights||BioInsights | AI Functional Medicine Software
+32|Blee||Blee keeps marketing content compliant before it goes live and after—with AI built on your rules, your guideli
+33|Buildcheck|Artificial Intelligence (AI), Constructi|Buildcheck is an AI-powered design review software that identifies errors, omissions, and coordination issues 
+34|Conexeu Sciences Inc.|9,453|Medical Aesthetics, Longevity, Anti-Aging, Regenerative Medicine, Wound Care, Human Collagen
+35|Culture POP Soda||If soda grew on trees, it’d be Culture Pop. Crafted with organic fruit juice, organic herbs and spices, and a 
+36|Deposely||Litem s litigation intelligence platform provides AI tools for the whole case, from documents to testimony and
+37|EXACT Therapeutics||EXACT THERAPEUTICS
+38|First American Nuclear|Advanced Materials, Clean Energy, CleanT|First American Nuclear is an energy company that offers nuclear energy services.
+39|First Mining Gold|Mining, Precious Metals|First Mining Gold is a gold exploration and emerging development company.
+40|Foorban|56734|Foorban is a B2B2C digital canteen for SMEs focusing on employees wellbeing
+41|GreenFirst Forest Products|Forestry, Paper Manufacturing, Wood Proc|GreenFirst Forest Products specializes in forest management and lumber production.
+42|Hang Ten Systems||Hang Ten Systems is an enterprise AI services company. We take your $10M+ software and transformation programs
+43|Hertha Metals|Energy, Manufacturing, Precious Metals|Hertha Metals is a manufacturing industry that designs and manufactures steel from any grade of iron ore witho
+44|Idea Financial|Banking, Consulting, Crowdfunding|Idea Financial a team of experienced business advisors and financial services
+45|aeon.life|Artificial Intelligence (AI), Health Car|Preventive healthcare platform that equips people with personalized insights and expert guidance for proactive
+46|Ambitious Bio||Corpus by Ambitious Bio: donor-matched proteomics across ~30 tissue sites per body, ~10–12k proteins per sampl
+47|Ascerta||Enterprise AI strategy, measured. Ascerta continuously measures, adjusts, and improves what your AI is worth. 
+48|Baselayer||Combine credit, identity, and fraud checks into one AI-powered system to boost auto-approvals and reduce manua
+49|Biscuit AI||Human interface platform to deploy physical AI staff on any device.
+50|Brand Engagement Network||The intelligence behind how people engage with brands, products, places, and businesses.
+51|Cardinal Civil Contracting||Join Cardinal Civil Contracting, where dedication, diversity, and over 80 years of experience come together to
+52|Complir|Generative AI, Software|Complir is a compliance platform designed for the retail sector to help businesses manage regulations and impr
+53|Cradlewise||Converts from a bassinet to crib for up to 24 months of use, with a built-in baby monitor and a sound machine.
+54|Disputed.ai|Artificial Intelligence (AI), Financial |Disputed.ai combines AI with deep industry expertise to help enterprises handle chargebacks.
+55|EKAI||ekai reads your Snowflake warehouse, learns how your team actually defines things, and writes the semantic mod
+56|Elm AI||Elm AI helps supply chain, procurement, sourcing and compliance teams make AI actually work in their operation
+57|EnteroTrack||The Esophageal String Test (EST) offers a pain-free, office-based alternative to endoscopy. Discover how Enter
+58|F2 AI|Artificial Intelligence (AI), Commercial|F2 AI offers an AI platform specifically designed for private markets, including private finance, private equi
+59|Financial Datasets||The stock market API built for AI agents. Real-time and historical financial data, SEC filings, and financial 
+60|Fisher Wallace Laboratories||Fisher Wallace Labs creates better options to bolster stress and sleep management. Over 100,000 customers take
+61|Focus Graphite|Mining|Focus Graphite is a build shareholder value by meeting current mineral demand spawned globally.
+62|GenHealth.ai||Generative AI for healthcare operations — intake, eligibility, prior auth, and more. Pre-built agents that wor
+63|Hi Rasmus||Hi Rasmus equips ABA providers with tools for data collection, session notes, outcomes reporting, staff traini
+64|Human Thinking||SystemZero is an AI platform designed to help humans acquire, understand, and learn information — across educa
+65|HyperGuest Ltd.||Now, nothing comes between Hotels and Travel Providers.
+66|IPercept|Industrial, Industrial Automation, Inter|Each machine decision made better.
+67|Agent FM||Describe the outcome. Agent FM completes the work across your files, browser, and inbox.
+68|Ando||Ando is a Slack alternative for teams working with AI agents: team messaging where humans and agents share con
+69|Angel Eye Health|Health Care, Internet, Medical|AngelEye provides a complete HIPAA-compliant tele-engagement platform to integrate parents simply and seamless
+70|Axya||Axya is a procurement execution platform for manufacturers. Use AI to run sourcing, purchase orders, and suppl
+71|BlueArc.ai||BlueArc transforms how companies understand trust and risk in context. Our AI-powered platform goes beyond sta
+72|Capacity|Artificial Intelligence (AI), Customer S|Capacity provides an AI-powered platform for customer support automation and business process management.
+73|Cardiol Therapeutics|Biotechnology, Life Science, Nanotechnol|Cardiol Therapeutics develops innovative cannabidiol medicines for heart disease.
+74|Comp AI|Compliance, Cyber Security, Information |Compliance automation made easy. Open source alternative to Drata & Vanta.
+75|Double Fine Productions||Double Fine Productions is an award-winning game development studio founded in 2000 by games industry veteran 
+76|Eckard Enterprises|Asset Management, Financial Services, Oi|Eckard Enterprises is an asset management company that focuses on providing families access to diverse, altern
+77|EnforceShield||Brand protection software with attorney expertise built in. Detect, validate and remove IP infringement across
+78|Flamingo||AI agents automate tickets, patching, remote access and security in one platform. Approve each fix from your p
+79|Handraise||Go beyond traditional media monitoring with Handraise. Measure media impact, understand brand perception acros
+80|Jack & Jill AI|10,097|Jack & Jill AI tackles the problems of Traditional hiring processes.
+81|Orbital Industries|Advanced Materials, Artificial Intellige|Orbital Industries is an AI-first industrial company that designs, manufactures, and ships physical products u
+82|Utilidata|Artificial Intelligence (AI), Clean Ener|Utilidata is a grid technology startup that integrates AI capabilities to enhance data utilization and operati
+83|Stellar Alpina|Aerospace, Space Travel|Stellar Alpina is a Zurich-based space propulsion startup developing rotating detonation rocket engines for mo
+84|Saris AI|Artificial Intelligence (AI), Banking, F|Saris AI is an artificial intelligence company that builds agent-based workflow automation systems for financi
+85|Solstice Health|Artificial Intelligence (AI), Electronic|Solstice Health is an AI life sciences marketing platform that offers a clinical data retrieval platform for o
+86|Trajectory|Artificial Intelligence (AI), Machine Le|Trajectory is a research and product company developing a platform that enables continual learning for AI-powe
+87|Slamcore|Artificial Intelligence (AI), Computer V|Slamcore creates embedded software that uses vision to help products intelligently understand and navigate the
+88|Saluna|Agriculture, AgTech, Farming|Saluna is an agricultural company that offers multipurpose grain crop.
+89|Proper Voltage|Battery, CleanTech, Energy Efficiency|The operating system for advanced battery chemistries
+90|Voxmind|Biometrics, Security|Voxmind's biometric confirmation and authentication platform that provides voice based biometrics.
+91|Oli|Artificial Intelligence (AI), Health Car|Oli is a AI-guided solutions to improve health outcomes for mothers and their babies.
+92|Tryarc|Consulting, Information Technology, Outs|Tryarc is an Operator of an information technology consulting firm.
+93|Tequipy|Information Technology, Logistics, Procu|Tequipy provides IT equipment procurement, deployment, retrieval, storage, and lifecycle management services f
+94|Selkirk Copper Mines|Mining|Selkirk Copper Mines is a mining exploration company that focused on the Nechako Plateau in central British Co
+95|Scandinavian Enviro Systems|Renewable Energy, Waste Management|Scandinavian Enviro Systems is based on patented pyrolysis technology.
+96|Nexus Inclusion|Analytics, Artificial Intelligence (AI),|Nexus Inclusion's aim is to make sure that inclusion is taken into account at every stage of product creation.
+97|Western CAM|Battery, Manufacturing|Western CAM manufactures high-performance, cost-competitive, and environmentally cathode active materials (CAM
+98|Sicona Battery Technologies|Battery, Nanotechnology|Sicona develops next generation battery technology used in the anodes of lithium-ion batteries.
+99|Pureskin|Beauty, Cosmetics, Retail|Pureskin is a beauty retail company that offers cosmetic and skincare products.
+100|Roboxi|Aerospace, Artificial Intelligence (AI),|Roboxi develops autonomous robotic and software solutions for airport runway inspection, maintenance, and safe
+101|The Path|Fitness, Wellness|The Path is an outcome-focused, subscription-based AI mental wellness and coaching application.
+102|REV Exploration|Natural Resources|REV Exploration is a mineral exploration business that focuses on natural hydrogen discovery and production in
+103|Muybridge|Computer Vision, Information Technology,|Muybridge is a imaging platform that develops software and sensors for cameras.
+104|ThoroughCare|Enterprise Software, Health Care, Softwa|The Healthcare industry is known for many innovative products. Up until now, Patient Assessments was not one o
+105|Upside Gold|Mineral, Mining, Precious Metals|Upside Gold Corp is a mineral exploration company developing gold and copper resources through drilling.
+106|Neurosoft Bioelectronics|Health Care, Medical, Medical Device|Neurosoft Bioelectronics develops minimally invasive brain interfaces to monitor and treat neurological disord
+107|OneReg|Document Management, Software, Software |OneReg designs and develops software solutions to manage vital documents and regulatory compliance.
+108|Quartermaster AI|Artificial Intelligence (AI), National S|Quartermaster AI is a defense technology company that develops real-time distributed marine software via AI ro
+109|TerraFlow Energy|Battery, Energy, Power Grid|TerraFlow Energy provides flow battery technology and energy storage solutions for data centers and critical i
+110|Tribal||Tribal is an AI platform designed for enterprises.
+111|TympaHealth|Health Care, Medical, Medical Device|TympaHealth are a team of doctors and technology experts united in their vision of helping the world to hear.
+112|TriStar Gold|Mineral, Mining, Precious Metals|TriStar Gold is an exploration-stage junior mining company.
+113|QuberTech|Advanced Materials, Agriculture, AgTech|QuberTech develops genetically enhanced rubber-producing dandelions and indoor soil-free cultivation systems f
+114|Ntwist|Artificial Intelligence (AI), Computer V|NTWIST helps enterprises leverage machine learning and Artificial Intelligence.
+115|Stilta|Artificial Intelligence (AI), Informatio|Stilta offers AI software for patent practitioners to search prior art, draft filings, monitor competitors, an
+116|Oorja Bio|Biotechnology, Therapeutics|Oorja Bio is is a clinical-stage biotechnology company focused on developing therapies.
+117|Viktor|Information Technology|Viktor is an AI platform that acts as a virtual coworker in messaging tools automating workflows and knowledge
+118|Scope AI|Artificial Intelligence (AI), Data Manag|Scope AI is a software development platform that offers AI-driven industrial software inspection and faster de
+119|Nourish|Apps, Health Care, Nutrition|Nourish provides nutrition counseling that is covered by most insurance plans, making it accessible for many i
+120|Status|Artificial Intelligence (AI), Digital Me|Status AI is an AI-driven social simulation platform that combines elements of social media, fanfiction, and i
+121|Switched Source|Electrical Distribution, Electronics, En|Switched Source is a manufacturing company that develops medium-voltage devices to enhance utility operations 
+122|TauriPay|Decentralized Finance (DeFi), Finance, N|TauriPay builds institutional stablecoin settlement infrastructure for compliant tokenized finance.
+123|Neotech Metals|Mining, Natural Resources, Precious Meta|Neotech Metals is a mineral exploration firm focused on locating and developing lucrative mineral resources.
+124|StitcherAI|Cloud Management, Enterprise Software, S|StitcherAI's AI-powered FinOps data platform to expedite your FinOps journey.
+125|Rely|Information Technology, Internet|Rely is a company that focuses on converting the vast amount of unstructured data found in real estate transac
+126|Sunshine Biopharma|Biopharma, Biotechnology, Medical|Sunshine Biopharma focuses on the research, development, and commercialization of drugs for the treatment of v
+127|Tribeca Holdings||Tribeca Holdings is a private asset management and real estate investment company with headquarters in London.
+128|QT Imaging|Health Care, Hospital, Medical Device|QT Imaging is a scanning center that provides breast imaging by tomographic transmission ultrasound for patien
+129|Oria|Document Management, Information Service|Oria is an oral history and storytelling platform that helps organizations collect, archive, and share communi
+130|TwoWay|Finance, Financial Services, FinTech|TwoWay Finance is an wealthtech startup building workflow intelligence tools for capital markets and trading d
+131|Nectar Social|Agentic AI, Artificial Intelligence (AI)|Nectar Social is an AI-powered platform combining community management, social listening, influencer tracking,
+132|XbotGo||Blink Tech is a trailblazing AI technology company which developed the "XbotGo" (originally known as "Blink Fo
+133|Twin Prime||Twin Prime builds AI for democratic defense and societal security.
+134|Turnkey|Blockchain, Cryptocurrency, Cyber Securi|Turnkey is a crypto wallet infrastructure company that enables embedded wallets and automates onchain transact
+135|Optura|Artificial Intelligence (AI), Health Car|Optura operates as an AI Healthcare platform.
+136|Rango|Construction, Mining, Transportation|Rango is a mining company that provides construction services.
+137|Oakridge Dairy|Agriculture, Farming, Food and Beverage|Oakridge Dairy specializes in the production of dairy products.
+138|Onramp|Bitcoin, Financial Services, FinTech|Where your bitcoin journey begins. Onboarding HNWI, Family Offices, and Institutions to bitcoin the right way.
+139|Pacific Empire Minerals|Mineral, Natural Resources, Precious Met|Pacific Empire Minerals focuses on the discovery of gold-enriched copper deposits.
+140|Outmarket AI|Artificial Intelligence (AI), Informatio|Outmarket provides an AI platform that helps insurance brokerages by automating critical workflows and deliver
+141|Premins Company|Finance, Financial Services, Insurance|Premins Company facilitates insurance premium financing for commercial, personal, and assigned risk policies.
+142|Rivermark Medical|Health Care, Hospital, Medical Device|Rivermark Medical develops a minimally-invasive treatment for Benign Prostatic Hyperplasia (BPH) that restores
+143|NuWave drinks|Food and Beverage|NuWave is a mood-enhancing, alcohol free beer.
+144|Phosio Corporation|Advanced Materials, Augmented Reality, O|Phosio Corporation creates materials used to deposit metal oxides at low temperatures.
+145|TimelyCare|Email, Health Care, Higher Education|TimelyCare is higher education's most trusted virtual health and well-being provider.
+146|Webidoo|Advertising, Digital Marketing, Marketin|Developer of digital marketing platform intended to simplify and accelerate the digital transformation and mak
+147|Phase3D|3D Technology, Industrial Manufacturing,|Additive Monitoring Systems develops real-time defect monitoring technology for 3D printing, enhancing quality
+148|Pillar||Pillar is shaping a world where every construction company is resilient and financially sound.
+149|White Circle|Artificial Intelligence (AI), Cyber Secu|White Circle detects and fixes AI vulnerabilities automatically, keeping your system under control.
+150|Witan Labs|Data Management, Information Technology,|Witan Labs offers software engines built for agents to edit, render, calculate, and verify workbooks.
+151|Quantropi|Communications Infrastructure, Informati|Quantropi offers quantum secure communications services.
+152|Virtuoso Surgical|Biotechnology, Health Care, Robotics|Virtuoso Surgical specializes in developing endoscopic robotic tools for minimally invasive surgery.
+153|Paxos Medical|Health Care, Medical Device, Wellness|Paxos Medical is a healthcare company that offers a medical device for patients suffering from Underactive Bla
+154|Tekst|Analytics, Artificial Intelligence (AI),|Tekst is a company that analyzes and automates every internal and external business-to-business communication.
+155|Swish|Information Technology, SaaS, Software|Swish is a company that offers technology related products and services.
+156|Ulleo|Education, E-Learning, Internet|Ulleo is an e-learning company that fosters a community between students and industry experts while providing 
+157|Rosarium Health|Home Health Care, Home Improvement, Home|Rosarium is a platform for service providers with customers to execute accessible house assessments and access
+158|Scout Space|Aerospace, Cloud Computing, Geospatial|Scout Space develops in-space sensing systems and autonomy software designed to improve satellite awareness an
+159|Salt Athletic|Soccer, Sports|Salt Athletic creates the world's best soccer cleat bags with permanent anti-smell, anti-bacterial technology.
+160|Odessa Minerals|Mineral, Mining, Precious Metals|Odessa Minerals is a mineral exploration company that explores and evaluates mineral resources in Australia.
+161|Qutwo|Information Technology, Internet|Europe’s next-generation AI lab for a quantum world.
+162|Subquadratic|Artificial Intelligence (AI), Business I|Subquadratic is an AI company focused on automating and improving customer interactions and workflows using co
+163|Supersede|Building Material, Construction, Manufac|Supersede changes the standard of building materials by replacing conventional wood-based products.
+164|ReFiBuy|E-Commerce, Enterprise Software, Product|ReFiBuy is building agentic solutions for retail/e-commerce's hardest problems
+165|Reduciner|Carbon Capture|Reduciner's vision is to turn industrial CO₂ emissions from a liability into a valuable resource.
+166|North Palisade Partners|Industrial, Property Development, Real E|North Palisade Partners is an industrial real estate development and investment firm.
+167|Spring Labs Holdings|Agentic AI, Artificial Intelligence (AI)|AI Native complaint and customer experience (CX) platform
+168|Radisson Mining Resources|Mineral|Radisson Mining Resources is a Quebec-based mineral exploration company.
+169|Reel Energy|Renewable Energy|Reel empowers all companies to procure renewable electricity that makes a real difference for the climate.
+170|Palm Republic||Palm Republic is a company.
+171|Venus Aerospace|Aerospace, Military, Product Research|Venus Aerospace is a space company that provides an innovative approach to hypersonic transportation.
+172|Nyck AI|Software|Nyck AI automates procurement with AI-driven purchasing, forecasting, and supplier management tools for busine
+173|Roadzen|Artificial Intelligence (AI), Computer V|Roadzen is an AI insurance technology company that helps insurers, carmakers, and fleets improve auto insuranc
+174|Seedli Capital|Financial Services|Seedli Capital is a pioneering DeFi hedge fund focused exclusively on RWA and AI tokens.
+175|VNYX|Mechanical Engineering, Robotics|The VNYX, an AI-powered robot, makes fashion resale lucrative for the first time ever.
+176|XO Market|Analytics, Artificial Intelligence (AI),|XO Market is a decentralized platform that allows users to create, trade, and share their beliefs through conv
+177|Western Star Resources|Mineral, Mining, Transportation|Western Star Resources is a business that explores and develops minerals.
+178|Tavion|Energy, Energy Storage, Renewable Energy|Tavion is a developer of battery energy storage systems that is expediting Europe's shift to renewable energy.
+179|ViteSicure|Artificial Intelligence (AI), FinTech, H|ViteSicure is a fully digital insurtech broker that provides financial products with a high premium level digi
+180|Swanky|Consulting, Digital Marketing, E-Commerc|Swanky offers Shopify Plus e-commerce solutions for enterprise clients.
+181|xMentium|Artificial Intelligence (AI), Generative|The AI-Powered Language Hub
+182|Paradigm Biopharmaceuticals|Biotechnology, Health Care, Medical|Paradigm is a global biopharmaceutical company driven to discover to improve patients’ health and quality of l
+183|Spaceflux|Aerospace, National Security|Sovereign space intelligence, AI-driven
+184|Replenish Nutrients Holding|Impact Investing, Mining, Precious Metal|Replenish Nutrients offers production process that converts livestock waste to nutrient-rich and slow-release 
+185|Torngat Metals|CleanTech, Mining Technology|Torngat Metals provides separated rare earth oxides based on its mine feed and recycled feeds, such as end of 
+186|Wenite|Human Resources, Software|Wenite providing an all-in-one platform for HR service providers and consultants.
+187|Zocalo Health|Health Care, Hospital, Wellness|Zocalo Health specializes in culturally-sensitive primary care and care management for the Latino community.
+188|Shade|Artificial Intelligence (AI), Data Integ|Shade develops a private AI-driven file explorer that visually searches and previews terabytes of files.
+189|Render Networks|Internet, SaaS, Software|Render Networks is a geospatial network deployment solution that builds networks for its users.
+190|MODE|Artificial Intelligence (AI), Enterprise|MODE is driven to help organizations leverage their data to improve operations, safety, and efficiencies throu
+191|Resolution Minerals|Mineral, Precious Metals|Resolution Minerals is a resource company that involves in mineral exploration.
+192|Perimeter Medical Imaging|Health Care, Medical, Medical Device|Perimeter Medical Imaging is a medical technology company.
+193|Orange Quantum Systems|Quantum Computing, Software, Software En|Orange Quantum Systems develops hardware and software solutions for testing and characterizing quantum chip pe
+194|Sinai.ai||Sinai.ai provides a software platform focused on enterprise decarbonization and ESG reporting.
+195|Unity Coffee|Retail|Unity Coffee is a startup offering premium self-serve coffee through smart vending machines.
+196|Planetary|Biotechnology, Food and Beverage, Food P|Planetary is a food-tech company that builds and operates industrial fermentation facilities to produce sustai
+197|SteveKnows|Artificial Intelligence (AI), Business I|Artificial Intelligence
+198|Storymakers||Storymakers is a technology platform specializing in the management and automation of UGC and creator content.
+199|Sibeg|Food and Beverage, Manufacturing, Packag|Sibeg specializes in the production, bottling, distribution, and development of Coca-Cola brand products.
+200|Neural Inverse|Automotive, Developer Platform, Health C|AI Native IDE for regulated industries
+201|urfuture|Human Resources, Mobile Apps, Recruiting|Urfuture connects young job seekers with entry-level employment opportunities through a mobile application.
+202|Zenskar|Accounting, Artificial Intelligence (AI)|Zenskar provides a billing and revenue management platform for companies with usage-based and subscription pri
+203|Resolv|Energy, Energy Management, Software|Resolv offers an AI-powered platform to automate clean energy incentives to accelerate equitable decarbonizati
+204|Proteins.1||Physics-based, enzyme-free multiomics platform
+205|Wealth.com|Artificial Intelligence (AI), Financial |Wealth.com provides an AI-powered platform that helps wealth management firms deliver estate and tax planning.
+206|Worki|Artificial Intelligence (AI), Business P|Worki is a healthcare workforce infrastructure company that provides an AI-driven platform to help health syst
+207|SB Quantum|Software|SBQuantum develops diamond based sensors with vectorial capabilities for space, defence, and infrastructure in
+208|Solidroad|Artificial Intelligence (AI), Human Reso|Solidroad is an innovative AI-powered platform dedicated to revolutionizing hiring, onboarding, and training f
+209|Stellar Cyber|Cyber Security, Network Security, Securi|Stellar Cyber is an open XDR platform that offers comprehensive security while streamlining operations for eff
+210|Slash|Banking, Financial Services, FinTech|Slash provides a financial technology platform that allows businesses to manage financial operations through a
+211|Ortoma|Health Care, Information Technology|Ortoma provides controllable and individualized treatment solutions with cutting edge technology.
+212|Zum|Children, Consumer, Ride Sharing|Zūm provides child transportation for school districts and busy families.
+213|Multi4 Medical|Health Care, Health Diagnostics|Multi4 is the world's first company to successfully develop automated technologies for the diagnosis and treat
+214|Stendr||Stendr is creating AI-native hardware and software for the contemporary battlefield.
+215|Rockit Motors|Machinery Manufacturing, Manufacturing|Rockit Motors is a privately-held contract manufacturer of electric motors, alternators, rotors, stators, and 
+216|pay.com.au|Credit, Employee Benefits, Financial Ser|pay.com.au is a financial platform that allows paying ATO bills, rent, consultants, superannuation, equipment,
+217|thelittleloop|E-Commerce, Marketplace|The UK's first rental marketplace for kids clothing
+218|Open Moove|Collaboration, Developer Tools, Enterpri|Open Moove is a software platform that provides tools for property transactions, collaboration, and workflow m
+219|Shape Robotics|Consumer Electronics, EdTech, Robotics|Fable - an educational modular robot system for teaching STEM and 21st century skills to students ranging from
+220|Ratio|Finance, Financial Services, Funding Pla|Ratio is a fintech platform that provides customers with flexible payment options, simplifying the procurement
+221|StirLight|Manufacturing|StirLight is a manufacturing company specializing in friction stir welding, a solid‑state process that joins m
+222|Natrion|Battery, Clean Energy, CleanTech|Natrion is developing scalable solid-state electrolytes to enable the mass adoption of EVs.
+223|Turner Mining Group|Industrial, Mining, Mining Technology|Turner Mining Group is a team of experienced mining industry professionals performing a full spectrum of mine 
+224|Yoga Joint|Fitness, Training, Wellness|Yoga Joint is a chain of premier hot yoga and fitness studios that offers yoga and fitness classes with person
+225|Watershed Therapeutics|Biotechnology, Health Care, Medical|Watershed Therapeutics develops a novel, targeted drug-delivery platform for bladder diseases.
+226|Ultralight|Health Care, Wellness|Ultralight is an AI-native operating system made for contemporary healthcare procedures.
+227|Nicola Mining|Human Resources, Mining, Precious Metals|A public resource mining company.
+228|Primepoint||Primepoint is an AI construction platform automating drawing review, workflow insights, and constructability c
+229|Silver Crown Royalties|Mining|Silver Crown Royalties is a revenue-generating silver-only royalty company focusing on silver as byproduct cre
+230|MerQube|Big Data, Cloud Infrastructure, Financia|MerQube is a fintech company that provides technology solutions for rules-based investment strategies and pass
+231|Quartzy|E-Commerce, Enterprise Software|The world’s leading solution for consolidating lab communication, inventory management, and lab supply purchas
+232|MTR|Hardware, Industrial, Manufacturing|MTR is a manufacturing company that develops and produces membrane-based separation systems for various indust
+233|TeiaCare|Artificial Intelligence (AI), Health Car|TeiaCare provides digital health solutions for elderly care management.
+234|Newark Community Health Centers|Communities, Health Care, Service Indust|Newark Community Health Centers is a full range of medical and dental services providers for children, adults,
+235|Sigma Automate|Information Technology, Internet|Sigma Automate is a no‑code, agentless infrastructure automation platform designed for IT teams.
+236|Solgaard Design|E-Commerce, Product Design, Retail|Premium design-driven travel and accessories brand crafted through sustainable innovation, using business as a
+237|Sennos|Food and Beverage, Information Technolog|Sennos offers a real-time monitoring solution that enhances control over the fermentation process.
+238|PTX Metals|Mineral, Mining, Precious Metals|PTX Metals is a minerals exploration company with two flagship projects located in northern Ontario
+239|Savage Exploration|Energy, Fossil Fuels, Oil and Gas|Savage Exploration is an oil and gas company that offers oil exploration and extraction services in certain ar
+240|Sora Fuel|Fuel, Renewable Energy|Sora Fuel makes jet fuel from just air, water, and renewable energy.
+241|Scentian Bio|Biotechnology, Sensor|Scentian Bio operates as a platform that provides ultimate sensing solution.
+242|Trellus Health|Health Care, Medical, Mobile|A GI-focused digital health company offering an evidence-based, clinically validated condition management prog
+243|Pomo||Pomo is an AI‑powered marketing platform that uses AI agents to unify campaign planning, content creation, & o
+244|Serve First|Consulting, Consumer Reviews, Employee B|Serve First provides customer feedback surveys and staff engagement platforms.
+245|Vertigenius|Fitness, Health Care, Wellness|Vertigenius designs and deploys customized exercises using an easy-to-use clinician portal.
+246|Isambane Mining||Isambane Mining is about to reach a pivotal stage of strategic expansion and rapid growth.
+247|Natter|Artificial Intelligence (AI), Consulting|Natter is an AI conversation intelligence platform for enterprise that allows organizations to gather and anal
+248|Route 92 Medical|Health Care, Hospital, Medical|Route 92 Medical is a medical device company developing a catheter to treat stroke.
+249|SuperBuzz|Artificial Intelligence (AI), Marketing |SuperBuzz is an artificial intelligence company that offers machine learning technology to improve online mark
+250|Silver Storm Mining|Mining|Silver Storm Mining is focused on advanced-stage silver project. Silver Storm has finalised the acquisition of
+251|Packz|Collectibles|Packz is a gamified collectibles platform that offers trading cards with fun animations and images.
+252|Wasted*|Environmental Consulting, Organic, Susta|Wasted* is a waste management company that provides eco-friendly portable toilets and restroom trailers for re
+253|neuroClues|Health Care, Neuroscience|neuroClues provides easy-to-use eye-tracking environment.
+254|Yuzu Health|Health Care, Health Insurance, Insurance|Yuzu Health is a third-party administrator providing claims processing, billing, and plan management for emplo
+255|TNR Gold|Energy, Mining|TNR Gold Corp. is working to become a green energy metals royalty company.
+256|Supracafe|Food and Beverage, Real Estate|Supracafe Spanish company with property in Colombia and toaster in Spain. Specialists in gourmet coffee.
+257|Nepra Foods|B2B, Food and Beverage, Food Processing|Nepra Foods is a food and ingredient company producing allergen-free flours intended to give food manufacturer
+258|SpectronRx|Biotechnology, Health Care, Manufacturin|SpectronRx is a provider of therapeutic and diagnostic isotope solutions.
+259|Xellar Biosystems|Artificial Intelligence (AI), Biotechnol|Xellar Biosystems is a wet artificial intelligence biotechnology company that provides analysis of drug testin
+260|Rosella||Rosella is a US-based AI-native commercial insurance brokerage.
+261|Reabold Resources|Asset Management, Marketing, Natural Res|Reabold Resources engages in the identification and evaluation of investment opportunities in the natural reso
+262|Origen Resources|Mineral, Mining, Precious Metals|Origen Resources explores and develops mineral projects, including lithium, and manages a portfolio of mining 
+263|Omniscient|Analytics, Artificial Intelligence (AI),|Omniscient analyzes global information to help companies track risks, reputation, and business trends for bett
+264|Puredrive Energy|Battery, Electronics, Energy Storage|Puredrive Energy provides battery storage solutions for both residential and commercial customers.
+265|Metals One|Energy, Mining|Metals One is a company that seeks for investment possibilities in the natural resources sector.
+266|Brighter Signals||Brighter Signals is a sensing technology startup that has developed a patented, fabric-based high-depth multi-
+267|Recyclus Group|Battery, Recycling|Recyclus Group is focusing on the delivery of national end-to-end recycling of Li-ion and lead-acid batteries.
+268|Noon|Artificial Intelligence (AI), Product De|Noon operates in the product design software, developing an AI-native tool for digital product teams.
+269|depthfirst|Software|Applied AI lab focused on cybersecurity
+270|Prosper Property Group|Property Development, Property Managemen|Prosper Property Group manages and develops residential and mixed-use properties in New York.
+271|Riplo||Riplo is developing a platform to solve workflow inefficiencies in consulting.
+272|Earlyasset|Asset Management, Financial Services, Fi|The venture secondary market pricing and liquidity platform for shareholders, investors, and issuing companies
+273|Cara|Artificial Intelligence (AI), Insurance,|Cara is a domain-specific AI company for the insurance industry
+274|Lebby Snacks|Food and Beverage, Manufacturing, Snack |Lebby Snacks is a producer and seller of dry roasted chickpea snacks.
+275|UraniumX Discovery|Mining, Natural Resources, Precious Meta|UraniumX Discovery mainly searches for deposits of copper, zinc, gold, and silver.
+276|Treeline|Information Technology, SaaS, Software|Treeline.ai offers AI-powered IT, security, and compliance services to emerging enterprises.
+277|Steals.com|Apparel, E-Commerce, Fashion|Steals.com is a store that sells a wide range of men's, women's, and children's apparel and accessories at roc
+278|Kestra Technologies|Agentic AI, Data Governance, IT Infrastr|Kestra is an orchestration platform that serves as the control plane for business-critical workflows across da
+279|Pocket|Artificial Intelligence (AI), Health Car|Pocket is an AI powered front office that operates system for medical clinics.
+280|Socket Mobile|Consumer Electronics, Data Collection an|Socket Mobile provides portable computing and data collection hardware for the local and international markets
+281|Troman Industries|Manufacturing, Public Safety, Transporta|Troman Industries is a manufacturing company that offers advanced safety, monitoring and detection solutions f
+282|IQM Quantum Computers|Computer, Hardware, Product Design|IQM Quantum Computers builds superconducting full-stack quantum computer systems designed for research institu
+283|Fulfillment IQ|E-Commerce|eCommerce Fulfillment Product Studio that supports brands, retailers, and 3PLs with bespoke solutions.
+284|Stomping Ground Brewing|Brewing, Craft Beer, Food and Beverage|Stomping Ground Brewing is a brewery that sells beer.
+285|Perfect Moment|E-Commerce, Fashion, Marketplace|Perfect Moment is an online fashion marketplace that offers ski, surf, and activewear collections.
+286|CredX.AI|Artificial Intelligence (AI), Commercial|CREDX.AI enables corporate credit analysts to identify, read, and decipher key debt covenants 10x faster and a
+287|TalkPool|Telecommunications|TalkPool is a services and consultancy company whose roots stem from building and maintaining telecommunicatio
+288|88 Energy|Energy, Mining, Oil and Gas|88 Energy is an exploration company currently exploring onshore Alaska in a prolific liquids-rich area.
+289|Cambridge Wilkinson|Banking, Financial Services, Real Estate|Cambridge Wilkinson is a dynamic platform that delivers a complete range of investment banking services to var
+290|Clasp.com|Education, Finance, Financial Services|Clasp is a mission-driven, venture-backed fintech revolutionizing how employers attract and retain critical ta
+291|Dexory|Artificial Intelligence (AI), Data Visua|Dexory captures real-time insights of warehouse operations using fully autonomous robots and Artificial Intell
+292|Steno|Document Management, Legal, Legal Tech|Steno provides litigation support by connecting legal teams with court reporters, remote deposition tools, and
+293|WattsUp|Analytics, Electric Vehicle, Enterprise |Advanced AI-driven predictive maintenance solution for EV chargers.
+294|Buckstop|Artificial Intelligence (AI), Business I|The Urban Mining Company - Every retired asset has hidden value. We find it.
+295|Blossom Health|Artificial Intelligence (AI), Health Car|Blossom Health is a telehealth platform that specializes in psychiatry, aiming to provide access to mental hea
+296|Helix Earth Technologies|Heating, Ventilation, and Air Conditioni|Helix Earth is applying our NASA-born technology to improve commercial products and processes financially and 
+297|Sigmas|Apparel, Fashion, Men's|SIGMAS is a fitness brand that delivers activewear and tools specifically engineered for the needs of hybrid a
+298|Datacentrex (Formerly Thumzup Media)|Apps, Marketing, Media and Entertainment|Datacentrex (Formerly Thumzup Media) is an app that connects brands, products, and services with targeted cons
+299|Neion Bio||Neion Bio uses advances in stem cell biology and genetic engineering to completely reimagine the biopharmaceut
+300|Vanguard Defense|Artificial Intelligence (AI), Data Manag|Vanguard Defense is a data labeling firm that transforms defense telemetry into AI-ready datasets, which is po
+301|Octen AI||Octen AI is an AI-native search infrastructure firm focused on developing the ultimate retrieval layer for the
+302|Origin|Artificial Intelligence (AI), B2B, Emplo|Origin provides an enterprise software platform that enables organizations to manage and optimize employee ben
+303|Pacegenix|Biotechnology, Health Care, Therapeutics|Pacegenix is a healthcare tech company advancing cardiovascular care with data-driven precision medicine solut
+304|Applied Atomics|Clean Energy, Nuclear|Co-located nuclear power plants to unlock the next 1,000 years of advanced industry.
+305|PAVE Space|Information Technology, Manufacturing, S|PAVE Space develops in-space transportation and satellite servicing technologies that enable movement and mana
+306|Chexy|FinTech|Chexy offers a tenant-facing payments platform that allows renters to earn rewards and build credit on their r
+307|Arinna|Aerospace, Energy, Hardware|Arinna builds ultra-light, flexible high-power solar tech to energize space infrastructure and next-gen power 
+308|Adonis|Artificial Intelligence (AI), Health Car|Adonis provides revenue cycle management software that improves data visibility and financial operations for h
+309|SherWeb|Cloud Computing, Information Technology,|SherWeb provides email and collaboration solutions for businesses.
+310|Rocketlane|Collaboration, Customer Service, Project|Rocketlane is a PSA platform that provides project management and collaboration services.
+311|Sift|Machine Learning, SaaS, Software|Sift offers transformative tools for machine creators to innovate at speed and scale.
+312|Rolling Square|Consumer Electronics, E-Commerce, Manufa|Rolling Square is a bootstrapped consumer electronics brand that brings true innovation to the market of acces
+313|Roboro|Artificial Intelligence (AI), Informatio|Roboro is an AI driven platform that provides legislative assistance, real-time tracking, and bill analysis fo
+314|Emerald Stay|Property Management, PropTech, Real Esta|Emerald Stay is premium vacation rentals operator, powered by a technology infrastructure.
+315|Peerlogic|Analytics, B2B, Dental|Peerlogic is a call analytics solution for dental practices and medical practices, creating data-driven busine
+316|Eunice|Compliance, Cryptocurrency, Data Managem|Eunice is an AI fintech company addressing B2B challenges in digital assets.
+317|Nopalera|Beauty, Consumer Goods, Retail|Nopalera creates Mexican botanical products for bath and body that celebrate and elevate Latino culture.
+318|Mountly|Restaurants, Travel Agency|Mountly operates as a discovery platform - reserve your table directly with the restaurant.
+319|Spade|Artificial Intelligence (AI), Developer |Spade is a data and AI platform that turns messy transaction data into structured, verified records and gives 
+320|Silicon Quantum Computing|Computer, Mechanical Engineering, Quantu|To advance the development and commercialisation.
+321|Conduit|Enterprise Software, Information Technol|Conduit is a dock management software to automate schedules with trucks.
+322|Stack Capital|Business Development, Finance, Financial|Stack Capital Group offers long-term growth potential to innovative growth and late-stage private companies.
+323|Doss|Accounting, Consulting, Enterprise Resou|Doss provides an adaptive resource platform (ARP) that integrates core business functions.
+324|Triangle Progression To Employment|Communities, Employment, Non Profit|Triangle Progression To Employment is an organization that provides supported living and housing services.
+325|Mirage|Artificial Intelligence (AI), Generative|Mirage is building foundation models and products that change the future of video.
+326|Laigo Bio|Biotechnology, Medical|Laigo Bio uses E3 ligase internalization to precisely degrade membrane proteins linked to autoimmune and infla
+327|bcount|Accounting, Bookkeeping and Payroll, Bus|bcount provides an online tax, accounting and payroll platform and advisory service for freelancers, small bus
+328|Newly|Information Technology, Internet, Softwa|Newly is a software company that builds React Native apps by converting plain-text prompts into a browser-base
+329|Gimlet Labs|Artificial Intelligence (AI), Cloud Comp|Gimlet Labs is a startup that develops infrastructure and applied research solutions that enable execution of 
+330|LittleBird|Artificial Intelligence (AI), Machine Le|LittleBird develops an AI assistant that reads user screens to capture context and automate tasks.
+331|Novaworks.ai|Information Technology, Internet|Novaworks, an AI-native operating system for workforce management, is to bring employees, procedures, and agen
+332|Primestor Development|Real Estate|Primestor Development is a real estate company that provides property administrative, management, and developm
+333|Egide|Drone Management, Manufacturing, Space T|EGIDE is a defence technology company focused on producing scalable, cost-effective air defence systems agains
+334|Emopulse|Artificial Intelligence (AI), Health Car|EmoPulse is the emotion infrastructure layer for AI platforms
+335|Diamyd Medical|Biotechnology, Health Diagnostics, Medic|Diamyd Medical is a Swedish diabetes company active in the field of pharmaceutical development.
+336|Black Swan Graphene|Nanotechnology|Black Swan is focused on the large-scale production and commercialization of patented high-performance and low
+337|RV Help|Automotive, Customer Service, Informatio|RV Help is a RV assistance & support firm that ensures all technicians and inspectors fulfill strict certifica
+338|Quantum Biopharma|Biotechnology, Manufacturing, Pharmaceut|Quantum Biopharma's management’s mission is to transform the facility into the largest hydroponic indoor canna
+339|Decron Properties|Real Estate|Decron Properties is a real estate com. specializing in the acquisition, development of office buildings, shop
+340|Karelian Diamond Resources|Mining, Mining Technology, Precious Meta|Karelian Diamond Resources is a company whose objective is to make substantial returns for shareholders throug
+341|Flexzo Ai|Artificial Intelligence (AI), Health Car|Flexzo is an AI-powered healthcare staffing platform that connects healthcare organizations with healthcare pr
+342|Kanu AI|Artificial Intelligence (AI), Cloud Comp|Your AI Cloud Engineer. Deliver production-ready software, not just code.
+343|FarmTogether|Agriculture, Farming, Financial Services|FarmTogether is a technology-enabled farmland investment platform that allows direct ownership of institutiona
+344|Salad House|Catering, Food and Beverage, Restaurants|Salad House serves custom salads, wraps, and bowls, with online ordering and catering for groups.
+345|Anori|Artificial Intelligence (AI), Software|Anori is an independent company spun out from Alphabet's X moonshot factory, focused on revolutionizing buildi
+346|CoLab Software|Computer, Information Technology, Softwa|CoLab Software develops modern collaboration technologies for the mechanical design industry.
+347|Hamilton AI|Aerospace, Artificial Intelligence (AI)|Hamilton AI is the world's first intelligent platform for private aviation.
+348|MySalesCoach|Information Technology|MySalesCoach offers Despite overwhelming evidence that sales coaching has the greatest impact on rep developme
+349|Allure Security Technology|Artificial Intelligence (AI), Big Data, |Allure uses artificial intelligence to develop an anti-phishing solution that defends enterprise customers fro
+350|Posh|Consumer Software, Event Management, Tic|Create and discover events. Find your world.
+351|Alacriti|Billing, Financial Services, FinTech|Alacriti specializes in developing payment and money movement related technology solutions.
+352|CavilinQ|Artificial Intelligence (AI), Electronic|CavilinQ develops quantum connectivity hardware designed to link quantum processors and expand quantum computi
+353|Parallel 1245|Artificial Intelligence (AI), Developer |Parallel builds AI agents that streamline healthcare admin workflows, seamlessly integrated to unlock efficien
+354|Ringtime|Artificial Intelligence (AI), Generative|Ringtime provides an AI phone assistant that handles inbound and outbound calls for businesses.
+355|Nomadar|Recreation, Sports, Sports Leagues and T|Nomadar is a sports company that provides high performance training program using innovation and technology.
+356|Ateliers Jacob|Architecture, Construction, Interior Des|Ateliers Jacob is an interior design firm that manufactures and installs kitchens, bathrooms, and storage spac
+357|Rivia|Artificial Intelligence (AI), Clinical T|Rivia is a next-gen operating system for improved trial outcomes.
+358|Flourish Care|Baby, Children, E-Commerce|Flourish Care is a maternal healthcare center that offers childbirth education, birth plans, and newborn care 
+359|Voltify|Clean Energy, CleanTech, Freight Service|Voltify is a climate tech company that offers decarbonization solutions for the freight rail industry.
+360|Fluid Dynamics Plumbing|Building Material, Construction, Home Im|Fluid Dynamics Plumbing offers plumbing and drainage services, including repairs and installations, with a foc
+361|Ofiniti||Ofiniti is a platform designed for businesses to streamline operations through digital maritime fuel distribut
+362|TinOne Resources|Industrial|TinOne Resources is focused on advancing its highly prospective portfolio while also evaluating additional tin
+363|Condor Software|Enterprise Software, Financial Services,|Condor Software is a financial intelligence platform that connects clinical, operational, and financial data i
+364|Inhibrx|Biotechnology, Life Science, Therapeutic|Inhibrx is a clinical-stage biotechnology company that focuses on developing a broad pipeline of biologic ther
+365|Reviva Pharmaceuticals|Biopharma, Biotechnology, Genetics|Reviva Pharmaceuticals is a clinical-stage pharmaceutical company developing innovative therapies.
+366|Elea & Lili|Chemical, Manufacturing|Elea & Lili is a deep-tech biomaterials company that uses unique cellulose technology to create superabsorbent
+367|Hanover Park|Analytics, Artificial Intelligence (AI),|Hanover Park is a software company that develops AI-native ERP solutions.
+368|Candela|Boating, Electric Vehicle, Manufacturing|Candela is an electric boats manufacturing company that builds electric hydrofoil boats, ferries for recreatio
+369|Chalkie|Artificial Intelligence (AI), Education,|Chalkie AI provides educators with robust, AI-powered tools that streamline lesson planning.
+370|Montana Knife Company|E-Commerce, Manufacturing, Retail|Montana Knife Company is a manufacturer and seller of knives, blades, and accessories.
+371|Autoscience||Autoscience uses science and tech to improve vehicle automation, safety, and performance.
+372|Crossbow Therapeutics|Biotechnology, Health Care, Life Science|Crossbow Therapeutics is a biotech company that develops targeted therapies to address cancer antigens.
+373|Rewilding Lab|Health Care, Wellness|Rewilding Lab creates guided outdoor experiences that help people reconnect with nature through mindful engage
+374|Eranovum|Construction, Energy, Renewable Energy|Eranovum manages the development and construction of renewable energy projects in Spain using new era energy i
+375|Surf Therapeutics|Health Care, Medical|Surf Therapeutics is a clinical-stage firm leading the development of non-invasive ultrasound neuromodulation 
+376|Edge Focus|Financial Services, FinTech, Lending|Edge Focus develops and operates an advanced fintech platform in the area of investment management.
+377|Native|Cloud Security, Computer, Network Securi|Native Security provides cloud security controls that auto-align with evolving multi-cloud environments.
+378|SetSale|Artificial Intelligence (AI), Online Por|SetSale is an AI-powered sales platform that provides automated pricebook, CRM integration, and financial calc
+379|Mason AI|Artificial Intelligence (AI), Constructi|Mason AI is a software development company that offers an AI-powered platform for automating building reviews.
+380|Clementine's Naughty and Nice Creamery|Food and Beverage, Food Processing, Reta|Clementine's Naughty and Nice Creamery makes a creamy ice cream concoction with 100% natural ingredients.
+381|BTU Metals|Mining, Mining Technology, Solar|BTU Metals is a mining company that builds its overall property position aggressively.
+382|SAB Biotherapeutics|Biotechnology, Clinical Trials, Therapeu|SAB Biotherapeutics is a clinical-stage biopharmaceutical development company.
+383|Local Bounti|Agriculture, Farming, Finance|Local Bounti is an agriculture company delivering herbs, vegetables, and other products to service wholesale r
+384|JustHire||JustHire is an online marketplace platform that connects customers with trade service providers around the Uni
+385|Mission|E-Commerce, Fitness, Food and Beverage|Mission is a high-growth start-up that inspires the globe to achieve more than it imagined possible.
+386|Knox|Cloud Infrastructure, Compliance, Comput|Knox Systems provides managed cloud infrastructure and compliance software for deploying applications within g
+387|VST Bio|Biopharma, Biotechnology, Life Science|VST Bio is a biotechnology company that offers and develops treatment for vascular diseases.
+388|Standard Template Labs|Artificial Intelligence (AI), Business I|Standard Template Labs provides an AI-native ITSM platform that replaces legacy ticketing with autonomous auto
+389|Solugen Global|Agriculture, Farming, Organic|Solugen is transforming organic farming with Azogen, a fast-release ammoniacal nitrogen fertilizer produced in
+390|Keyban|Agentic AI, Blockchain, Digital Marketin|Agentic Commerce, Digital Product Passport, DPP, Agent Wallet, Blockchain Loyalty, AI Agents, Stablecoins, Web
+391|Storgate|Asset Management, Financial Services, Ta|Storgate is a financial services company that offers investment management, tax and estate planning services.
+392|Ironlight|Asset Management, Blockchain, Finance|Ironlight is a financial technology company that develops infrastructure for global tokenized securities marke
+393|Halcyon|Artificial Intelligence (AI), Energy, En|Halcyon is an AI platform for energy that enables users to search and query datasets, including regulatory fil
+394|Atlys|Document Preparation, SaaS, Software|Atlys is a digital platform that facilitates visa application processing for international travelers.
+395|Fuse|Financial Services, Lending, Mobile Apps|Fuse offers loan origination solutions for banks and lenders in the financial services industry.
+396|Eileen|Analytics, Business Intelligence, Real T|Eileen provides a platform for CPG brands to audit product placement by crowdsourcing shelf checks, photo‑veri
+397|Supernova Defense & Space|3D Printing, Industrial, Manufacturing|Supernova Defense & Space is a manufacturer and supplier of additives for the defense and space industries.
+398|Catches|Artificial Intelligence (AI), Business I|Catches offers AI-powered knowledge hub software that centralizes and retrieves company information for teams.
+399|Chorus Intelligence|Analytics, Big Data, Corporate Training|Chorus Intelligence provides technology that allows authorities to investigate crimes using mobile phone recor
+400|Acumen Pharmaceuticals|Biotechnology, Health Diagnostics, Thera|Acumen is developing targeted therapies for the safe and effective treatment of Alzheimer’s Disease and relate
+401|BBLeap|Agriculture, Manufacturing, Sustainabili|BBLeap manufactures the LeapBox system for the agricultural sector, enhancing crop spraying efficiency and pre
+402|Zero RFI|Artificial Intelligence (AI), Constructi|Zero RFI is an AI-native platform company purpose-built to modernize the construction industry at scale.
+403|Great Sky|AI Infrastructure, Artificial Intelligen|Great Sky combines photonics, superconductors, and semiconductors. to develop AI hardware.
+404|AgZen|Agriculture, AgTech, Farming|AgZen develops pesticide sprays stick to plants which reduces pollution and helps farmers save.
+405|Loxa|Insurance, InsurTech, Point of Sale|Loxa enabling merchants to provide consumers with product protection at the moment of sale.
+406|Nyne.ai|Artificial Intelligence (AI), B2B, Lead |Nyne.ai is The People Data Company
+407|AppWork|Building Maintenance, Commercial Real Es|AppWork specializes in maintenance operations platforms for the multifamily property management industry.
+408|Onyx Security|Artificial Intelligence (AI), Informatio|Onyx Security provides cybersecurity software that monitors and manages risks in artificial intelligence and m
+409|Bold Security|Artificial Intelligence (AI), Cyber Secu|Bold is a cybersecurity company that develops AI software to monitor device activity and detect unusual behavi
+410|Excalibur Metals|Mineral, Mining, Precious Metals|Excalibur Metals Corp. is a mining company that specializes in precious metals exploration services.
+411|AmpliSi|Battery, Electric Vehicle, Energy Effici|AmpliSi focuses on sustainable porous silicon anodes for lithium-ion batteries.
+412|ORO Labs|Artificial Intelligence (AI), Procuremen|ORO Labs is an AI-powered procurement orchestration platform that enhances organizational efficiency.
+413|Securely|Finance, Financial Services, FinTech|Securely ensures a payment management system solution and payment services.
+414|4StudentLives||4StudentLives aims to establish a more secure and encouraging learning environment for kids.
+415|SkySelect|Aerospace, Air Transportation, Enterpris|SkySelect is a parts procurement services and technology for $100B aircraft material industry
+416|Marine Power Systems|Environmental Consulting, Renewable Ener|Marine Power Systems Ltd (MPS) develops wave power technology.
+417|Elemental Agronomy|Agriculture, AgTech, Farming|Elemental Agronomy is an agritech company that offers robots and AI agronomist for autonomous farming for larg
+418|Flotte|Apparel, E-Commerce, Manufacturing|Flotte designs eco-friendly, waterproof clothing from recycled bottles, blending style with sustainability.
+419|HydraDB|AI Infrastructure, Artificial Intelligen|HydraDB provides the developer tools and infrastructure to give agents context and memory.
+420|Lemont Partners|Consulting, Finance, Financial Services|Lemont Partners is an investment management firm that offers financial consulting and business development ser
+421|R-LABS Canada|Commercial Real Estate, Construction, Re|R-LABS Canada builds innovative companies that solve major problems in real estate.
+422|Amelia Hub|Construction, Mining, Renewable Energy|Amelia is a a drone services company.
+423|Vima Therapeutics|Biotechnology, Health Care, Medical|Vima Therapeutics operates as a biotechnology company.
+424|Standard Kernel|Artificial Intelligence (AI), Cloud Infr|Standard Kernel builds AI technology that makes the core software running on GPUs and other accelerators faste
+425|3Spoke|Consulting, Financial Services, Venture |3Spoke is a financial firm that provides investment strategies to enhance business growth for organizations.
+426|Inspiration Energy|Mineral, Mining|Inspiration Energy Corp. conducts mineral exploration and the purchase of mineral property assets.
+427|Stake|FinTech, Property Management, Real Estat|Stake provides a platform for investing in US stocks and ETFs, offering account management, a visa debit card,
+428|zymtrace|AI Infrastructure, Computer, GPU|AI Infrastructure optimization platform. Zymtrace profiles GPU & CPU workloads with zero instrumentation to cu
+429|Quantro Security|Agentic AI, Artificial Intelligence (AI)|Quantro Security provides AI-native cybersecurity solutions using autonomous AI agents for enterprise vulnerab
+430|Golden Shield Resources|Data Mining, Mining, Mining Technology|Golden Shield Resources is a gold exploration company.
+431|Rebar|Artificial Intelligence (AI), Constructi|Rebar is a construction technology company that develops AI-powered estimating software for HVAC equipment sup
+432|Amber Semiconductor|AI Infrastructure, Data Center, Electron|Amber Semiconductor is a fabless semiconductor company developing advanced power management solutions for AI d
+433|Outpost|Consumer Goods, Developer Platform, E-Co|Outpost.ai provides AI-powered infrastructure for cross-border commerce, acting as a legally liable entity for
+434|Amigo AI|Agentic AI, Artificial Intelligence (AI)|Amigo builds AI agents that interact with patients to support intake, triage, care navigation, and ongoing pat
+435|Slide|Information Services, Information Techno|Slide provides business continuity and disaster recovery platform for Managed Service Providers
+436|Imperium Technologies|Industrial Automation, Industrial Engine|Imperium Technologies specializes in manufacturing automation machinery and electromechanical solutions.
+437|Electra|Industrial, Industrial Manufacturing, Ma|Electra is a a clean iron company that uses a low-temperature, electrochemical-hydrometallurgical system to re
+438|Juicebox|Artificial Intelligence (AI), CRM, Softw|Juicebox provides an AI platform for talent sourcing, recruiting, and engagement.
+439|Captur|Artificial Intelligence (AI), Computer, |Captur makes it easier to scale operations by automating frontline decision making with visual AI
+440|Coreworks AI|Artificial Intelligence (AI), Financial |Coreworks AI is an AI driven fintech company that offers a a natural language query engine for finance teams.
+441|Century Lithium|Energy, Industrial, Mining|Century Lithium is a cutting-edge lithium business.
+442|Lux Aeterna|Satellite Communication, Space Travel|Lux Aeterna is a space infrastructure company that focuses on orbital activities through reentry and reusabili
+443|Seprify|Chemical, Chemical Engineering, Manufact|Seprify is a chemical manufacturing company that produces and sells cellulose white pigment solutions.
+444|Lancaster Resources|Biotechnology, Clinical Trials, Health C|Lancaster Resources is a dynamic exploration company dedicated to the emerging energy sector transition opport
+445|Premier Aesthetics & Vitality Alliance|Beauty, Consulting, Wellness|Premier Aesthetics & Vitality Alliance offers consulting services for medical spas, cosmetic surgeons, clinici
+446|Talvy|Professional Networking, Video Streaming|Talvy is providing a video-first professional networking platform that replaces traditional resumes with brief
+447|Qevlar AI|Artificial Intelligence (AI), Cyber Secu|Qevlar AI is a SOC platform that enhances security operations by investigating alerts and correlating data to 
+448|Axiomatic AI|Artificial Intelligence (AI)|Axiomatic AI is a startup that focuses on building verifiable artificial intelligence for complex science.
+449|AN2 Therapeutics|Biotechnology, Health Care, Pharmaceutic|AN2 Therapeutics focuses on modern biomedical and drug development expertise to provide transformational medic
+450|Powerus|Space Travel|Powerus builds autonomous systems for defense, moving/protecting assets in high-risk ops via air/sea divisions
+451|Spinogenix|Biotechnology, Health Care, Medical|Spinogenix is a developer of a new class of therapeutics for neurodegenerative and psychiatric diseases.
+452|FutureGen Industries|Finance, Financial Services, FinTech|FutureGen Industries Corp. is an investment issuer that focuses on investing growth capital in private and pub
+453|Packsmith|Logistics, Transportation, Warehousing|Packsmith is a distributor of e-commerce brands and provides delivery services.
+454|Honeycomb Credit|Finance, Financial Services, FinTech|Honeycomb Credit is a developer of a peer-to-peer lending platform designed to allow friends and family to fun
+455|FliFlo|Computer, SaaS, Software|FliFlo is a software company that offers mobile and computing software products.
+456|TradeZing|Bitcoin, Cryptocurrency, Finance|TradeZing is an innovative finance hub that harnesses the utility of social finance through community and AI.
+457|Intelligent Legal Solutions|Software|Intelligent Legal Solutions offers ProVision software for side letter management and MFN automation for privat
+458|Barfresh Food Group|Agriculture, Food and Beverage, Food Pro|Barfresh Food Group Inc (BRFH) is a food and beverages company specializing in smoothies, shakes and frappes .
+459|Shipherd|E-Commerce, Enterprise Software, Office |Shipherd is a eCommerce resolution engine that takes policy-driven decisions and execute actions across system
+460|Signals|Analytics, Artificial Intelligence (AI),|Signals combines network analysis, expert knowledge, and AI to provide thorough and transparent evaluations.
+461|TMRW||TMRW is a personalized functional medicine and longevity care platform.
+462|Venu Holding|Food and Beverage, Hospitality, Leisure|Notes Live provides hospitality and entertainment services to serve clients globally.
+463|Prospect Ridge Resources|Mineral, Mining, Precious Metals|Prospect Ridge Resources is an exploration and development company focused on mineral exploration.
+464|Allarity Therapeutics|Biotechnology, Health Care, Health Diagn|Allarity Therapeutics is a biopharma company developing oncology products and drugs for the personalized treat
+465|Zanta Health Care|Elder Care, Health Care|Zanta Health Care offers support in elderly care through living and domiciliary care services.
+466|GoPro|Consumer Electronics, Photography, Video|GoPro is a brand of personal cameras used in extreme action video photography.
+467|Defence Therapeutics|Biotechnology, Therapeutics|Defence Therapeutics is a scientific pioneer on a journey to uncover enhanced treatment solutions for future g
+468|SPC Nickel|Mineral, Mining, Precious Metals|SPC Nickel Corp focuses on the exploration of nickel, copper and other mineral projects.
+469|Octagon Search Equity|Finance, Financial Services, FinTech|Octagon Search Equity engages in the acquisition and management of a singular business that possesses a demons
+470|Valkyrie|Analytics, Artificial Intelligence (AI),|Valkyrie is a strategic data science firm.
+471|Validio|Big Data, Machine Learning, Software|VALIDIO offers a next-generation data platform for data lakes, warehouses, and real-time streams.
+472|ZYUS|Biopharma, Biotechnology, Cannabis|ZYUS is a biopharmaceutical company that offers patients cannabinoid and other phyto-therapeutic medical solut
+473|Nominal|Analytics, Information Technology, SaaS|Nominal develops software platforms that support hardware engineering teams with testing, monitoring, and anal
+474|Pilot Energy|Energy, Oil and Gas|Pilot Energy Limited engages in the acquisition, exploration, and development of conventional oil and gas asse
+475|Sage|Elder Care, Medical, Nursing and Residen|Sage is an operation management system used by senior living communities to manage resident care and facility 
+476|Lio|Artificial Intelligence (AI), Enterprise|Lio support teams in organizing operational data and managing business workflows through customizable digital 
+477|Wosup|Food and Beverage, Manufacturing, Packag|WOSUP is a packaging company that specializes in providing reusable cups and providing integrated services to 
+478|Genflow Biosciences|Biotechnology, Health Care, Life Science|GenFlow Biosciences is a biotech company that develops gene therapies for slow or reverse aging in humans and 
+479|Gaapio|Finance, Information Technology, Softwar|AI-powered technical accounting platform for contract analysis, memos, disclosures, and complex accounting res
+480|Bold Reuse|CleanTech, Hospitality, Packaging Servic|Bold Reuse is a full-service reuse platform that makes transitioning to reusables easy.
+481|Interstate|Analytics, Ethereum, Infrastructure|Interstate is an Ethereum pre-confirmation protocol.
+482|Vor Systems|Artificial Intelligence (AI), Energy, On|Vor Systems is an AI-enabled platform, which allows to ease the process of transacting and financing complex e
+483|QFEX|Financial Exchanges, Stock Exchanges, Tr|QFEX is a 24/7 exchange for traditional financial markets.
+484|TaxDown|FinTech, Software|TaxDown is a Spanish startup that eases the income tax return filing process for taxpayers.
+485|RoxFit|Fitness, Wellness|RoxFit is the best HYROX workout tracker for preparation and performance on race day.
+486|Reclaim Security|Artificial Intelligence (AI), Computer, |Reclaim Security builds AI-powered software to automatically detect and fix security risks in an organization’
+487|PartsPulse|Artificial Intelligence (AI), Business I|PartsPulse is an AI based platform that helps understanding the business parts such as price and customer beha
+488|ClearVue PV|Energy, Energy Efficiency, Energy Manage|ClearVue PV have developed energy efficient, energy generating clear glass windows.
+489|Unleash|Cloud Infrastructure, Developer Platform|Unleash is an open-source feature management solution that allows development teams to enable or disable speci
+490|Standout|Electronics, Manufacturing, Mobile Devic|Standout is a product manufacturing company that develops mobile display built for movement and flow.
+491|Eight Sleep|Consumer Electronics, Health Care, Welln|Eight Sleep develops connected sleep systems that combine temperature regulation, biometric monitoring, and ad
+492|CubeWorks|Electronics, Internet of Things, Sensor|CubeWorks offers millimeter-scale smart sensing solutions to accelerate the future of IoT.
+493|Cosmos Exploration|Manufacturing, Mining, Precious Metals|Cosmos Exploration explores gold, copper, nickel, and lithium deposits in Australia, listed on ASX as C1X.
+494|Blue Jay Gold|Mineral, Mining|Blue Jay Gold is a gold exploration company focused on high-grade discovery for hosting numerous past-producin
+495|Cryptio|Accounting, Analytics, Blockchain|Cryptio is a fintech and SaaS company that offer accounting, audit and tax software for digital assets.
+496|Event Temple|Hotel, Internet, Restaurants|Event Temple Is The First Venue Management Software As A Platform For Hotels, Venues And Restaurants
+497|trophi.ai|Information Services, Software|trophi.ai is an e-sports coaching company.
+498|Modular Medical|Biotechnology, Delivery, Medical Device|Modular Medical operates as a drug delivery tech developer.
+499|JetStream Security|Information Technology|JetStream Security is a platform for enterprise AI governance and security designed to manage, safeguard.
+500|Charli AI|Artificial Intelligence (AI), Productivi|Meet Charli, AI to make work flow. Delegate the boring stuff.
+501|Antiverse|Artificial Intelligence (AI), Biotechnol|Antiverse is dedicated to engineering the future of drug development to change the course of people's lives.
+502|Gefjon Pharma|Biopharma, Biotechnology, Medical|Gefjon Pharma is a biopharmaceutical company focused on developing innovative solutions to combat antimicrobia
+503|Taurex|Analytics, Application Performance Manag|Taurex offers online trading and related services including forex, trading, CFD broker, forex broker, and fina
+504|WanderWallet|FinTech, Mobile Apps, Mobile Payments|WanderWallet lets travelers and expats pay like locals across Latin America using local QR payments funded wit
+505|Delphyr|Artificial Intelligence (AI), Health Dia|Delphyr is an AI platform that automates clinical workflows and summarizes patient data for healthcare profess
+506|RenoFi|Commercial Lending, Finance, Financial S|RenoFi is a financial technology company that focuses on providing renovation-focused lending solutions and re
+507|Future Minds Network|Business Development, Developer Platform|FMN is an organization focused on empowering Generation Z youth through entrepreneurship, life skills, and emp
+508|UniUni|Delivery, Delivery Service, E-Commerce|UniUni is a transportation company that offers services in freight and package transportation with logistics s
+509|Star Copper|Mining|Star Copper is a mineral exploration company focused on advancing our Indata and Okeover Projects
+510|Gold Strike Resources|Mineral|A mineral exploration and development company.
+511|Polares Medical|Health Care, Medical, Medical Device|Polares medical is a medical device company with a novel device for treating mitral valve regurgitation.
+512|Fig Security|Cyber Security, Network Security, Securi|Fig Security is a cybersecurity startup that detects gaps in operational data security infrastructure and main
+513|Worldscape|Artificial Intelligence (AI), Informatio|Worldscape is an AI-powered geospatial intelligence software company serving defense, government, and enterpri
+514|Antihero Studios|Gaming, Information Technology, Mobile A|Antihero Studios creates multiplayer mobile games focused on social interaction and community engagement.
+515|AspenView Technology Partners|Artificial Intelligence (AI), Business I|AspenView Technology Partners offers data engineering, AI, business intelligence and robotic process automatio
+516|Excellon Resources|Manufacturing, Mining, Mining Technology|Excellon's 100%-owned La Platosa Mine in Durango is Mexico's highest grade silver mine, with lead and zinc by-
+517|Bird River Resources|Mining, Natural Resources, Oil and Gas|Bird River Resources is a mining company that specializes in oil and gas exploration and development solutions
+518|Plasmaleap|Industrial, Industrial Manufacturing, Ma|Plasmaleap is a plasma technology company that manufactures and sells advanced zero-emissions chemical reactor
+519|OutPost Bio|Biotechnology|OutPost Bio is a bioTech research startup with a focus on making human microbiology computable.
+520|Lyka Pet Food|Pet, Veterinary|Lyka is Australia's healthiest dog food subscription that provides fresh food for your dog on demand.
+521|Firmable|Artificial Intelligence (AI), Business I|Firmable is an AI sales platform that helps businesses identify buying signals and focus on in-market prospect
+522|Devotion|Information Technology, Media and Entert|Devotion is an AI-powered creator marketing platform that scales influencer ecosystems for brands, driving.
+523|Medrhythms|Biotechnology, Health Care, Neuroscience|Medrhythms utilizes sensors, music, and software to develop evidence-based, neurologic interventions to measur
+524|Sitemetric|Cloud Management, Construction, Informat|Industry-leading connected jobsite and workforce platform
+525|Reversed|Apparel, Fashion, Retail|Reversed is a fashion brand and retail company that offers headwear and streetwear products.
+526|Future Château|Wine And Spirits, Winery|Future Château is a wine company that offers finished flavor and aroma.
+527|ivee.jobs|Recruiting, Social Recruiting|ivee provides cutting-edge AI tailored upskilling to equip women with the tools to confidently return to work.
+528|Farmdrive|Agriculture, AgTech, Apps|Farmdrive is a agri-tech company enhancing efficiency and saving time by reducing paperwork and simplifying re
+529|BubblyDoo|Publishing|BubblyDoo enables anyone to develop personalised children's products.
+530|Charles.co|Fitness, Health Care, Wellness|Charles helps men regain control over their daily health concerns by starting with their personal health.
+531|Unigold|Mining, Mining Technology, Precious Meta|Unigold is a Canadian-based, growth oriented, junior natural resource company.
+532|Chariot Defense|National Security|Chariot Defense is creating the advanced hardware and software framework to solve it.
+533|Zenniz|Software, Sports, Tennis|Zenniz is an ITF approved game tracking solution that provides real-time information.
+534|Metallis Resources|Mineral, Mining, Natural Resources|Metallis Resources is an exploration-stage company.
+535|Different Dog|Food and Beverage, Nutrition, Pet|Different Dog is a pet food company that provides dog foods with home delivery servuce.
+536|Profound|Analytics, Artificial Intelligence (AI),|Profound is an AI visibility and content optimization platform that that helps brands optimize their visibilit
+537|CHAR Technologies|Environmental Consulting, Technical Supp|CHAR Technologies is a cleantech development and environmental services company.
+538|EatClub|Food and Beverage, Hospitality, Software|EatClub operates a digital platform that connects consumers with restaurants offering time-based promotions.
+539|Emerald AI|Artificial Intelligence (AI), Energy, Po|Emerald AI develops software that aligns AI data center workloads with real-time power grid conditions to mana
+540|Kaex|Consumer Goods, Fast-Moving Consumer Goo|KAEX is a patent pending nutraceutical / otc pharmaceutical
+541|Stardust Power|Battery, Electric Vehicle, Electronics|Stardust Power specializes in manufacturing battery-grade lithium products that are produced sustainably for e
+542|Realta Fusion|Energy, Energy Efficiency, Industrial|Realta Fusion develops fusion energy technology for the production of industrial heat and power.
+543|Praeventix|Biotechnology, Health Care, Medical|Praeventix is a biotechnology company developing therapeutics to treat bowel diseases.
+544|Catheter Precision|Manufacturing, Medical, Medical Device|Catheter Robotics is a medical device development and manufacturing company.
+545|Alpaca|EdTech, Education, Gift|Alpaca provides real-time data on teacher wellbeing, helping schools to address concerns and improve the work 
+546|Nexam Chemical|Aerospace, Chemical, Electronics|Nexam Chemical develops solutions that enhance properties and performance of many types of polymers.
+547|Charm Security|Artificial Intelligence (AI), Cyber Secu|Charm Security is an AI-powered Scam and Fraud Defense Platform
+548|4Moving Biotech|Biopharma, Biotechnology, Pharmaceutical|4Moving Biotech is a biopharmaceutical company that develops osteoarthritis drugs for osteoarthritis patients.
+549|Equal Parts|Artificial Intelligence (AI), Insurance,|Equal Parts builds next-generation insurance agency.
+550|Reco|Artificial Intelligence (AI), Cyber Secu|Reco is a dynamic SaaS security company that specializes in monitoring and securing cloud applications.
+551|Hauler Hero|Software|Hauler Hero is a software and waste management company that delivering technology for waste and Recycling haul
+552|Fluency|Artificial Intelligence (AI), SaaS|Developer of an AI-powered SaaS platform for automatically generated documentation, task intelligence, and exe
+553|Turnstile|FinTech, SaaS, Software|Modern revenue automation in minutes
+554|Advance|Financial Services, FinTech, InsurTech|Advance is a fintech company that offers a payments platform for insurance premiums.
+555|Revolve Renewable Power|Energy, Renewable Energy, Semiconductor|Revolve Renewable Power helps in developing utility-scale renewable energy generation projects with a focus on
+556|Plutus|Bitcoin, Cryptocurrency, Debit Cards|Mobile App, Crypto Rewards, American Express 3.0
+557|Alaffia Health|Agentic AI, Artificial Intelligence (AI)|Alaffia Health offers an AI platform that supports health plan claims operations by automating and improving c
+558|ORION Security|Artificial Intelligence (AI), Cyber Secu|ORION is a cybersecurity company that prevents data loss by replacing policy-based enforcement with real-time 
+559|Midi Health|Health Care, Medical, mHealth|Midi Health provides virtual care for women in midlife, offering clinician support for menopause, hormonal hea
+560|Gruve|Artificial Intelligence (AI), Machine Le|Gruve is a startup focused on transforming AI strategies into tangible outcomes for enterprises.
+561|Alight|Energy, Renewable Energy, Solar|Alight is a solar developer and independent power producer that helps energy-intensive businesses switch to so
+562|GrubMarket|Artificial Intelligence (AI), E-Commerce|GrubMarket is an AI-powered B2B eCommerce business operating in the American food supply chain industry.
+563|GenLogs|Artificial Intelligence (AI), Freight Se|GenLogs is a freight intelligence company that offers truck carrier mapping services via AI-driven roadside se
+564|Plug|Automotive, Electric Vehicle, Wholesale|Plug is a wholesale auction that facilitates online buying and selling of used EVs.
+565|Astrea London|E-Commerce, Jewelry, Manufacturing|Astrea London specializes in lab-grown diamond jewellery. The company focuses on creating sustainable, high-en
+566|Kap Paper||Kap Paper is the only pulp and paper mill operator.
+567|Nitro Games|Android, Gaming, iOS|Nitro Games is a mobile game developer and publisher focusing on strategy gaming experiences.
+568|Petro-Victory Energy|Energy, Oil and Gas|Petro-Victory Energy Corp is an oil and gas company that acquires and develops crude oil and natural gas resou
+569|Targa Exploration|Advanced Materials, Mining, Precious Met|Targa Exploration focuses on the acquisition, exploration, and development of prospective lithium projects in 
+570|Coya Therapeutics|Biopharma, Biotechnology, Life Science|Coya Therapeutics is a T Reg platform company addressing neurodegenerative, autoimmune, and metabolic diseases
+571|Milliways|Consumer Goods, Grocery, Retail|Milliways is a food and beverage services agency.
+572|Northslope|Artificial Intelligence (AI), Business I|Northslope develops mission-specific AI applications on the Palantir operating system for enterprise customers
+573|Automata|Artificial Intelligence (AI), Biotechnol|Automata is a lab automation company offering the LINQ platform to streamline workflows and boost laboratory e
+574|Cibus|Agriculture, Biotechnology|Cibus offers precision gene editing in agriculture to make farming more environmentally friendly, sustainable,
+575|Oats Overnight|Consumer Goods, Food and Beverage|Oats Overnight is a manufacturer of oatmeal-based nutritional breakfasts.
+576|Pranax|Biopharma, Biotechnology, Life Science|Pranax is a biotechnology company that develops and commercializes regenerative medicine solutions centered on
+577|Propy|Apps, Blockchain, FinTech|Propy is an end-to-end real estate transaction management platform that facilitates real estate transactions o
+578|Sixfold AI|Artificial Intelligence (AI), Generative|Sixfold AI is an insurtech company that uses AI to automate underwriting processes and support more informed r
+579|Rudsak|E-Commerce, Fashion, Retail|Rudsak is a canadian luxury fashion company that houses some of the most passionate and creative talent from a
+580|Emerald|Artificial Intelligence (AI), Generative|Emerald is a preventive health membership with local screenings, all your data in one place, and an action pla
+581|Mito Ai||MITO is a filmmaking platform built on artificial intelligence.
+582|Arkero|Information Technology, Internet, Sports|Arkero is an AI-native platform designed for sports businesses, focusing on planning gamedays, driving renewal
+583|Levellr|Analytics, Artificial Intelligence (AI),|Levellr is a technology company that provides a platform for modernizing corporate payroll and workforce manag
+584|LeydenJar Technologies|Battery, Electronics, Manufacturing|LeydenJar Technologies develops and produces pure silicon anodes for use in energy-dense batteries.
+585|Dealroom.co|Finance, Information Services|Global database to identify & track promising companies
+586|Kitchen & Market|E-Commerce, Food and Beverage, Grocery|Kitchen & Market is a grocery store that sells kitchen kits, groceries, and prepared foods.
+587|Limy AI|Artificial Intelligence (AI), Brand Mark|Limy AI is a software development company that offers brand marketing services using AI.
+588|Dragonfly AI|Analytics, Artificial Intelligence (AI),|Dragonfly AI is a predictive visual analytics platform that simulates how attention works in the brain to show
+589|Funnel|Advertising, Analytics, Big Data|Funnel designs and develops software/platforms that help marketers automate their data collection for reportin
+590|Sentra|Agentic AI, Artificial Intelligence (AI)|Sentra is an AI-powered memory system designed for enterprises. It captures company knowledge and data to crea
+591|Eliyan|Electronics, Manufacturing, Semiconducto|Eliyan manufactures semiconductor interconnects to accelerate chiplet-based systems.
+592|Lightyear|IT Infrastructure, Telecommunications|Lightyear offers a software that helps in the automation of procurement and management for enterprise telecom.
+593|Snout|Health Care, Software, Veterinary|Snout is a veterinary technology solution that helps the practice support team to concentrate on customer serv
+594|X-energy|Clean Energy, CleanTech, Energy|X-energy is a nuclear energy company that develops small modular nuclear reactors and nuclear fuels for clean 
+595|Carbonaide|Construction, Environmental Engineering,|We remove carbon dioxide from circulation while making concrete better.
+596|Twin|Automotive, Information Technology, Inte|Twin Labs, offer an automated tool for repetitive operations, such as onboarding new staff to all internal sys
+597|GoCanopy|Artificial Intelligence (AI), Data Manag|GoCanopy uses AI to transform real estate investing with data-driven insights.
+598|Mesh|Cryptocurrency, Financial Services, FinT|Mesh is a global crypto payments network that enables easy payment across hundreds of exchanges, wallets, and 
+599|Lunar|Banking, Credit Cards, Debit Cards|Lunar is a digital bank that offers a mobile-based banking app that helps consumers manage their personal fina
+600|Tenbin Labs||Tenbin Labs is a startup developing a tokenized asset protocol for real-world assets like commodities and fore
+601|Risotto|Artificial Intelligence (AI), Informatio|Risotto is an AI ChatOps for IT support, boosting efficiency and security with instant resolution and 24/7 aut
+602|Fiddler AI|AI Infrastructure, Analytics, Artificial|Fiddler provides enterprise model performance management software that allows monitoring, explaining, analyzin
+603|Fulcrum|Artificial Intelligence (AI), Insurance,|Fulcrum is an AI-powered platform designed to help insurance account managers handle larger books of business 
+604|Gridline|Financial Services, FinTech, Information|Gridline is a digital wealth platform for alternative investments.
+605|Vention|Artificial Intelligence (AI), CAD, Hardw|Vention is a digital manufacturing automation platform that helps companies automate their production floor.
+606|Vox Funding|Finance, Financial Services, Lending|VOX Funding is a firm that offers lending services.
+607|Salicru|Energy, Energy Efficiency, Manufacturing|Salicru offers energy optimization and protection of technological equipment that causes incidences in the ele
+608|Radiant|Energy, GreenTech|Radiant decarbonise heat for industry.
+609|Know Your Meds|Artificial Intelligence (AI), Health Car|KnowYourMeds is a new, AI based mobile application available on iOS and Android devices.
+610|Barnwell Bio|Biotechnology, Veterinary, Waste Managem|Barnwell Bio analyzes waste streams for insights into animal health and farm management.
+611|BasicBlock|Blockchain, Mobile Payments, Supply Chai|BasicBlock is a mobile application for truck drivers to scan and upload documents for quick and easy payment.
+612|Float Financial|Accounting, Credit Cards, Finance|Float offers a corporate card and spend management solution that allows corporate cards, reimbursements, appro
+613|Grid Aero|Aerospace, Air Transportation, Logistics|Grid Aero builds autonomous aircraft for long-range operations, supporting distributed logistics across defens
+614|Orbital Witness|Consulting, Information Services, Legal|Orbital Witness is a legal tech startup that offers a platform for due diligence in property transactions with
+615|Raylo|Mobile, Mobile Apps, Mobile Payments|Raylo provides leases for electronics such as phones, tablets, and laptops.
+616|tem.|Energy, Energy Efficiency, Energy Manage|tem. allows businesses to save on energy costs whilst renewable generators are rewarded. tem. use Renewable En
+617|Alfred|Financial Services, Payments, Transactio|Alfred Pay enables real-time payments across Latin America with a single API, focusing on financial inclusion.
+618|Zocks|Artificial Intelligence (AI), Enterprise|Zocks is an AI-powered assistant specifically for financial advisors that automate routine tasks and capture c
+619|Evaro|Health Care, Online Portals|Evaro provides digital health integration to increase accessibility of pharmacy products.
+620|Voxelo.ai|3D Technology, Artificial Intelligence (|3D for e-commerce — turn product videos into lifelike, shoppable 3D in minutes.
+621|Stamp|FinTech, Retail, Retail Technology|STAMP provides digital, tax-free services to travelers.
+622|Aptera|Automotive, Consumer Goods, Electric Veh|Aptera Motors is an electric vehicle manufacturer that designs and develops aerodynamic electric vehicles.
+623|Cyclic Materials|CleanTech, Industrial, Manufacturing|Cyclic Materials is a cleantech company that develops a circular supply chain for rare earth elements and crit
+624|Asymmetric Security|Artificial Intelligence (AI), Cyber Secu|Asymmetric Security is an AI-native cybersecurity startup specializing in digital forensics and incident respo
+625|Elcora Advanced Materials|Nanotechnology|An exploration-stage company.
+626|Klir|Enterprise Resource Planning (ERP), Ente|Klir is the operating system for water.
+627|Optalysys|Artificial Intelligence (AI), Big Data, |Optalysys solves the fundamental limitations of conventional computing.
+628|Western Exploration|Industrial, Industrial Engineering, Mini|Western Exploration is a precious metals exploration company focused on gold and silver development.
+629|Pull Logic|Analytics, Retail, Retail Technology|Pull Logic is a SaaS platform that addresses lost sales due to stockout for the retail industry.
+630|AheadComputing|Embedded Systems, Intellectual Property,|AheadComputing is a microarchitecture compute performance company that develops microprocessor core design and
+631|Rua Gold|Mineral, Mining|RUA GOLD is a minerals firm at the forefront of the mining sector, focusing on gold exploration and discovery.
+632|Datarails|Financial Services, FinTech, Information|Datarails is an FP&A platform that automates consolidation, reporting, planning, and forecasting while support
+633|RipeLocker|AgTech, Commercial, Flowers|RipeLocker is an agtech company that develops containers designed to extend the life of perishables.
+634|Sage Geosystems|Clean Energy, Energy Storage, Geothermal|Sage Geosystems develops geothermal and energy storage technologies that use subsurface heat and pressure to g
+635|SeeQC|Electronics, Infrastructure, Manufacturi|SeeQC is a semiconductor company that develops quantum computing systems and offers chip fabrication services 
+636|Z League|Digital Entertainment, Gaming, PC Games|The world’s first skill-based e-sports tournament platform
+637|QV Bioelectronics|Advanced Materials, Biotechnology, Elect|Longer, Better Quality Lives for Brain Tumour Patients
+638|SurgePays|Financial Services, FinTech, Software|SurgePays is a fintech software platform that processes third-party prepaid wireless activations.
+639|RISE Robotics|Manufacturing, Mechanical Design, Roboti|RISE Robotics is a technology company that develops fluid-free motion control systems for heavy machinery.
+640|Safe Online|Non Profit|Safe Online is a nonprofit organization
+641|First Andes Silver|Mining|First Andes Silver is a company that holds a diversified portfolio of gold and silver focused mineral properti
+642|OneDosh|Finance, Financial Exchanges, Financial |OneDosh lets users send and receive payments globally by providing a multi-wallet system that supports fiat an
+643|Digital Interview AI|Artificial Intelligence (AI), Digital Si|Digital Interview AI is a digital platform that enables individuals and organizations practice real interviews
+644|Offerswap|Artificial Intelligence (AI), E-Commerce|One place to buy services, sell smarter, and connect with people.
+645|Return Signals|Software|Proactive CX for E-commerce. Text post-delivery to provide support, preempt returns, and improve retention.
+646|Cosmos|Artificial Intelligence (AI), Content, M|Cosmos is a Pinterest alternative for creatives.
+647|Statusphere|Advertising, E-Commerce, Marketing|Statusphere is an influencer marketing platform.
+648|Electrovaya|Battery, Energy, Renewable Energy|Electrovaya develops battery technologies designed for increased safety and longer life.
+649|enGene|Biotechnology, Diabetes, Genetics|enGene is a biotechnology company develops treatment for mucosal diseases through inducing therapeutic protein
+650|Ethernovia|Autonomous Vehicles, Information and Com|Ethernovia is a developer of an Ethernet system that provides the next evolution in vehicle communication.
+651|Jetson|Carbon Capture, Electronics, Heating|Jetson Home focused on residential electrification, replacing gas furnaces with all-electric heat pump systems
+652|LinearB|Analytics, Information Technology, Machi|LinearB's Software Engineering Intelligence (SEI) platform translates insights from engineering data into powe
+653|LQWD Technologies|Apps, Bitcoin, FinTech|LQWD Technologies offers a Bitcoin payment solution powered by the Lightning Network.
+654|Nobull|Lifestyle, Sporting Goods|NOBULL operates as an outdoor and sporting goods company.
+655|Stilla AI|Artificial Intelligence (AI), Productivi|Stilla is an AI agent that quietly keeps track of everything — what was said, what needs doing, and what’s alr
+656|American Pacific Mining|Asset Management, Mining, Precious Metal|American Pacific Mining is an exploration company that deals with the exploration, and acquisition of gold dep
+657|Robin Health|Apps, Health Care, Medical|Robin Health is focused on prevention and digital health management.
+658|SPiN|Hospitality, Sporting Goods, Sports|SPiN is a network of international ping pong social designations that combines a unique mixture of sport and d
+659|Permit Rockstar|Agentic AI, Construction, Document Manag|Permit Rockstar is an AI driven company that offers software for generating, notarizing, recording, and submit
+660|NeoXperiences|Digital Entertainment, Gaming, Recreatio|NeoXperiences develops technological solutions that bring audiences together around fun and interactive experi
+661|Whistle Performance|Analytics, Artificial Intelligence (AI),|Whistle Performance provides AI-driven sports and human performance analytics software for teams and organizat
+662|Brum|Automotive, B2C, Training|Brum provides vehicle driving training courses and digitization solutions for getting a driving license.
+663|Mosaico|AI Infrastructure, Open Source, Robotics|Pioneering Data Management for Physical AI and Robotics.
+664|lab-go|Blockchain, Fashion, Fraud Detection|A Saas platform powered by IOT patented tags for product authentication, brand protection & customer engagemen
+665|Syntheia||SaaS, Artificial Intelligence, Conversational AI, NLP
+666|Millennial Potash|Mineral, Mining|Millennial Potash is a mineral exploration company that mainly focuses on exploration and developing potash pr
+667|Prospera Energy|Energy, Mining, Oil and Gas|Prospera Energy is a public corporation that deals with exploration, development, and the production of oil an
+668|TeamFeePay|Digital Media, Information Technology, S|TeamFeePay is a software company for football club management.
+669|CheckSig|Bitcoin, Blockchain, Cryptocurrency|Digital asset custody and prime brokerage
+670|National Quality Systems|Software|National Quality Systems is a clinical registry company empowering hospitals to achieve both clinical excellen
+671|Targeted Lending|Financial Services, FinTech, Funding Pla|Targeted Lending provides equipment financing services offering funding options for businesses.
+672|Revicasa|PropTech|Revicasa is a Spanish proptech company specializing in home inspections.
+673|Canada Rocket Company|Aerospace, Manufacturing, Space Travel|Canada Rocket Company is an aerospace company engaged in the development of defence and space infrastructure f
+674|PromptShop|Agentic AI, B2B, Software|PromptShop helps users and enterprises go from experiments to production faster by standardizing AI packaging 
+675|Osto|Artificial Intelligence (AI), Cyber Secu|One-Stop Cybersecurity Platform for Fast Moving Startups
+676|Fractile|AI Infrastructure, Artificial Intelligen|Fractile is building chips that remove every bottleneck to running large language models at a global scale
+677|Cyb3r Operations|Cyber Security, Information Technology, |CYB3R OPERATIONS offers cybersecurity services to detect and monitor threats across various web layers.
+678|Pinch AI|Fraud Detection, Retail Technology, SaaS|After Purchase abuse mitigation platform.
+679|equal1|Computer, Hardware, Manufacturing|equal1 is a hardware development laboratories company.
+680|Prime Intellect|Agentic AI, Artificial Intelligence (AI)|Prime Intellect is a full-stack platform that offers agentic training infrastructure for organizations to trai
+681|Science&Humans|Health Care, Wellness|Modern hormone treatments, backed by Science, from diagnosis to delivery of your medications, all from the com
+682|AlphaBitCore|Agentic AI, Artificial Intelligence (AI)|Virtualization layer for Enterprise AI
+683|Otto Sport Ai|Artificial Intelligence (AI), Sports|OTTO SPORT AI is an AI-driven intelligent operating system developed for youth sports groups.
+684|AlphaLum||AlphaLum pushes the boundaries of technological innovation with its unparalleled optical solutions.
+685|Higgsfield|Artificial Intelligence (AI), Video Edit|Higgsfield is a video AI firm committed to democratizing social media content creation for everyone.
+686|Midnite|Casino, eSports, Gambling|Midnite provides a sportsbook and casino platform that offers sports betting, casino games, and eSports wageri
+687|Carol|Employee Benefits, Health Care, Medical|Carol is a tech-enabled healthcare provider delivering membership-based primary care services
+688|Campsider|E-Commerce, Shopping, Sporting Goods|Campsider is a community market that provides second-hand outdoor sports equipment.
+689|Silver Plaza|Cloud Security, Cyber Security, Data Gov|Governance-grade cryptographic infrastructure enabling jurisdiction-bound control and evidence-first access fo
+690|Titl|Data Management, PropTech, Real Estate|Titl delivers autonomous, near-instant title production, verification, and on-chain title plant access—powered
+691|Founders Table Restaurant Group|Food and Beverage, Restaurants|Founders Table Restaurant Group creates, acquires, and cultivates restaurant companies.
+692|GiveCard|Banking, Debit Cards, FinTech|GiveCard builds accessible card-issuing infrastructure, putting reloadable prepaid issuing in reach without th
+693|Ambient Clinical Analytics|Analytics, Health Care, Medical|Ambient Clinical Analytics is a provider of clinical analytics solutions to health systems and hospitals,
+694|Beyond Air|Biopharma, Biotechnology, Developer Plat|Beyond Air is a biotechnology company that focuses on the development of drugs for the treatment of lung infec
+695|Caldera Therapeutics|Biopharma, Biotechnology, Life Science|Caldera Therapeutics is a biotech company engaged in the development of bispecific antibody CLD-423 for inflam
+696|Organica Water|Recycling, Waste Management, Water Purif|Organica Water develops solutions for treating and recycling wastewater.
+697|MedWatch Technologies|Health Care, Medical Device, SaaS|MedWatch Technologies is a medical device and SaaS company that specializes in health monitoring and managemen
+698|Noise Labs|Apps, Financial Exchanges, Trading Platf|Noise Labs offers a programmatic liquidity platform for people to trade trends and narratives as assets.
+699|Desert Mountain Energy|Mineral, Mining, Natural Resources|Desert Mountain Energy is an exploratory resource company.
+700|Spot Ship|Logistics, Machine Learning, Software|Spot Ship is an enterprise SAAS company that reduces the time it takes a ship broker to charter a ship from 6 
+701|Atlantic Screen Group|Music, Music Label, Publishing|ASG is a music publishing, production, and investment company that focuses on film scores, advising producers,
+702|Klearly|Credit Cards, Financial Services, FinTec|Klearly provides payment acceptance technology that processes payments using smartphones and tablets as secure
+703|Malta|Energy, Renewable Energy, Solar|Malta is a provider of industrial-grade, grid-scale energy storage, and electro-thermal energy storage solutio
+704|Haiqu|Artificial Intelligence (AI), Hardware|Haiqu is a quantum computing software firm focusing on the development.
+705|Converge Bio|Artificial Intelligence (AI), Biotechnol|Converge Bio integrates Generative AI with biological data.
+706|Flip CX|Artificial Intelligence (AI), Customer S|Flip your CX with best in class Voice AI for retail eCommerce, transportation, and healthcare brands.
+707|RISA Labs|Artificial Intelligence (AI), Enterprise|Oncology first, AI Transformation Lab. Pioneers of BOSS [Business (Operating System) as Service]. We serve mis
+708|Vestaboard|Commercial, Consumer Electronics, Home D|Vestaboard develops an internet-connected display intended to help design and provide information through wall
+709|WeatherPromise|InsurTech, Outdoors, Predictive Analytic|WeatherPromise guarantees great weather through embedded protection delivered during the purchase of travel or
+710|Wattstor|Renewable Energy, Semiconductor|Wattstor specialises in managing assets on business sites and within local energy communities.
+711|Superlinear|Artificial Intelligence (AI), Generative|Decide better. Move faster.
+712|A.B.M. Tool & Die|Automotive, Industrial Design, Manufactu|A.B.M. TOOL & DIE is at the forefront of contemporary technology in the design and production.
+713|Karmen|Finance, FinTech, Lending|Karmen is a fintech offering online non-dilutive funding for growth, working capital, and invoice factoring to
+714|The Sanctuary Group|Fitness, Personal Health, Wellness|The Sanctuary Group provides aqua-cycling, indoor cycling, boxing bootcamp, yoga, dance cardio, HIIT workouts,
+715|Collage|Digital Marketing, Marketing, Software|The most innovative, AI-driven DAM platform, designed with a user-first experience to elevate brand and conten
+716|DiMax.cloud|Manufacturing, Software, Web3|DiMax.cloud is software solution for distributed manufacturing.
+717|Cytotheryx|Biotechnology, Health Care, Medical|Cytotheryx is a preclinical cell therapy company focused on the development of a consistent, high-quality sour
+718|SolaREIT|Asset Management, Finance, Financial Ser|SolaREIT is a renewable energy real estate company that offers financing solutions for solar and battery energ
+719|Diffraqtion|Hardware, Satellite Communication, Senso|Diffraqtion is a tech company that develops quantum imaging technology with low-energy sensors and AI.
+720|EstateXchange|Decentralized Finance (DeFi), E-Commerce|EstateXchange is a safe online platform that links essential organizations and estate specialists to expedite 
+721|Avenue Biosciences|Alternative Protein, Biotechnology, Ther|Avenue Biosciences is a transatlantic biotech business that specializes on innovative protein engineering tech
+722|Polar Light Technologies|Lighting, Semiconductor|Polar Light Technologies focuses on developing the next generation of Nano and micro LED technology.
+723|EverGen Infrastructure|Energy, Infrastructure, Oil and Gas|EverGen acquire, develop, build, own and operate a portfolio of Renewable Natural Gas, waste to energy, and re
+724|Overwatch Imaging|Aerospace, Artificial Intelligence (AI),|Overwatch Imaging designs and manufactures imaging systems with custom onboard AI software for piloted aircraf
+725|LIS Technologies|Laser, Manufacturing, Semiconductor|LIS Technologies develops laser isotope separation technology that utilizes infrared lasers to excite specific
+726|MagicCube|Credit Cards, Cyber Security, Internet o|MagicCube is a security platform for mobile and IoT devices, delivering hardware-grade protection without the 
+727|Exterview AI|Software|Agentic Talent Intelligence Platform
+728|Principled Intelligence|Artificial Intelligence (AI), Data Gover|Principled Intelligence specializes in developing technologies that control and govern artificial intelligence
+729|Cemtrex|Analytics, Artificial Intelligence (AI),|Cemtrex drives innovation in many sectors, including smart tech, VR & AR, advanced electronic systems, and int
+730|Performance Drone Works|Aerospace, Automotive, Military|Performance Drone Works specializes in developing autonomous unmanned aerial systems.
+731|Tucuvi|Artificial Intelligence (AI), Health Car|Tucuvi is pioneering AI-first healthcare with its CE-marked platform for Phone Consultation automation.
+732|Simparo Surgical|Cosmetic Surgery, Health Care, Medical D|Simparo Surgical is a medical device manufacturing company that offers surgical equipments.
+733|Carna Health|Biotechnology, Health Care, Health Diagn|Carna Health is a biotech company that brings common clinical whole blood tests into the comfort of the patien
+734|Jennings Center for Older Adults|Elder Care, Non Profit, Residential|Jennings Center for Older Adults is a non-profit organization that offers residences and services for older ad
+735|iMaintain|Artificial Intelligence (AI), Informatio|iMaintain is a software company that offers IT support services for business maintenance management.
+736|Poplar Therapeutics|Health Care, Medical, Therapeutics|Poplar Therapeutics anti-IgE therapy treats atopic diseases such as food allergy, allergic asthma, and atopic 
+737|Protege|Analytics, Artificial Intelligence (AI),|Protege is the AI training data platform enabling seamless and compliant data exchange.
+738|Swap|E-Commerce, Finance, Software|Swap Commerce provides an e-commerce operating system that helps online brands unify and manage their commerce
+739|Nested Knowledge|Analytics, Data Visualization, Informati|Nested Knowledge offers a product to clinical researchers to enable the collection, analysis, and presentation
+740|Mclaren Resources|Mineral, Mining, Precious Metals|Mclaren Resources is a gold exploration company.
+741|West High Yield|Mining, Mining Technology, Precious Meta|West High Yield is a mining company that services mines in the Alberta, Canada area.
+742|Semafor|Internet, Media and Entertainment, News|Semafor is a news and media company that offers widely covered news content across the globe.
+743|Dalston's Soda Company|Food and Beverage, Manufacturing, Retail|Dalston's Soda Company is a food and beverage firm that produces and sells flavored sodas.
+744|Reconnaissance Energy Africa|Mining, Natural Resources, Oil and Gas|Reconnaissance Energy Africa operates as an oil and gas company working collaboratively with national governme
+745|Kuya Silver|Mineral, Mining, Precious Metals|Kuya Silver focuses on acquiring, exploring, and advancing precious metals assets.
+746|GS Microelectronics|Application Specific Integrated Circuit |GS Microelectronics provides manufacturing services for custom semiconductor solutions, including chip design,
+747|LifeMD|Health Care, Telehealth|LifeMD is a comprehensive telehealth platform that offers virtual primary care and specialty services like wei
+748|HabitTrade|Apps, FinTech, Mobile Apps|HabitTrade is a global brokerage firm providing services across trading infrastructure, settlement, custody, a
+749|Pacific Valley Bank|Banking, Financial Services|Pacific Valley Bank is a community bank that provides personal and business banking services.
+750|Pluto Financial Technologies|Financial Services, Wealth Management|Pluto is an AI-powered lending platform that lets investors borrow against private assets, with repayment from
+751|Bloemteknik|Horticulture, Lighting, Manufacturing|Bloemteknik develops, manufactures, and distributes high-quality modular lighting solutions for vertical farms
+752|Smaio|Manufacturing, Medical, Medical Device|SMAIO is a manufacturer of implantable medical devices for the treatment of spinal pathologies.
+753|Marketecture|Advertising Platforms, Digital Marketing|Marketecture is a new kind of B2B media company. We cover advertising and marketing with podcasts, newsletters
+754|Mesa Quantum|Electronics, Manufacturing, Semiconducto|Mesa Quantum is a quantum sensor manufacturing company that provides volume manufacturing of integrable chip-s
+755|Cambium|Advanced Materials, Aerospace, Law Enfor|Cambium specializes in advanced materials for defense and aerospace, focusing on AI-driven designs and agile m
+756|HeyMilo|Artificial Intelligence (AI), Generative|HeyMilo is an AI-powered candidate screening platform that enables organizations to screen, interview, and eva
+757|Nine Mile Metals|Mineral, Mining, Precious Metals|Nine Mile Metals engages in the acquisition, development, and exploration of mineral properties.
+758|India Globalization Capital|Business Development, Infrastructure, Re|India Globalization Capital operates as a materials and infrastructure company in India and China.
+759|Squid|Artificial Intelligence (AI), Electrical|Squid offers a workspace for planning, modeling, and testing power grid networks with tools for network analys
+760|Unusual AI|Artificial Intelligence (AI), Informatio|Unusual AI is an IT and Internet firm offering AI that personalise website according to visitors for more conv
+761|Cosine|Artificial Intelligence (AI), Developer |Cosine is an AI knowledge engine that understands your codebase.
+762|Honey Mama's|Food and Beverage, Retail Technology, Wh|Honey Mama’s offers honey-cocoa bars made from five nutrient-rich ingredients.
+763|Hardline|Construction, Mobile Apps, PropTech|Hardline: a mobile-first, voice-powered app that turns jobsite calls & walkthroughs into clear, actionable pro
+764|elasticStage|Manufacturing, Music|elasticStage is the world’s first on-demand vinyl and CD platform enabling artists to sell physical records in
+765|Love Sum Dumplings|Food and Beverage, Snack Food|Love Sum Dumplings seeks to create dumplings in the United Kingdom.
+766|Decima2|Marketing, Software|Decima2 is a SaaS platform that manages and optimises marketing spend

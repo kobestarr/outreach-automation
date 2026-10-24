@@ -1,0 +1,20 @@
+{
+"3D printing and advanced manufacturing companies": {"query":"best 3D printing and advanced manufacturing companies","named":["Stratasys","3D Systems","EOS","HP","Materialise","Renishaw","Proto Labs","Prodways"]},
+"AI credit and lending software for banks": {"query":"best AI credit and lending software for banks","named":["nCino","MeridianLink","Axe Credit Portal","LendFoundry","LoansNeo","HES LoanBox","timveroOS"]},
+"AI healthcare administration software": {"query":"best AI healthcare administration software","named":["Epic","CureMD","DoctorConnect","Whippy.ai","DoctorsApp"]},
+"AI sales and marketing automation platforms": {"query":"best AI sales and marketing automation platforms","named":["HubSpot","Salesforce","Adobe Marketo Engage","Klaviyo","Braze","ActiveCampaign","Mailchimp","Customer.io"]},
+"EV charging and electric mobility companies": {"query":"best EV charging and electric mobility companies","named":["ChargePoint","ABB","Siemens","Eaton","Bosch","Shell","BP","Tesla Supercharger"]},
+"anti-fraud and identity verification software": {"query":"best anti-fraud and identity verification software","named":["AiPrise","AU10TIX","FraudNet","SEON","Feedzai","Sift","Kount","iDenfy"]},
+"child online safety nonprofits": {"query":"best child online safety nonprofits","named":["Common Sense Media","ConnectSafely","Thorn","NetSmartz","Family Online Safety Institute","Protect Us Kids Foundation","Insafe"]},
+"consumer electronics startups": {"query":"best consumer electronics startups","named":["SiFive","Suno","Frore Systems","Eliyan"]},
+"diamond mining companies": {"query":"best diamond mining companies","named":["ALROSA","De Beers","Rio Tinto","Lucara Diamond","Gem Diamonds","Petra Diamonds","Burgundy Diamond Mines"]},
+"elderly care providers": {"query":"best elderly care providers","named":["Comfort Keepers","Caremark"]},
+"healthcare staffing platforms": {"query":"best healthcare staffing platforms","named":["Nursa","ShiftKey","IntelyCare","Trusted Health","OnShift","Vector4Health","Bullhorn"]},
+"lithium and critical minerals exploration companies": {"query":"best lithium and critical minerals exploration companies","named":["Stria Lithium","Patagonia Lithium","ACME Lithium","Lithium Americas","Albemarle","Critical Metals Corp"]},
+"mental health and wellness apps": {"query":"best mental health and wellness apps","named":["Headspace","Calm","Insight Timer","Talkspace","BetterHelp","MindShift","Sanvello","Wysa"]},
+"personalised gifts and kids products brands": {"query":"best personalised gifts and kids products brands","named":["Hippo Blue","Little Chicken","Pixajoy","Photobrick","Etsy","Crate & Kids","Caden Lane","Melissa & Doug"]},
+"renewable energy developers": {"query":"best renewable energy developers","named":["NextEra Energy","TotalEnergies","Adani Green Energy","Brookfield Renewable","Canadian Solar","First Solar"]},
+"solar energy developers": {"query":"best solar energy developers","named":["NextEra Energy","TotalEnergies","Adani Green Energy","Brookfield Renewable","Lightsource bp","Canadian Solar","First Solar","Orsted"]},
+"stablecoin and crypto infrastructure providers": {"query":"best stablecoin and crypto infrastructure providers","named":["Circle","Stripe (Bridge)","Fireblocks","BVNK","Paxos","Zerohash","Crossmint","Privy"]},
+"uranium exploration companies": {"query":"best uranium exploration companies","named":["Denison Mines","NexGen Energy","ALX Uranium","Appia Energy","Blue Sky Uranium","Deep Yellow","Bannerman Energy","Toro Energy"]}
+}

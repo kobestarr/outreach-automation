@@ -155,7 +155,7 @@ async function main(argv = process.argv.slice(2), opts = {}) {
     const deps = {
       now,
       classify: r => classifyReply(r, { llm: classifyLlm, now: now() }),
-      draft: a => draftReply(a, { llm: draftLlm, config }),
+      draft: makeDraftDep(config, draftReply, draftLlm),
       post: DRY ? async t => dry(`would post:\n${t}\n`) : (opts.post || require('./shared/outreach-core/notify/buzz-post').post),
       block: DRY
         ? async (email, reason, label) => { dry(`would block ${email} (${label}: ${reason}) in Mailead, email finder, do-not-contact, ledger`); return { complete: true }; }
@@ -193,4 +193,11 @@ function loadTracker(root) {
 }
 
 if (require.main === module) main().then(c => process.exit(c)).catch(e => { console.error(`${new Date().toISOString()} ${e.message}`); process.exit(1); });
-module.exports = { main, readRemote, resolveDataDir, writeAtomic, DEFAULT_DATA_DIR };
+// Kobi 20 Oct 2026: warm/maybe/referral replies alert only and we draft the answer together.
+// config.draftReplies === false skips the model entirely; anything else keeps the old drafting.
+function makeDraftDep(config, draftFn, llm) {
+  if (config && config.draftReplies === false) return async () => ({ error: 'alert only: paste it to Claude and we draft it together' });
+  return a => draftFn(a, { llm, config });
+}
+
+module.exports = { makeDraftDep, main, readRemote, resolveDataDir, writeAtomic, DEFAULT_DATA_DIR };

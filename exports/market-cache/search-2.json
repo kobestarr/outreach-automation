@@ -1,0 +1,20 @@
+{
+"AI agent and workflow automation platforms": {"query": "best AI agent and workflow automation platforms", "named": ["n8n","Gumloop","Microsoft Copilot Studio","Salesforce Agentforce","UiPath","Automation Anywhere","StackAI","Relay.app"]},
+"AI customer support and contact center software": {"query": "best AI customer support and contact center software", "named": ["RingCX","Aircall","Talkdesk","Freshcaller","Five9","NiCE CXone","Dialpad","Plivo CX"]},
+"AI medical front office and scribe software": {"query": "best AI medical front office and scribe software", "named": ["Commure","Abridge","Suki","Ambience Healthcare","Nuance DAX Copilot","Augmedix","Freed","Sunoh.ai"]},
+"AI sales coaching and CRM tools": {"query": "best AI sales coaching and CRM tools", "named": ["Gong","ZoomInfo Chorus","HubSpot Sales Hub","Salesforce Einstein","Revenue.io","Highspot","Clari","Hyperbound"]},
+"RNA and protein therapeutics developers": {"query": "best RNA and protein therapeutics developers", "named": ["Alnylam","Moderna","Translate Bio","Orna Therapeutics","Replicate Bioscience","Strand Therapeutics","hC Bioscience","Vico Therapeutics"]},
+"battery technology companies": {"query": "best battery technology companies", "named": ["CATL","LG Energy Solution","Panasonic","BYD","Samsung SDI","QuantumScape","Solid Power","Tesla"]},
+"clinical stage biotech and drug developers": {"query": "best clinical stage biotech and drug developers", "named": ["Dianthus Therapeutics","Recursion Pharmaceuticals","Insitro","Biosplice Therapeutics","ElevateBio","Tempus","Surf Therapeutics","Oryon Cell Therapies"]},
+"craft spirits and drinks brands": {"query": "best craft spirits and drinks brands", "named": ["Woody Creek Distillers","Balcones","Whiskey Del Bac","St. George Spirits","Revivalist Botanical Gins","Hernö","Rock Town Distillery","Old Ipswich Rum"]},
+"digital health for chronic conditions": {"query": "best digital health for chronic conditions", "named": ["Welldoc","Better Choices, Better Health"]},
+"environmental services and waste management companies": {"query": "best environmental services and waste management companies", "named": ["Waste Management Inc.","Republic Services","Waste Connections","GFL Environmental","Clean Harbors","Stericycle","Veolia","Biffa"]},
+"insurtech and insurance software": {"query": "best insurtech and insurance software", "named": ["Applied Epic","Vertafore","IMS","Acturis","Insly","ScienceSoft"]},
+"lithium exploration companies": {"query": "best lithium exploration companies", "named": ["Albemarle","SQM","Lithium Americas","Piedmont Lithium","Sigma Lithium","Acme Lithium","Arena Minerals","Foremost Lithium"]},
+"nuclear and advanced energy developers": {"query": "best nuclear and advanced energy developers", "named": ["X-energy","Framatome","Cameco","Westinghouse","GE Hitachi","TVEL"]},
+"quantum computing companies": {"query": "best quantum computing companies", "named": ["IBM","IonQ","Quantinuum","D-Wave","Rigetti","PsiQuantum","Xanadu","QuEra"]},
+"revenue cycle and claims processing software": {"query": "best revenue cycle and claims processing software", "named": ["Waystar","athenahealth","Quadax","CareCloud","Office Ally","Epic","AdvancedMD","CureMD"]},
+"space and satellite technology companies": {"query": "best space and satellite technology companies", "named": ["SpaceX","Blue Origin","Rocket Lab","Amazon Kuiper","Surrey Satellite Technology","Astroscale","GHGSat","Sierra Space"]},
+"surgical robotics and orthopedic device makers": {"query": "best surgical robotics and orthopedic device makers", "named": ["Stryker","Zimmer Biomet","DePuy Synthes","Medtronic","Globus Medical","Smith+Nephew","Intuitive Surgical","CMR Surgical"]},
+"warehouse and industrial robotics companies": {"query": "best warehouse and industrial robotics companies", "named": ["Amazon Robotics","Symbotic","Boston Dynamics","Locus Robotics","GreyOrange","Geek+","AutoStore","Zebra Technologies"]}
+}
